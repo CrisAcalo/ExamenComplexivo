@@ -1,6 +1,6 @@
-# MiddewarePersonalizado
+# Examen Compexivo
 
-Este proyecto utiliza **Laravel 12.x**.
+Este proyecto utiliza **Laravel 9.x**.
 
 ## Requisitos
 
