@@ -508,26 +508,6 @@
                 <h5 class="fs-6 text-secondary">Control</h5>
 
                 <ul class="list-group nav nav-pills flex-column mb-auto list-unstyled ps-0">
-                    {{-- @if (Auth::user()->can('Cheques - Seccion'))
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('cheques.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-backpack3-fill"></i></span>
-                                Cheques
-                            </a>
-                        </li>
-                    @endif
-                    @if (Auth::user()->can('Importar - Clientes'))
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('import.cliente') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-people"></i></span>
-                                Clientes
-                            </a>
-                        </li>
-                    @endif --}}
-
-
                     <li class="nav-item list-group nav-link-item">
                         <a href="{{ route('periodos.') }}" class="nav-link text-white">
                             <span class="icon-wrapper">
@@ -548,6 +528,14 @@
                             <span class="icon-wrapper">
                                 <i class="bi bi-people"></i></span>
                             Estudiantes
+                        </a>
+                    </li>
+
+                     <li class="nav-item list-group nav-link-item">
+                        <a href="{{ route('rubricas.') }}" class="nav-link text-white">
+                            <span class="icon-wrapper">
+                                <i class="bi bi-people"></i></span>
+                            Rubricas
                         </a>
                     </li>
 
