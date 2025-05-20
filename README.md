@@ -14,7 +14,7 @@ Este proyecto utiliza **Laravel 9.x**.
 1. **Clona el repositorio:**
    ```sh
    git clone https://github.com/CrisAcalo/ExamenComplexivo.git
-   cd MiddewarePersonalizado
+   cd ExamenComplexivo
    ```
 
 2. **Instala dependencias de PHP:**
