@@ -18,4 +18,9 @@ class Rubrica extends Model
     {
         return $this->hasMany(ComponenteRubrica::class, 'rubrica_id');
     }
+
+    public function componentesRubrica() // El nombre debe coincidir exactamente
+    {
+        return $this->hasMany(ComponenteRubrica::class, 'rubrica_id', 'id');
+    }
 }

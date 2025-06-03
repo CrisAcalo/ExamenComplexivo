@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('componente_id')
                 ->constrained('componentes_rubrica')
                 ->onDelete('cascade');
-            $table->string('nombre', 100);
+            $table->string('nombre'); //la extension por defecto es varchar(255)
             $table->timestamps();
         });
     }

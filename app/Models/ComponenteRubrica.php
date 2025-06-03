@@ -7,19 +7,26 @@ use Illuminate\Database\Eloquent\Model;
 
 class ComponenteRubrica extends Model
 {
-	use HasFactory;
+    use HasFactory;
 
     public $timestamps = true;
 
     protected $table = 'componentes_rubrica';
 
-    protected $fillable = ['rubrica_id','nombre','ponderacion'];
+    protected $fillable = ['rubrica_id', 'nombre', 'ponderacion'];
+    /**
+     * Get the rubrica that owns the ComponenteRubrica.
+     */
     public function rubrica()
     {
-        return $this->belongsTo(Rubrica::class, 'rubrica_id');
+        return $this->belongsTo(Rubrica::class, 'rubrica_id', 'id');
     }
-    public function criterios()
+
+    /**
+     * Get all of the criteriosComponente for the ComponenteRubrica.
+     */
+    public function criteriosComponente() // Nombre usado en Create.php
     {
-        return $this->hasMany(CriterioComponente::class, 'componente_id');
+        return $this->hasMany(CriterioComponente::class, 'componente_id', 'id');
     }
 }

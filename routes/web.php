@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Cheques\EntregaController;
+use App\Http\Controllers\Rubricas\RubricaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Livewire\Administracion\Roles;
 use App\Http\Controllers\Roles\RolController;
@@ -77,5 +78,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('rubricas')->namespace('Rubricas')->name('rubricas.')->group(function () {
         Route::view('/', 'livewire.rubricas.index');
+        Route::get('/create', [RubricaController::class, 'create'])->name('create');
+        Route::get('/edit/{id}', [RubricaController::class, 'edit'])->name('edit');
     });
 });

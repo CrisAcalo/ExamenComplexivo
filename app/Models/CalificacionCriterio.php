@@ -15,11 +15,14 @@ class CalificacionCriterio extends Model
         'criterio_id',
         'nombre',
         'valor',
-        'descripción'
+        'descripcion'
     ];
 
-    public function criterio()
+    /**
+     * Get the criterioComponente that owns the CalificacionCriterio.
+     */
+    public function criterioComponente()
     {
-        return $this->belongsTo(CriterioComponente::class, 'criterio_id');
+        return $this->belongsTo(CriterioComponente::class, 'criterio_id', 'id');
     }
 }

@@ -78,6 +78,10 @@ class Profile extends Component
         $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
         session()->flash('success', 'Carrera Creada Exitosamente.');
     }
+    public function cancel()
+    {
+        $this->resetInput();
+    }
 
 
     public function resetInput()
@@ -86,5 +90,4 @@ class Profile extends Component
         $this->director_id = null;
         $this->docente_apoyo_id = null;
     }
-
 }

@@ -25,7 +25,6 @@ class Periodos extends Component
         ]);
     }
     public function open($periodoID){
-        //redirigir a la vista de detalle de periodo
         return redirect()->route('periodos.profile', $periodoID);
     }
 

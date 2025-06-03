@@ -1,5 +1,6 @@
 @section('title', __('Tribunales'))
 <div class="container-fluid p-0">
+    @include('partials.alerts')
     <div class="fs-2 fw-semibold mb-4">
         <a href="{{ route('periodos.') }}">Períodos</a> /
         <a href="{{ route('periodos.profile', $periodo->id) }}">{{ $periodo->codigo_periodo }}</a> /
@@ -14,10 +15,6 @@
                             <h3><i class="fab fa-laravel text-info"></i>
                                 Listado de Tribunales</h3>
                         </div>
-                        @if (session()->has('message'))
-                            <div wire:poll.4s class="btn btn-sm btn-success" style="margin-top:0px; margin-bottom:0px;">
-                                {{ session('message') }} </div>
-                        @endif
                         <div>
                             <input wire:model='keyWord' type="text" class="form-control" name="search"
                                 id="search" placeholder="Search Tribunales">

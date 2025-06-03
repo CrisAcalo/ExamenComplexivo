@@ -531,7 +531,7 @@
                         </a>
                     </li>
 
-                     <li class="nav-item list-group nav-link-item">
+                    <li class="nav-item list-group nav-link-item">
                         <a href="{{ route('rubricas.') }}" class="nav-link text-white">
                             <span class="icon-wrapper">
                                 <i class="bi bi-people"></i></span>
@@ -553,13 +553,13 @@
                     {{-- @endif --}}
 
                     {{-- @if (Auth::user()->can('Permisos - Seccion')) --}}
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('permissions.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-list"></i></span>
-                                Permisos
-                            </a>
-                        </li>
+                    <li class="nav-item list-group nav-link-item">
+                        <a href="{{ route('permissions.') }}" class="nav-link text-white">
+                            <span class="icon-wrapper">
+                                <i class="bi bi-list"></i></span>
+                            Permisos
+                        </a>
+                    </li>
                     {{-- @endif --}}
 
                     <hr>
@@ -676,6 +676,16 @@
 
             if (modales[nameModalAEliminar]) {
                 modales[nameModalAEliminar].hide();
+            } else {
+                console.log(`El modal '${nameModalAEliminar}' no existe.`);
+            }
+        });
+
+        window.addEventListener('openModalByName', (event) => {
+            const nameModalAEliminar = event.detail.modalName;
+
+            if (modales[nameModalAEliminar]) {
+                modales[nameModalAEliminar].show();
             } else {
                 console.log(`El modal '${nameModalAEliminar}' no existe.`);
             }

@@ -12,15 +12,22 @@ class CriterioComponente extends Model
     protected $table = 'criterios_componente';
     protected $fillable = [
         'componente_id',
-        'criterio',
+        'nombre',
     ];
 
-    public function componente()
+    /**
+     * Get the componenteRubrica that owns the CriterioComponente.
+     */
+    public function componenteRubrica()
     {
-        return $this->belongsTo(ComponenteRubrica::class, 'componente_id');
+        return $this->belongsTo(ComponenteRubrica::class, 'componente_id', 'id');
     }
-    public function criteriosCalificaciones()
+
+    /**
+     * Get all of the calificacionesCriterio for the CriterioComponente.
+     */
+    public function calificacionesCriterio() // Nombre usado en Create.php
     {
-        return $this->hasMany(CalificacionCriterio::class, 'criterio_id');
+        return $this->hasMany(CalificacionCriterio::class, 'criterio_id', 'id');
     }
 }

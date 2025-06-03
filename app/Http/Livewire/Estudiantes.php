@@ -92,13 +92,18 @@ class Estudiantes extends Component
         if ($this->founded->tribunales->count() > 0) {
             $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
             session()->flash('danger', 'No se puede eliminar el estudiante porque tiene tribunales asociados.');
+            $this->founded = null;
             return;
         }
+        $this->dispatchBrowserEvent('openModalByName', ['modalName' => 'deleteDataModal']);
     }
     public function destroy($id)
     {
         if ($id) {
             Estudiante::where('id', $id)->delete();
+            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
+            session()->flash('success', 'Estudiante Eliminado Exitosamente.');
+            $this->founded = null;
         }
     }
 }

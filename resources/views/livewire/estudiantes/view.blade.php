@@ -50,8 +50,7 @@
                                                     class="btn btn-sm btn-primary"
                                                     wire:click="edit({{ $row->id }})"><i class="fa fa-edit"></i>
                                                     Edit </a>
-                                                <a class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                                                    data-bs-target="#deleteDataModal"
+                                                <a class="btn btn-sm btn-danger"
                                                     wire:click="eliminar({{ $row->id }})">
                                                     <i class="bi bi-trash3-fill"></i>
                                                 </a>
