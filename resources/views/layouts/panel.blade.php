@@ -574,6 +574,14 @@
                     </li>
                     {{-- @endif --}}
 
+                    <li class="nav-item list-group nav-link-item">
+                        <a href="{{ route('users.') }}" class="nav-link text-white">
+                            <span class="icon-wrapper">
+                                <i class="bi bi-person-lines-fill"></i></span>
+                            Tribunales
+                        </a>
+                    </li>
+
                     @impersonating($guard = null)
                         <li class="nav-item list-group nav-link-item">
                             <a class="nav-link text-white" href="{{ route('users.exitImpersonate') }}">

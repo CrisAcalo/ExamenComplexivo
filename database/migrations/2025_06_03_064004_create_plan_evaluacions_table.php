@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('plan_evaluacions', function (Blueprint $table) {
+        Schema::create('planes_evaluacion', function (Blueprint $table) {
             $table->id();
             $table->foreignId('carrera_periodo_id')
                 ->constrained('carreras_periodos')
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->text('descripcion')->nullable();
             $table->timestamps();
 
-            $table->unique(['carrera_periodo_id'], 'plan_carrera_periodo_unique');
+            $table->unique(['carrera_periodo_id'], 'plan_carrera_periodo_unique'); // Solo un plan por carrera_periodo
         });
     }
 
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('plan_evaluacions');
+        Schema::dropIfExists('planes_evaluacion');
     }
 };

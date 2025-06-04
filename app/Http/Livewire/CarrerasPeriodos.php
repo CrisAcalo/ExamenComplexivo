@@ -56,8 +56,10 @@ class CarrerasPeriodos extends Component
         ]);
 
         $this->resetInput();
-		$this->dispatchBrowserEvent('closeModal');
-		session()->flash('message', 'CarrerasPeriodo Successfully created.');
+
+        $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
+
+		session()->flash('success', 'CarrerasPeriodo Successfully created.');
     }
 
     public function edit($id)

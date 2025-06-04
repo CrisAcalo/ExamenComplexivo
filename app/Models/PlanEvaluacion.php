@@ -15,6 +15,7 @@ class PlanEvaluacion extends Model
         'descripcion',
     ];
 
+    protected $table = 'planes_evaluacion';
     public function carreraPeriodo()
     {
         return $this->belongsTo(CarrerasPeriodo::class, 'carrera_periodo_id');

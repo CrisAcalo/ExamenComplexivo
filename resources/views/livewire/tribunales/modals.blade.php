@@ -1,221 +1,138 @@
-<!-- Add Modal -->
+{{-- livewire.tribunales.modals.blade.php --}}
+
+<!-- Add Modal (Crear Tribunal) -->
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="createDataModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
+    {{-- ... (contenido del modal de creación sin cambios, asegúrate que los wire:model sean correctos) ... --}}
+    <div class="modal-dialog modal-lg" role="document"> {{-- modal-lg para más espacio --}}
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="createDataModalLabel">Create New Tribunale</h5>
+                <h5 class="modal-title" id="createDataModalLabel">Añadir Nuevo Tribunal</h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form>
-                    <div class="form-floating mb-3">
-                        <select wire:model="estudiante_id" id="estudiante_id" name="estudiante_id"
+                    {{-- Estudiante --}}
+                    <div class="mb-3">
+                        <label for="estudiante_id_create" class="form-label">Estudiante <span class="text-danger">*</span></label>
+                        <select wire:model.defer="estudiante_id" id="estudiante_id_create" name="estudiante_id"
                             class="form-select @error('estudiante_id') is-invalid @enderror">
-                            <option selected value="">--Elija Estudiante--</option>
-                            @foreach ($estudiantes as $estudiante)
-                                <option value="{{ $estudiante->id }}">{{ $estudiante->nombres }}
-                                    {{ $estudiante->apellidos }}</option>
-                            @endforeach
+                            <option value="">-- Elija un Estudiante --</option>
+                            @forelse ($estudiantesDisponibles as $estudiante)
+                                <option value="{{ $estudiante->id }}">{{ $estudiante->apellidos }} {{ $estudiante->nombres }} ({{ $estudiante->ID_estudiante }})</option>
+                            @empty
+                                <option value="" disabled>No hay estudiantes disponibles sin tribunal asignado.</option>
+                            @endforelse
                         </select>
-                        <label for="estudiante_id">Estudiante</label>
-                        @error('estudiante_id')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
+                        @error('estudiante_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
-                    <div class="form-group">
-                        <label for="fecha">Fecha</label>
-                        <input wire:model="fecha" type="date" class="form-control" id="fecha"
-                            placeholder="Fecha">
-                        @error('fecha')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
+
+                    <div class="row">
+                        {{-- Fecha --}}
+                        <div class="col-md-4 mb-3">
+                            <label for="fecha_create" class="form-label">Fecha <span class="text-danger">*</span></label>
+                            <input wire:model.defer="fecha" type="date" class="form-control @error('fecha') is-invalid @enderror" id="fecha_create">
+                            @error('fecha') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        </div>
+                        {{-- Hora Inicio --}}
+                        <div class="col-md-4 mb-3">
+                            <label for="hora_inicio_create" class="form-label">Hora Inicio <span class="text-danger">*</span></label>
+                            <input wire:model.defer="hora_inicio" type="time" class="form-control @error('hora_inicio') is-invalid @enderror" id="hora_inicio_create">
+                            @error('hora_inicio') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        </div>
+                        {{-- Hora Fin --}}
+                        <div class="col-md-4 mb-3">
+                            <label for="hora_fin_create" class="form-label">Hora Fin <span class="text-danger">*</span></label>
+                            <input wire:model.defer="hora_fin" type="time" class="form-control @error('hora_fin') is-invalid @enderror" id="hora_fin_create">
+                            @error('hora_fin') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="hora_inicio">Hora Inicio</label>
-                        <input wire:model="hora_inicio" type="time" class="form-control" id="hora_inicio"
-                            placeholder="Hora Inicio">
-                        @error('hora_inicio')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="hora_fin">Hora Fin</label>
-                        <input wire:model="hora_fin" type="time" class="form-control" id="hora_fin"
-                            placeholder="Hora Fin">
-                        @error('hora_fin')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
+
 
                     <div class="card p-3 mt-3">
-                        <h5 class="card-title">Tribunal</h5>
-                        <p class="card-text">Seleccione los integrantes del tribunal.</p>
-                        <div class="form-floating mb-3">
-                            <select wire:model="presidente_id" id="presidente_id" name="presidente_id"
-                                class="form-select @error('presidente_id') is-invalid @enderror">
-                                <option selected value="">--Elija Presidente--</option>
-                                @foreach ($profesores as $profesor)
-                                    @if ($profesor->id != $integrante1_id && $profesor->id != $integrante2_id)
-                                        <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                            <label for="presidente_id">Presidente</label>
-                            @error('presidente_id')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <select wire:model="integrante1_id" id="integrante1_id" name="integrante1_id"
-                                class="form-select @error('integrante1_id') is-invalid @enderror">
-                                <option selected value="">--Elija Integrante 1--</option>
-                                @foreach ($profesores as $profesor)
-                                    @if ($profesor->id != $presidente_id && $profesor->id != $integrante2_id)
-                                        <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                            <label for="integrante1_id">Integrante 1</label>
-                            @error('integrante1_id')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <select wire:model="integrante2_id" id="integrante2_id" name="integrante2_id"
-                                class="form-select @error('integrante2_id') is-invalid @enderror">
-                                <option selected value="">--Elija Integrante 2--</option>
-                                @foreach ($profesores as $profesor)
-                                    @if ($profesor->id != $presidente_id && $profesor->id != $integrante1_id)
-                                        <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                            <label for="integrante2_id">Integrante 2</label>
-                            @error('integrante2_id')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
+                        <h6 class="card-title">Miembros del Tribunal <span class="text-danger">*</span></h6>
+                        <div class="row">
+                            {{-- Presidente --}}
+                            <div class="col-md-4 mb-3">
+                                <label for="presidente_id_create" class="form-label">Presidente</label>
+                                <select wire:model.defer="presidente_id" id="presidente_id_create" name="presidente_id"
+                                    class="form-select @error('presidente_id') is-invalid @enderror">
+                                    <option value="">-- Elija Presidente --</option>
+                                    @foreach ($profesores as $profesor)
+                                        @if ( (empty($integrante1_id) || $profesor->id != $integrante1_id) && (empty($integrante2_id) || $profesor->id != $integrante2_id) )
+                                            <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                @error('presidente_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            </div>
+                            {{-- Integrante 1 --}}
+                            <div class="col-md-4 mb-3">
+                                <label for="integrante1_id_create" class="form-label">Integrante 1</label>
+                                <select wire:model.defer="integrante1_id" id="integrante1_id_create" name="integrante1_id"
+                                    class="form-select @error('integrante1_id') is-invalid @enderror">
+                                    <option value="">-- Elija Integrante 1 --</option>
+                                    @foreach ($profesores as $profesor)
+                                    @if ( (empty($presidente_id) || $profesor->id != $presidente_id) && (empty($integrante2_id) || $profesor->id != $integrante2_id) )
+                                            <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                @error('integrante1_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            </div>
+                            {{-- Integrante 2 --}}
+                            <div class="col-md-4 mb-3">
+                                <label for="integrante2_id_create" class="form-label">Integrante 2</label>
+                                <select wire:model.defer="integrante2_id" id="integrante2_id_create" name="integrante2_id"
+                                    class="form-select @error('integrante2_id') is-invalid @enderror">
+                                    <option value="">-- Elija Integrante 2 --</option>
+                                    @foreach ($profesores as $profesor)
+                                    @if ( (empty($presidente_id) || $profesor->id != $presidente_id) && (empty($integrante1_id) || $profesor->id != $integrante1_id) )
+                                            <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                @error('integrante2_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Save</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Modal -->
-<div wire:ignore.self class="modal fade" id="updateDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
-    aria-labelledby="updateModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="updateModalLabel">Update Tribunale</h5>
-                <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <input type="hidden" wire:model="selected_id">
-                    <div class="form-group">
-                        <label for="carrera_periodo_id"></label>
-                        <input wire:model="carrera_periodo_id" type="text" class="form-control"
-                            id="carrera_periodo_id" placeholder="Carrera Periodo Id">
-                        @error('carrera_periodo_id')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="estudiante_id"></label>
-                        <input wire:model="estudiante_id" type="text" class="form-control" id="estudiante_id"
-                            placeholder="Estudiante Id">
-                        @error('estudiante_id')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="fecha"></label>
-                        <input wire:model="fecha" type="text" class="form-control" id="fecha"
-                            placeholder="Fecha">
-                        @error('fecha')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="hora_inicio"></label>
-                        <input wire:model="hora_inicio" type="text" class="form-control" id="hora_inicio"
-                            placeholder="Hora Inicio">
-                        @error('hora_inicio')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-                    <div class="form-group">
-                        <label for="hora_fin"></label>
-                        <input wire:model="hora_fin" type="text" class="form-control" id="hora_fin"
-                            placeholder="Hora Fin">
-                        @error('hora_fin')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" wire:click.prevent="cancel()" class="btn btn-secondary"
-                    data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" wire:click.prevent="cancel()" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" wire:click.prevent="store()" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Guardar Tribunal
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 
-
-<div wire:ignore.self class="modal fade" id="createComponenteModal" data-bs-backdrop="static" tabindex="-1"
-    role="dialog" aria-labelledby="createComponenteModal" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createComponenteModal">Create New Componente</h5>
-                <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
+<!-- Delete Tribunal Confirmation Modal -->
+<div wire:ignore.self class="modal fade" id="deleteTribunalModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="deleteTribunalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        @if ($tribunalAEliminar)
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-light">
+                    <h5 class="modal-title" id="deleteTribunalModalLabel">Confirmar Eliminación</h5>
+                    <button wire:click="resetDeleteConfirmation" type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Está seguro de que desea eliminar el tribunal para el estudiante
+                        <strong>{{ $tribunalAEliminar->estudiante->nombres }} {{ $tribunalAEliminar->estudiante->apellidos }}</strong>
+                        programado para el <strong>{{ \Carbon\Carbon::parse($tribunalAEliminar->fecha)->format('d/m/Y') }}</strong>?
+                    </p>
+                    <p class="text-danger fw-bold">Esta acción no se puede deshacer y se eliminarán los miembros asociados.</p>
+                </div>
+                <div class="modal-footer">
+                    <button wire:click="resetDeleteConfirmation" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" wire:click="destroy()">
+                        <i class="bi bi-trash-fill"></i> Sí, Eliminar
+                    </button>
+                </div>
             </div>
-            <div class="modal-body">
-                <form>
-
-                    <div class="form-floating mb-3">
-                        <input wire:model="nombre_componente" type="text"
-                            class="form-control @error('nombre_componente') is-invalid @enderror"
-                            id="nombre_componente" placeholder="Nombre Componente">
-                        <label for="nombre_componente">Nombre Componente</label>
-                        @error('nombre_componente')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    {{-- ponderacion --}}
-                    <div class="form-floating mb-3">
-                        <input wire:model="ponderacion_componente" type="number"
-                            class="form-control @error('ponderacion_componente') is-invalid @enderror"
-                            id="ponderacion_componente" placeholder="Ponderacion">
-                        <label for="ponderacion_componente">Ponderacion</label>
-                        @error('ponderacion_componente')
-                            <span class="invalid-feedback">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="storeComponente()" class="btn btn-primary">Save</button>
-            </div>
-        </div>
+        @endif
     </div>
 </div>

@@ -7,9 +7,11 @@ use App\Http\Livewire\Administracion\Roles;
 use App\Http\Controllers\Roles\RolController;
 use App\Http\Controllers\Cheques\ChequesController;
 use App\Http\Controllers\Periodos\PeriodoController;
+use App\Http\Controllers\PlanEvaluacionController;
 use App\Http\Controllers\Tribunales\TribunalesController;
 use App\Http\Controllers\Users\UserController;
 use App\Http\Livewire\Periodos\Profile as ProfilePeriodos;
+use App\Http\Livewire\PlanEvaluacionManager;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -62,6 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::view('/', 'livewire.periodos.index');
         Route::get('/{id}', [PeriodoController::class, 'show'])->name('profile');
         Route::get('/tribunales/{carreraPeriodoId}', [TribunalesController::class, 'index'])->name('tribunales.index');
+        Route::get('/tribunales/profile/{tribunalId}', [TribunalesController::class, 'profile'])->name('tribunales.profile');
     });
 
     Route::prefix('carreras')->namespace('Carreras')->name('carreras.')->group(function () {
@@ -73,6 +76,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::prefix('tribunales')->namespace('Tribunales')->name('tribunales.')->group(function () {
+        Route::get('/', [TribunalesController::class,'principal'])->name('principal');
         Route::get('/componentes/{componenteId}', [TribunalesController::class, 'componenteShow'])->name('componente.show');
     });
 
@@ -80,5 +84,9 @@ Route::middleware('auth')->group(function () {
         Route::view('/', 'livewire.rubricas.index');
         Route::get('/create', [RubricaController::class, 'create'])->name('create');
         Route::get('/edit/{id}', [RubricaController::class, 'edit'])->name('edit');
+    });
+
+    Route::prefix('planes-evaluacion')->name('planes_evaluacion.')->group(function () {
+        Route::get('/manage/{carreraPeriodoId}', [PlanEvaluacionController::class, 'manage'])->name('manage');
     });
 });

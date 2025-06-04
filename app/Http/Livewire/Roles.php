@@ -66,7 +66,7 @@ class Roles extends Component
     {
         // if (Auth::user()->hasAnyRole(['Admin'])) {
         $this->validate([
-            'name' => 'required'
+            'name' => 'required|string|max:200',
         ]);
 
         Role::create([
@@ -76,10 +76,7 @@ class Roles extends Component
         $this->resetInput();
         $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
         session()->flash('success', 'Rol creado exitosamente.');
-        // app()->make(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-        // }else{
-        //     abort(403, 'Unauthorized.');
-        // }
+
     }
 
     public function edit($id)
