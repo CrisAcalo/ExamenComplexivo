@@ -13,7 +13,8 @@ return new class extends Migration
     {//codigo_periodo, fecha_inicio, fecha_fin
         Schema::create('periodos', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo_periodo', 20)->unique();
+            $table->string('codigo_periodo', 20)->unique(); //Ejemplo: 20250102
+            $table->string('descripcion', 20)->unique(); //Ejemplo: MAY-SEP25
             $table->date('fecha_inicio');
             $table->date('fecha_fin');
             $table->timestamps();

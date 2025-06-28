@@ -35,6 +35,7 @@
                                 <tr>
                                     <td>#</td>
                                     <th>Codigo Periodo</th>
+                                    <th>Descripción</th>
                                     <th>Fecha Inicio</th>
                                     <th>Fecha Fin</th>
                                     <td>ACTIONS</td>
@@ -45,6 +46,7 @@
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td>{{ $row->codigo_periodo }}</td>
+                                        <td>{{ $row->descripcion }}</td>
                                         <td>{{ $row->fecha_inicio }}</td>
                                         <td>{{ $row->fecha_fin }}</td>
                                         <td width="200">

@@ -77,7 +77,8 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('tribunales')->namespace('Tribunales')->name('tribunales.')->group(function () {
         Route::get('/', [TribunalesController::class,'principal'])->name('principal');
-        Route::get('/componentes/{componenteId}', [TribunalesController::class, 'componenteShow'])->name('componente.show');
+        Route::get('/calificar/{tribunalId}', [TribunalesController::class,'calificar'])->name('calificar');
+        #Route::get('/componentes/{componenteId}', [TribunalesController::class, 'componenteShow'])->name('componente.show');
     });
 
     Route::prefix('rubricas')->namespace('Rubricas')->name('rubricas.')->group(function () {

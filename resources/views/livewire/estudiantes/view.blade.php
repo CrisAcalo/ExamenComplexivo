@@ -33,6 +33,10 @@
                                     <td>#</td>
                                     <th>Nombres</th>
                                     <th>Apellidos</th>
+                                    <th>Cédula</th>
+                                    <th>Correo</th>
+                                    <th>Teléfono</th>
+                                    <th>Username</th>
                                     <th>Id Estudiante</th>
                                     <td>ACTIONS</td>
                                 </tr>
@@ -43,6 +47,10 @@
                                         <td>{{ $loop->iteration }}</td>
                                         <td>{{ $row->nombres }}</td>
                                         <td>{{ $row->apellidos }}</td>
+                                        <td>{{ $row->cedula }}</td>
+                                        <td>{{ $row->correo }}</td>
+                                        <td>{{ $row->telefono }}</td>
+                                        <td>{{ $row->username }}</td>
                                         <td>{{ $row->ID_estudiante }}</td>
                                         <td width="90">
                                             <div class="dropdown">

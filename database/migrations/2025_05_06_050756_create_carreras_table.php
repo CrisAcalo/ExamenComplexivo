@@ -15,7 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('codigo_carrera', 10)->unique();
             $table->string('nombre', 100);
-            $table->string('departamento', 100);
+            //departamento_id desde tabla departamentos
+            $table->unsignedBigInteger('departamento_id');
+            $table->foreign('departamento_id')
+            ->references('id')
+            ->on('departamentos')
+            ->onDelete('cascade');
+            //modalidad
+            $table->enum('modalidad', ['Presencial', 'Virtual']);
             $table->string('sede', 100);
             $table->timestamps();
         });

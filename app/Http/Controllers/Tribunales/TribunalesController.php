@@ -29,4 +29,16 @@ class TribunalesController extends Controller
         // Esta vista contendrá el componente Livewire 'tribunal-profile'
         return view('livewire.tribunales.profile.index', ['tribunalId' => $tribunalId]);
     }
+
+    public function principal(){
+        return view('livewire.tribunales.principal.index');
+    }
+    public function calificar($tribunalId){
+        $tribunal = Tribunale::find($tribunalId);
+        if (!$tribunal) {
+            abort(404, 'Tribunal no encontrado');
+        }
+
+        return view('livewire.tribunales.principal.calificar-index', compact('tribunalId'));
+    }
 }

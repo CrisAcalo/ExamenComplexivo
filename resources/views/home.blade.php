@@ -5,31 +5,10 @@
 
         <h1 class="word big-welcome">Bienvenid@</h1>
         <h2 class="word">Welcome</h2>
-        <h2 class="word">:D</h2>
-        <h2 class="word">
-            <div style="width:100px;height:150px">
-                <img style="width:100%;object-fit:contain"
-                    src="https://images.vexels.com/media/users/3/182538/isolated/preview/97e829ed9ae850ed48710c04f6bd6f13-gatito-lindo-gato.png"
-                    alt="">
-            </div>
-        </h2>
-        <h2 class="word">
-            <div style="width:100px;height:150px">
-                <img style="width:100%;object-fit:contain"
-                    src="https://png.pngtree.com/png-clipart/20230928/original/pngtree-cute-kawaii-cat-sleeping-png-image_13166173.png"
-                    alt="">
-            </div>
-        </h2>
         <h2 class="word">
             <div style="width:100px;height:150px">
                 <img style="width:100%;object-fit:contain"
                     src="https://i.pinimg.com/originals/c0/46/05/c0460581a0d5ef331a3bc98ec24546e5.png" alt="">
-            </div>
-        </h2>
-        <h2 class="word">
-            <div style="width:100px;height:150px">
-                <img style="width:100%;object-fit:contain"
-                    src="https://stickershop.line-scdn.net/stickershop/v1/product/4085563/LINEStorePC/main.png?v=1" alt="">
             </div>
         </h2>
         <h2 class="word">Bienvenue</h2>

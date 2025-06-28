@@ -59,7 +59,7 @@
                                 <select wire:model.defer="presidente_id" id="presidente_id_create" name="presidente_id"
                                     class="form-select @error('presidente_id') is-invalid @enderror">
                                     <option value="">-- Elija Presidente --</option>
-                                    @foreach ($profesores as $profesor)
+                                    @foreach ($profesoresParaTribunal as $profesor)
                                         @if ( (empty($integrante1_id) || $profesor->id != $integrante1_id) && (empty($integrante2_id) || $profesor->id != $integrante2_id) )
                                             <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
                                         @endif
@@ -73,7 +73,7 @@
                                 <select wire:model.defer="integrante1_id" id="integrante1_id_create" name="integrante1_id"
                                     class="form-select @error('integrante1_id') is-invalid @enderror">
                                     <option value="">-- Elija Integrante 1 --</option>
-                                    @foreach ($profesores as $profesor)
+                                    @foreach ($profesoresParaTribunal as $profesor)
                                     @if ( (empty($presidente_id) || $profesor->id != $presidente_id) && (empty($integrante2_id) || $profesor->id != $integrante2_id) )
                                             <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
                                         @endif
@@ -87,7 +87,7 @@
                                 <select wire:model.defer="integrante2_id" id="integrante2_id_create" name="integrante2_id"
                                     class="form-select @error('integrante2_id') is-invalid @enderror">
                                     <option value="">-- Elija Integrante 2 --</option>
-                                    @foreach ($profesores as $profesor)
+                                    @foreach ($profesoresParaTribunal as $profesor)
                                     @if ( (empty($presidente_id) || $profesor->id != $presidente_id) && (empty($integrante1_id) || $profesor->id != $integrante1_id) )
                                             <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
                                         @endif

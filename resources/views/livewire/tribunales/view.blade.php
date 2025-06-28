@@ -8,7 +8,6 @@
         <a href="{{ route('periodos.profile', $periodo->id) }}">{{ $periodo->codigo_periodo }}</a> /
         <span class="text-muted">{{ $carrera->nombre }}</span>
     </div>
-
     {{-- Sección para Visualizar el Plan de Evaluación Activo --}}
     @if ($planEvaluacionActivo)
         <div class="card mb-4 shadow-sm">
@@ -70,6 +69,53 @@
         </div>
     @endif
     {{-- Fin Sección Plan de Evaluación --}}
+
+
+    {{-- NUEVA SECCIÓN: ASIGNACIÓN DE CALIFICADORES GENERALES --}}
+    {{-- Este @can debe verificar si el usuario puede gestionar estos calificadores --}}
+    {{-- Ejemplo: @can('gestionar-calificadores-generales', $carreraPeriodo) --}}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-people-fill text-info"></i> Asignar Calificadores Generales</h5>
+        </div>
+        <div class="card-body">
+            <form wire:submit.prevent="guardarCalificadoresGenerales">
+                <div class="row">
+                    @for ($i = 0; $i < 3; $i++)
+                        <div class="col-md-4 mb-3">
+                            <label for="calificador_general_{{ $i }}" class="form-label">Calificador General {{ $i + 1 }}</label>
+                            <select wire:model.defer="calificadoresGeneralesSeleccionados.{{ $i }}" id="calificador_general_{{ $i }}" class="form-select form-select-sm @error('calificadoresGeneralesSeleccionados.'.$i) is-invalid @enderror">
+                                <option value="">-- Sin asignar --</option>
+                                @foreach ($profesoresDisponiblesParaCalificadorGeneral as $profesor)
+                                    {{-- Lógica para deshabilitar si ya está seleccionado en otro select --}}
+                                    @php
+                                        $isDisabled = false;
+                                        for ($j = 0; $j < 3; $j++) {
+                                            if ($i != $j && isset($calificadoresGeneralesSeleccionados[$j]) && $calificadoresGeneralesSeleccionados[$j] == $profesor->id) {
+                                                $isDisabled = true;
+                                                break;
+                                            }
+                                        }
+                                    @endphp
+                                    <option value="{{ $profesor->id }}" {{ $isDisabled ? 'disabled' : '' }}>
+                                        {{ $profesor->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('calificadoresGeneralesSeleccionados.'.$i) <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        </div>
+                    @endfor
+                </div>
+                 @error('calificadoresGeneralesSeleccionados') {{-- Error general para el array, si es necesario --}}
+                    <div class="alert alert-danger mt-2">{{ $message }}</div>
+                @enderror
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-save"></i> Guardar Calificadores Generales
+                </button>
+            </form>
+        </div>
+    </div>
+    {{-- FIN NUEVA SECCIÓN --}}
 
 
     <div class="row justify-content-center">

@@ -15,6 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('nombres', 100);
             $table->string('apellidos', 100);
+            $table->string('cedula', 20)->unique();
+            $table->string('correo', 100)->unique();
+            $table->string('telefono', 15)->nullable();
+            $table->string('username', 50)->unique();
             $table->string('ID_estudiante', 20)->unique();
             $table->timestamps();
         });

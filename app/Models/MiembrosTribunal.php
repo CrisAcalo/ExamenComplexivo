@@ -25,4 +25,8 @@ class MiembrosTribunal extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function calificacionesRegistradas()
+    {
+        return $this->hasMany(MiembroCalificacion::class, 'miembro_tribunal_id');
+    }
 }

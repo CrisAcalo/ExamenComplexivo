@@ -19,6 +19,8 @@
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
+    {{-- importar el resources/css/app.css --}}
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
     @livewireStyles
 </head>
@@ -501,7 +503,7 @@
                 <a href="{{ url('/') }}"
                     class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none text-center">
 
-                    <span class="fs-4">Sistema Examen Compexivo</span>
+                    <span class="fs-4">Sistema Examen Complexivo</span>
 
                 </a>
                 <hr>
@@ -540,6 +542,15 @@
                     </li>
 
 
+
+                    <li class="nav-item list-group nav-link-item">
+                        <a href="{{ route('tribunales.principal') }}" class="nav-link text-white">
+                            <span class="icon-wrapper">
+                                <i class="bi bi-person-lines-fill"></i></span>
+                            Tribunales
+                        </a>
+                    </li>
+
                     <hr>
                     <h5 class="fs-6 text-secondary">Acceso</h5>
                     {{-- @if (Auth::user()->can('Roles - Seccion')) --}}
@@ -573,14 +584,6 @@
                         </a>
                     </li>
                     {{-- @endif --}}
-
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('users.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-person-lines-fill"></i></span>
-                            Tribunales
-                        </a>
-                    </li>
 
                     @impersonating($guard = null)
                         <li class="nav-item list-group nav-link-item">
@@ -805,6 +808,33 @@
                 ventana.close();
             };
         }
+
+        function initializeSpecificPopovers(container) {
+            const popoverTriggerList = [].slice.call(container.querySelectorAll('[data-bs-toggle="popover"]'));
+            popoverTriggerList.forEach(function(popoverTriggerEl) {
+                // Solo inicializar si no tiene ya una instancia de popover
+                if (!bootstrap.Popover.getInstance(popoverTriggerEl)) {
+                    new bootstrap.Popover(popoverTriggerEl, {
+                        sanitize: false, // Ya discutimos la seguridad de esto
+                        // container: 'body' // Opcional: A veces ayuda con problemas de z-index o clipping
+                    });
+                }
+            });
+        }
+
+        document.addEventListener('livewire:load', function() {
+            initializeSpecificPopovers(document); // Inicializar en la carga inicial para todo el documento
+        });
+
+        Livewire.hook('message.processed', (message, component) => {
+            // Después de que Livewire actualice el DOM, buscar nuevos popovers o re-evaluar
+            // El contenedor 'component.el' es el elemento raíz del componente Livewire que se actualizó
+            if (component && component.el) {
+                initializeSpecificPopovers(component.el);
+            } else {
+                initializeSpecificPopovers(document); // Fallback por si acaso
+            }
+        });
     </script>
 </body>
 

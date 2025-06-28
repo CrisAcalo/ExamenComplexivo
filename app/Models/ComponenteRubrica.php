@@ -29,4 +29,9 @@ class ComponenteRubrica extends Model
     {
         return $this->hasMany(CriterioComponente::class, 'componente_id', 'id');
     }
+    // Relación a las asignaciones donde este componente de plantilla es usado
+    public function asignacionesEnPlanes()
+    {
+        return $this->hasMany(AsignacionCalificadorComponentePlan::class, 'componente_rubrica_id');
+    }
 }

@@ -71,4 +71,16 @@ class CarrerasPeriodo extends Model
         return $this->hasOne('App\Models\User', 'id', 'docente_apoyo_id');
     }
 
+    // NUEVA RELACIÓN
+    public function calificadoresGenerales()
+    {
+        // Devuelve los registros de la tabla pivote
+        return $this->hasMany(CalificadorGeneralCarreraPeriodo::class, 'carrera_periodo_id');
+    }
+
+    public function docentesCalificadoresGenerales()
+    {
+        // Devuelve directamente los usuarios (docentes) que son calificadores generales
+        return $this->belongsToMany(User::class, 'calificador_general_carrera_periodos', 'carrera_periodo_id', 'user_id');
+    }
 }

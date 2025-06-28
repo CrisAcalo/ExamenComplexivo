@@ -34,6 +34,7 @@
                                     <th>Codigo Carrera</th>
                                     <th>Nombre</th>
                                     <th>Departamento</th>
+                                    <th>Modalidad</th>
                                     <th>Sede</th>
                                     <td>ACTIONS</td>
                                 </tr>
@@ -44,7 +45,8 @@
                                         <td>{{ $loop->iteration }}</td>
                                         <td>{{ $row->codigo_carrera }}</td>
                                         <td>{{ $row->nombre }}</td>
-                                        <td>{{ $row->departamento }}</td>
+                                        <td>{{ $row->departamento ? $row->departamento->nombre : '' }}</td>
+                                        <td>{{ $row->modalidad }}</td>
                                         <td>{{ $row->sede }}</td>
                                         <td width="90">
                                             <div class="dropdown">

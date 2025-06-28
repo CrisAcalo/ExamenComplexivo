@@ -34,13 +34,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //eliminar relaciones
-        Schema::table('carreras_periodos', function (Blueprint $table) {
-            $table->dropForeign(['carrera_id']);
-            $table->dropForeign(['periodo_id']);
-            $table->dropForeign(['docente_apoyo_id']);
-            $table->dropForeign(['director_id']);
-        });
+        Schema::disableForeignKeyConstraints();
+
         Schema::dropIfExists('carreras_periodos');
+
+        // Volver a habilitar las restricciones de clave foránea
+        Schema::enableForeignKeyConstraints();
     }
 };

@@ -16,15 +16,23 @@ return new class extends Migration
         Schema::create('items_plan_evaluacion', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_evaluacion_id')
-                  ->constrained('planes_evaluacion')
-                  ->onDelete('cascade');
+                ->constrained('planes_evaluacion')
+                ->onDelete('cascade');
             $table->string('nombre_item');
             $table->enum('tipo_item', ['NOTA_DIRECTA', 'RUBRICA_TABULAR']);
             $table->decimal('ponderacion_global', 5, 2);
             $table->foreignId('rubrica_plantilla_id')
-                  ->nullable()
-                  ->constrained('rubricas')
-                  ->onDelete('restrict');
+                ->nullable()
+                ->constrained('rubricas')
+                ->onDelete('restrict');
+
+
+            $table->enum('calificado_por_nota_directa', [
+                'DIRECTOR_CARRERA',
+                'DOCENTE_APOYO'
+            ])->nullable();
+
+
             $table->integer('orden')->default(0);
             $table->timestamps();
         });

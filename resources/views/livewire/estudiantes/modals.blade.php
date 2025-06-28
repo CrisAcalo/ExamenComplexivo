@@ -17,10 +17,25 @@
                         <input wire:model="apellidos" type="text" class="form-control" id="apellidos" placeholder="Apellidos">@error('apellidos') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
+                        <label for="cedula"></label>
+                        <input wire:model="cedula" type="text" class="form-control" id="cedula" placeholder="Cédula">@error('cedula') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="correo"></label>
+                        <input wire:model="correo" type="email" class="form-control" id="correo" placeholder="Correo">@error('correo') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono"></label>
+                        <input wire:model="telefono" type="text" class="form-control" id="telefono" placeholder="Teléfono">@error('telefono') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="username"></label>
+                        <input wire:model="username" type="text" class="form-control" id="username" placeholder="Username">@error('username') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
                         <label for="ID_estudiante"></label>
                         <input wire:model="ID_estudiante" type="text" class="form-control" id="ID_estudiante" placeholder="Id Estudiante">@error('ID_estudiante') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
-
                 </form>
             </div>
             <div class="modal-footer">
@@ -51,10 +66,25 @@
                         <input wire:model="apellidos" type="text" class="form-control" id="apellidos" placeholder="Apellidos">@error('apellidos') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
+                        <label for="cedula"></label>
+                        <input wire:model="cedula" type="text" class="form-control" id="cedula" placeholder="Cédula">@error('cedula') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="correo"></label>
+                        <input wire:model="correo" type="email" class="form-control" id="correo" placeholder="Correo">@error('correo') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono"></label>
+                        <input wire:model="telefono" type="text" class="form-control" id="telefono" placeholder="Teléfono">@error('telefono') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="username"></label>
+                        <input wire:model="username" type="text" class="form-control" id="username" placeholder="Username">@error('username') <span class="error text-danger">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
                         <label for="ID_estudiante"></label>
                         <input wire:model="ID_estudiante" type="text" class="form-control" id="ID_estudiante" placeholder="Id Estudiante">@error('ID_estudiante') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
-
                 </form>
             </div>
             <div class="modal-footer">

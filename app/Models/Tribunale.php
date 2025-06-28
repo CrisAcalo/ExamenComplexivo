@@ -7,13 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Tribunale extends Model
 {
-	use HasFactory;
+    use HasFactory;
 
     public $timestamps = true;
 
     protected $table = 'tribunales';
 
-    protected $fillable = ['carrera_periodo_id','estudiante_id','fecha','hora_inicio','hora_fin'];
+    protected $fillable = ['carrera_periodo_id', 'estudiante_id', 'fecha', 'hora_inicio', 'hora_fin'];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasOne
@@ -47,4 +47,9 @@ class Tribunale extends Model
         return $this->hasMany('App\Models\TribunalComentario', 'tribunal_id', 'id');
     }
 
+    // En app/Models/Tribunale.php
+    public function logs()
+    {
+        return $this->hasMany(TribunalLog::class, 'tribunal_id')->latest(); // Mostrar los más recientes primero
+    }
 }

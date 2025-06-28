@@ -26,7 +26,6 @@
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-
                 </form>
             </div>
             <div class="modal-footer">
@@ -60,6 +59,14 @@
                         @enderror
                     </div>
                     <div class="form-group">
+                        <label for="descripcion"></label>
+                        <input wire:model="descripcion" type="text" class="form-control" id="descripcion"
+                            placeholder="Descripción" disabled>
+                        @error('descripcion')
+                            <span class="error text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-group">
                         <label for="fecha_inicio"></label>
                         <input wire:model="fecha_inicio" type="date" class="form-control" id="fecha_inicio"
                             placeholder="Fecha Inicio">
@@ -75,7 +82,6 @@
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-
                 </form>
             </div>
             <div class="modal-footer">
@@ -112,5 +118,7 @@
 
             </div>
         @endif
+    </div>
+</div>
     </div>
 </div>

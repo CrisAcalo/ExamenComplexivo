@@ -88,7 +88,7 @@
     </div>
 
     {{-- Si tu layout tiene @stack('scripts') --}}
-    <script>
+    {{-- <script>
         function initializeSpecificPopovers(container) {
             const popoverTriggerList = [].slice.call(container.querySelectorAll('[data-bs-toggle="popover"]'));
             popoverTriggerList.forEach(function(popoverTriggerEl) {
@@ -115,5 +115,5 @@
                 initializeSpecificPopovers(document); // Fallback por si acaso
             }
         });
-    </script>
+    </script> --}}
 </div>

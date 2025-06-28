@@ -27,26 +27,27 @@
                         @enderror
                     </div>
                     <div class="form-floating mb-3">
-                        <select wire:model="departamento" id="departamento" name="departamento"
-                            class="form-select @error('departamento') is-invalid @enderror">
+                        <select wire:model="departamento_id" id="departamento_id" name="departamento_id"
+                            class="form-select @error('departamento_id') is-invalid @enderror">
                             <option selected value="">--Elija--</option>
-                            <option value="Departamento de Ciencias de la Energía y Mecánica">Departamento de Ciencias
-                                de la Energía y Mecánica</option>
-                            <option value="Departamento de Ciencias de la Computación">Departamento de Ciencias de la
-                                Computación</option>
-                            <option value="Departamento de Eléctrica , Electrónica y Telecomunicaciones">Departamento de
-                                Eléctrica , Electrónica y Telecomunicaciones</option>
-                            <option value="Departamento de Ciencias de la Vida y de la Agricultura">Departamento de
-                                Ciencias de la Vida y de la Agricultura</option>
-                            <option value="Departamento de Ciencias Administrativas, Económicas y de Comercio">
-                                Departamento de Ciencias Administrativas, Económicas y de Comercio</option>
-                            <option value="Departamento de Ciencias de la Tierra y Construcción">Departamento de
-                                Ciencias de la Tierra y Construcción</option>
-                            <option value="Departamento de Ciencias Humanas y Sociales">Departamento de Ciencias Humanas
-                                y Sociales</option>
+                            @foreach($departamentos as $dep)
+                                <option value="{{ $dep->id }}">{{ $dep->nombre }}</option>
+                            @endforeach
                         </select>
-                        <label for="departamento">Departamento</label>
-                        @error('departamento')
+                        <label for="departamento_id">Departamento</label>
+                        @error('departamento_id')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-floating mb-3">
+                        <select wire:model="modalidad" id="modalidad" name="modalidad"
+                            class="form-select @error('modalidad') is-invalid @enderror">
+                            <option selected value="">--Elija--</option>
+                            <option value="Presencial">Presencial</option>
+                            <option value="Virtual">Virtual</option>
+                        </select>
+                        <label for="modalidad">Modalidad</label>
+                        @error('modalidad')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror
                     </div>
@@ -58,12 +59,11 @@
                             <option value="Santo Domingo">Santo Domingo</option>
                             <option value="Sangolquí">Sangolquí</option>
                         </select>
-                        <label for="departamento">Departamento</label>
+                        <label for="sede">Sede</label>
                         @error('sede')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror
                     </div>
-
                 </form>
             </div>
             <div class="modal-footer">
@@ -104,26 +104,27 @@
                         @enderror
                     </div>
                     <div class="form-floating mb-3">
-                        <select wire:model="departamento" id="departamento" name="departamento"
-                            class="form-select @error('departamento') is-invalid @enderror">
+                        <select wire:model="departamento_id" id="departamento_id" name="departamento_id"
+                            class="form-select @error('departamento_id') is-invalid @enderror">
                             <option selected value="">--Elija--</option>
-                            <option value="Departamento de Ciencias de la Energía y Mecánica">Departamento de Ciencias
-                                de la Energía y Mecánica</option>
-                            <option value="Departamento de Ciencias de la Computación">Departamento de Ciencias de la
-                                Computación</option>
-                            <option value="Departamento de Eléctrica , Electrónica y Telecomunicaciones">Departamento de
-                                Eléctrica , Electrónica y Telecomunicaciones</option>
-                            <option value="Departamento de Ciencias de la Vida y de la Agricultura">Departamento de
-                                Ciencias de la Vida y de la Agricultura</option>
-                            <option value="Departamento de Ciencias Administrativas, Económicas y de Comercio">
-                                Departamento de Ciencias Administrativas, Económicas y de Comercio</option>
-                            <option value="Departamento de Ciencias de la Tierra y Construcción">Departamento de
-                                Ciencias de la Tierra y Construcción</option>
-                            <option value="Departamento de Ciencias Humanas y Sociales">Departamento de Ciencias Humanas
-                                y Sociales</option>
+                            @foreach($departamentos as $dep)
+                                <option value="{{ $dep->id }}">{{ $dep->nombre }}</option>
+                            @endforeach
                         </select>
-                        <label for="departamento">Departamento</label>
-                        @error('departamento')
+                        <label for="departamento_id">Departamento</label>
+                        @error('departamento_id')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-floating mb-3">
+                        <select wire:model="modalidad" id="modalidad" name="modalidad"
+                            class="form-select @error('modalidad') is-invalid @enderror">
+                            <option selected value="">--Elija--</option>
+                            <option value="Presencial">Presencial</option>
+                            <option value="Virtual">Virtual</option>
+                        </select>
+                        <label for="modalidad">Modalidad</label>
+                        @error('modalidad')
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror
                     </div>
@@ -140,7 +141,6 @@
                             <span class="invalid-feedback">{{ $message }}</span>
                         @enderror
                     </div>
-
                 </form>
             </div>
             <div class="modal-footer">

@@ -13,41 +13,36 @@ return new class extends Migration
     { //criterio_id, calificacion_criterio_id, miembro_tribubal_id
         Schema::create('miembro_calificacion', function (Blueprint $table) {
             $table->id();
+            // $table->foreignId('miembro_tribunal_id')->constrained('miembros_tribunales')->onDelete('cascade'); // SE VA
 
-            $table->foreignId('miembro_tribunal_id')
-                ->constrained('miembros_tribunales')
+            $table->foreignId('user_id'); // Quién calificó (puede ser miembro, director, apoyo, calificador general)
+            //->constrained('users') // No añadir constrained si no siempre es un User de la tabla users (ver nota abajo)
+            //->onDelete('cascade');
+
+            $table->foreignId('tribunal_id') // Para qué tribunal/estudiante es esta calificación
+                ->constrained('tribunales') // Asumiendo que tu tabla es 'tribunales'
                 ->onDelete('cascade');
 
-            // Para vincular directamente al ítem del plan de evaluación.
-            // Esencial para notas directas y para agrupar calificaciones por ítem.
-            $table->foreignId('item_plan_evaluacion_id')
-                ->nullable() // Será null si la calificación es específica de un criterio de una rúbrica tabular
+            $table->foreignId('item_plan_evaluacion_id') // El ítem específico del plan que se está calificando
                 ->constrained('items_plan_evaluacion')
                 ->onDelete('cascade');
 
-            // Para calificaciones basadas en rúbricas tabulares
-            $table->foreignId('criterio_id')
-                ->nullable() // Será null para notas directas o para observaciones generales de un item_plan_evaluacion
+            $table->foreignId('criterio_id')->nullable() // Solo para RUBRICA_TABULAR
                 ->constrained('criterios_componente')
                 ->onDelete('cascade');
-
-            $table->foreignId('calificacion_criterio_id')
-                ->nullable() // Será null para notas directas o para observaciones generales de un item_plan_evaluacion
+            $table->foreignId('calificacion_criterio_id')->nullable() // Solo para RUBRICA_TABULAR
                 ->constrained('calificaciones_criterio')
-                ->onDelete('cascade'); // O 'set null' si una opción de calificación se borra pero quieres mantener el registro
+                ->onDelete('cascade');
 
-            // Para notas directas (ej. Cuestionario)
-            $table->decimal('nota_obtenida_directa', 5, 2)->nullable();
-
-            // Observación general para el ítem o específica para el criterio
-            $table->text('observacion')->nullable();
-
+            $table->decimal('nota_obtenida_directa', 5, 2)->nullable(); // Solo para NOTA_DIRECTA
+            $table->text('observacion')->nullable(); // Observación general del ítem o específica del criterio
             $table->timestamps();
 
-            // Opcional: Índices para mejorar el rendimiento de las búsquedas
-            $table->index('miembro_tribunal_id');
-            $table->index('item_plan_evaluacion_id');
-            $table->index('criterio_id');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+
+            // Índices para mejorar rendimiento de consultas
+            $table->index(['user_id', 'tribunal_id', 'item_plan_evaluacion_id'], 'calificacion_unique_query_index');
+            $table->index(['tribunal_id', 'item_plan_evaluacion_id', 'criterio_id'], 'calificacion_criterio_query_index');
         });
     }
 

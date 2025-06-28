@@ -1,307 +1,246 @@
 <div>
-    @section('title', $tribunal ? 'Perfil del Tribunal: ' . $tribunal->estudiante->nombres_completos_id : 'Perfil del Tribunal')
+    @section('title', $tribunal && $tribunal->estudiante ? 'Perfil Tribunal: ' .
+        $tribunal->estudiante->nombres_completos_id : 'Perfil del Tribunal')
 
-    <div class="container-fluid p-0">
-        {{-- Breadcrumbs --}}
-        {{-- ... (sin cambios) ... --}}
-
-        @include('partials.alerts')
-
-        @if ($tribunal)
-            {{-- SECCIÓN 1: DATOS DEL TRIBUNAL --}}
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-info-circle-fill text-primary"></i> Datos del Tribunal</h5>
-                    @can('editar-datos-basicos-este-tribunal-como-presidente', $tribunal) {{-- O tu lógica de permiso para admin --}}
-                        @if($usuarioPuedeEditarDatosTribunal)
-                            <button class="btn btn-sm {{ $modoEdicionTribunal ? 'btn-secondary' : 'btn-outline-primary' }}"
-                                wire:click="toggleModoEdicionTribunal">
-                                <i class="bi {{ $modoEdicionTribunal ? 'bi-x-circle' : 'bi-pencil-square' }}"></i>
-                                {{ $modoEdicionTribunal ? 'Cancelar Edición' : 'Editar Datos' }}
-                            </button>
-                        @endif
-                    @endcan
+        <div class="container-fluid p-0">
+            {{-- Breadcrumbs --}}
+            @if (
+                $tribunal &&
+                    $tribunal->carrerasPeriodo &&
+                    $tribunal->carrerasPeriodo->periodo &&
+                    $tribunal->carrerasPeriodo->carrera &&
+                    $tribunal->estudiante)
+                <div class="fs-2 fw-semibold mb-4">
+                    <a href="{{ route('periodos.') }}" class="text-decoration-none text-dark">Períodos</a> /
+                    <a href="{{ route('periodos.profile', $tribunal->carrerasPeriodo->periodo->id) }}"
+                        class="text-decoration-none text-dark">{{ $tribunal->carrerasPeriodo->periodo->codigo_periodo }}</a>
+                    /
+                    <a href="{{ route('periodos.tribunales.index', $tribunal->carrerasPeriodo->id) }}" {{-- Asegúrate que esta ruta y parámetro sean correctos --}}
+                        class="text-decoration-none text-dark">{{ $tribunal->carrerasPeriodo->carrera->nombre }}</a> /
+                    <span class="text-muted">{{ $tribunal->estudiante->nombres_completos_id }}</span>
                 </div>
-                {{-- ... (Cuerpo de la tarjeta de datos del tribunal sin cambios estructurales, pero los selects de miembros ahora usan profesoresDisponibles) ... --}}
-                 <div class="card-body">
-                    @if ($modoEdicionTribunal && $usuarioPuedeEditarDatosTribunal)
-                        {{-- Formulario de Edición --}}
-                        <form wire:submit.prevent="actualizarDatosTribunal">
-                            {{-- ... (campos de fecha, hora, estudiante readonly) ... --}}
-                             <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <label for="fecha_edit" class="form-label">Fecha</label>
-                                    <input type="date" class="form-control @error('fecha') is-invalid @enderror"
-                                        id="fecha_edit" wire:model.defer="fecha">
-                                    @error('fecha') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label for="hora_inicio_edit" class="form-label">Hora Inicio</label>
-                                    <input type="time"
-                                        class="form-control @error('hora_inicio') is-invalid @enderror"
-                                        id="hora_inicio_edit" wire:model.defer="hora_inicio">
-                                    @error('hora_inicio') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label for="hora_fin_edit" class="form-label">Hora Fin</label>
-                                    <input type="time" class="form-control @error('hora_fin') is-invalid @enderror"
-                                        id="hora_fin_edit" wire:model.defer="hora_fin">
-                                    @error('hora_fin') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Estudiante</label>
-                                    <input type="text" class="form-control"
-                                        value="{{ $tribunal->estudiante->nombres_completos_id }}" readonly disabled>
-                                </div>
-                            </div>
-                            <h6 class="mt-3">Miembros del Tribunal</h6>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label for="presidente_id_edit" class="form-label">Presidente</label>
-                                    <select wire:model.defer="presidente_id" id="presidente_id_edit"
-                                        class="form-select @error('presidente_id') is-invalid @enderror">
-                                        <option value="">Seleccione...</option>
-                                        @foreach ($profesoresDisponibles as $prof)
-                                            <option value="{{ $prof->id }}"
-                                                @if ( (isset($integrante1_id) && $prof->id == $integrante1_id) || (isset($integrante2_id) && $prof->id == $integrante2_id) ) disabled @endif>
-                                                {{ $prof->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('presidente_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label for="integrante1_id_edit" class="form-label">Integrante 1</label>
-                                    <select wire:model.defer="integrante1_id" id="integrante1_id_edit"
-                                        class="form-select @error('integrante1_id') is-invalid @enderror">
-                                        <option value="">Seleccione...</option>
-                                        @foreach ($profesoresDisponibles as $prof)
-                                            <option value="{{ $prof->id }}"
-                                                @if ( (isset($presidente_id) && $prof->id == $presidente_id) || (isset($integrante2_id) && $prof->id == $integrante2_id) ) disabled @endif>
-                                                {{ $prof->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('integrante1_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <label for="integrante2_id_edit" class="form-label">Integrante 2</label>
-                                    <select wire:model.defer="integrante2_id" id="integrante2_id_edit"
-                                        class="form-select @error('integrante2_id') is-invalid @enderror">
-                                        <option value="">Seleccione...</option>
-                                        @foreach ($profesoresDisponibles as $prof)
-                                            <option value="{{ $prof->id }}"
-                                                @if ( (isset($presidente_id) && $prof->id == $presidente_id) || (isset($integrante1_id) && $prof->id == $integrante1_id) ) disabled @endif>
-                                                {{ $prof->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('integrante2_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-primary mt-2"><i class="bi bi-save"></i> Guardar Cambios Tribunal</button>
-                        </form>
-                    @else
-                        {{-- Modo Visualización --}}
-                        {{-- ... (sin cambios) ... --}}
-                         <div class="row">
-                            <div class="col-md-3"><p><strong>Estudiante:</strong><br>{{ $tribunal->estudiante->nombres_completos_id }}</p></div>
-                            <div class="col-md-3"><p><strong>Fecha:</strong><br>{{ \Carbon\Carbon::parse($tribunal->fecha)->format('d/m/Y') }}</p></div>
-                            <div class="col-md-3"><p><strong>Hora Inicio:</strong><br>{{ \Carbon\Carbon::parse($tribunal->hora_inicio)->format('H:i A') }}</p></div>
-                            <div class="col-md-3"><p><strong>Hora Fin:</strong><br>{{ \Carbon\Carbon::parse($tribunal->hora_fin)->format('H:i A') }}</p></div>
-                        </div>
-                        <p><strong>Miembros del Tribunal:</strong></p>
-                        <ul>
-                            @foreach ($tribunal->miembrosTribunales as $miembro)
-                                <li>{{ Str::title(Str::lower(Str_replace('_',' ',$miembro->status))) }}: {{ $miembro->user->name }}</li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </div>
-            </div>
-
-            {{-- SECCIÓN 2: FORMULARIO DE CALIFICACIÓN (SOLO PARA MIEMBROS QUE PUEDEN CALIFICAR) --}}
-            @if ($planEvaluacionActivo && $usuarioPuedeCalificar && !$usuarioPuedeVerTodasLasCalificaciones)
-                {{-- ... (Formulario de calificación del usuario actual, como lo tenías, usando $calificaciones) ... --}}
-                 <div class="card mb-4 shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-clipboard2-data-fill text-info"></i> Mi Formulario de Calificación (Plan: {{ $planEvaluacionActivo->nombre }})</h5>
-                    </div>
-                    <div class="card-body">
-                        <form wire:submit.prevent="guardarCalificaciones">
-                            @foreach ($planEvaluacionActivo->itemsPlanEvaluacion as $itemPlan)
-                                {{-- ... (Lógica de renderizado de ítem de nota directa y rúbrica tabular) ... --}}
-                                 <div class="mb-4 p-3 border rounded item-evaluacion-block">
-                                    <h5>{{ $loop->iteration }}. {{ $itemPlan->nombre_item }} <span
-                                            class="badge bg-secondary">{{ $itemPlan->ponderacion_global }}%</span>
-                                    </h5>
-
-                                    @if ($itemPlan->tipo_item === 'NOTA_DIRECTA')
-                                        {{-- ... (campos para nota directa) ... --}}
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <label for="nota_directa_{{ $itemPlan->id }}"
-                                                    class="form-label">Nota (sobre 20)</label>
-                                                <input type="number" step="0.01" min="0" max="20"
-                                                    class="form-control @error('calificaciones.'.$itemPlan->id.'.nota_directa') is-invalid @enderror"
-                                                    id="nota_directa_{{ $itemPlan->id }}"
-                                                    wire:model.defer="calificaciones.{{ $itemPlan->id }}.nota_directa">
-                                                @error('calificaciones.'.$itemPlan->id.'.nota_directa') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                            </div>
-                                            <div class="col-md-9">
-                                                <label for="obs_general_nota_{{ $itemPlan->id }}" class="form-label">Observación General (Opcional)</label>
-                                                <textarea class="form-control @error('calificaciones.'.$itemPlan->id.'.observacion_general') is-invalid @enderror"
-                                                          id="obs_general_nota_{{ $itemPlan->id }}" rows="2"
-                                                          wire:model.defer="calificaciones.{{ $itemPlan->id }}.observacion_general"></textarea>
-                                                @error('calificaciones.'.$itemPlan->id.'.observacion_general') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                            </div>
-                                        </div>
-                                    @elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla)
-                                        {{-- ... (tabla para rúbrica tabular) ... --}}
-                                        @php $rubricaParaCalificar = $itemPlan->rubricaPlantilla; @endphp
-                                        <p class="text-muted small">Usando plantilla: {{ $rubricaParaCalificar->nombre }}</p>
-                                        @foreach ($rubricaParaCalificar->componentesRubrica as $componenteR)
-                                            <div class="mb-3 p-2 border-start border-3 border-primary">
-                                                <h6>{{ $componenteR->nombre }} <small class="text-muted">({{ $componenteR->ponderacion }}% de esta rúbrica)</small></h6>
-                                                <table class="table table-sm table-bordered">
-                                                    <thead class="table-light">
-                                                        <tr>
-                                                            <th style="width:30%">Criterio</th>
-                                                            <th style="width:40%">Calificación</th>
-                                                            <th style="width:30%">Observación (Opcional)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach ($componenteR->criteriosComponente as $criterioR)
-                                                            <tr>
-                                                                <td>
-                                                                    {{ $criterioR->nombre }}
-                                                                    @error('calificaciones.'.$itemPlan->id.'.componentes_evaluados.'.$componenteR->id.'.criterios_evaluados.'.$criterioR->id.'.calificacion_criterio_id') <br><span class="text-danger small">{{ $message }}</span> @enderror
-                                                                </td>
-                                                                <td>
-                                                                    @if(isset($calificaciones[$itemPlan->id]['componentes_evaluados'][$componenteR->id]['criterios_evaluados'][$criterioR->id]['opciones_calificacion']))
-                                                                        @foreach ($calificaciones[$itemPlan->id]['componentes_evaluados'][$componenteR->id]['criterios_evaluados'][$criterioR->id]['opciones_calificacion'] as $opcionCalif)
-                                                                        <div class="form-check">
-                                                                            <input class="form-check-input" type="radio"
-                                                                                   wire:model.defer="calificaciones.{{ $itemPlan->id }}.componentes_evaluados.{{ $componenteR->id }}.criterios_evaluados.{{ $criterioR->id }}.calificacion_criterio_id"
-                                                                                   id="calif_{{ $itemPlan->id }}_{{ $componenteR->id }}_{{ $criterioR->id }}_{{ $opcionCalif->id }}"
-                                                                                   value="{{ $opcionCalif->id }}">
-                                                                            <label class="form-check-label small" for="calif_{{ $itemPlan->id }}_{{ $componenteR->id }}_{{ $criterioR->id }}_{{ $opcionCalif->id }}">
-                                                                                <strong>{{ $opcionCalif->nombre }} ({{ $opcionCalif->valor }})</strong>: {{ $opcionCalif->descripcion }}
-                                                                            </label>
-                                                                        </div>
-                                                                        @endforeach
-                                                                    @else
-                                                                        <small class="text-muted">Cargando opciones...</small>
-                                                                    @endif
-                                                                </td>
-                                                                <td>
-                                                                    <textarea class="form-control form-control-sm @error('calificaciones.'.$itemPlan->id.'.componentes_evaluados.'.$componenteR->id.'.criterios_evaluados.'.$criterioR->id.'.observacion') is-invalid @enderror"
-                                                                              rows="2" placeholder="Observación específica del criterio"
-                                                                              wire:model.defer="calificaciones.{{ $itemPlan->id }}.componentes_evaluados.{{ $componenteR->id }}.criterios_evaluados.{{ $criterioR->id }}.observacion"></textarea>
-                                                                    @error('calificaciones.'.$itemPlan->id.'.componentes_evaluados.'.$componenteR->id.'.criterios_evaluados.'.$criterioR->id.'.observacion') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        @endforeach
-                                        <div class="mt-2">
-                                            <label for="obs_general_rubrica_{{ $itemPlan->id }}" class="form-label small">Observación General para este Ítem de Rúbrica (Opcional)</label>
-                                            <textarea class="form-control form-control-sm @error('calificaciones.'.$itemPlan->id.'.observacion_general') is-invalid @enderror"
-                                                      id="obs_general_rubrica_{{ $itemPlan->id }}" rows="2"
-                                                      wire:model.defer="calificaciones.{{ $itemPlan->id }}.observacion_general"></textarea>
-                                            @error('calificaciones.'.$itemPlan->id.'.observacion_general') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                                        </div>
-                                    @else
-                                        <p class="text-warning">No se encontró la plantilla de rúbrica asociada a este ítem o el tipo no es 'Rúbrica Tabular'.</p>
-                                    @endif
-                                </div>
-                            @endforeach
-                            <div class="mt-4">
-                                <button type="submit" class="btn btn-success px-4">
-                                    <i class="bi bi-check-circle-fill"></i> Guardar Mis Calificaciones
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            @endif
-
-            {{-- SECCIÓN 3: VISUALIZACIÓN DE TODAS LAS CALIFICACIONES (PARA ADMIN/DIRECTOR/APOYO AUTORIZADO) --}}
-            @if ($usuarioPuedeVerTodasLasCalificaciones && !$usuarioPuedeCalificar) {{-- O alguna otra condición para no duplicar --}}
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-people-fill text-warning"></i> Calificaciones Ingresadas por Miembros del Tribunal</h5>
-                    </div>
-                    <div class="card-body">
-                        @if (empty($todasLasCalificacionesDelTribunal))
-                            <p class="text-muted">Aún no hay calificaciones registradas por los miembros de este tribunal.</p>
-                        @else
-                            @foreach ($todasLasCalificacionesDelTribunal as $userId => $datosMiembro)
-                                <div class="mb-4 p-3 border rounded">
-                                    <h6>Calificaciones de: <strong>{{ $datosMiembro['nombre_miembro'] }}</strong> ({{ Str::title(Str::lower(Str_replace('_',' ',$datosMiembro['rol_miembro']))) }})</h6>
-                                    @if (empty($datosMiembro['calificaciones_ingresadas']))
-                                        <p class="small text-muted">Este miembro aún no ha registrado calificaciones.</p>
-                                    @else
-                                        @foreach ($datosMiembro['calificaciones_ingresadas'] as $itemPlanId => $califItem)
-                                            <div class="mb-3 p-2 border-start">
-                                                <p class="mb-1"><strong>{{ $loop->parent->iteration }}. {{ $califItem['nombre_item_plan'] }}:</strong></p>
-                                                @if ($califItem['tipo'] === 'NOTA_DIRECTA')
-                                                    <p class="ms-3 mb-1">Nota Directa: <strong class="text-primary">{{ $califItem['nota_directa'] }}</strong></p>
-                                                    @if($califItem['observacion_general']) <p class="ms-3 mb-0 small text-muted"><em>Obs. General: {{ $califItem['observacion_general'] }}</em></p> @endif
-                                                @elseif ($califItem['tipo'] === 'RUBRICA_TABULAR')
-                                                    <p class="ms-3 mb-1 small text-muted">Rúbrica: {{ $califItem['rubrica_plantilla_nombre'] }}</p>
-                                                     @if($califItem['observacion_general']) <p class="ms-3 mb-1 small text-muted"><em>Obs. General del Ítem: {{ $califItem['observacion_general'] }}</em></p> @endif
-                                                    @foreach ($califItem['componentes_evaluados'] as $datosComp)
-                                                        <div class="ms-3 mb-2">
-                                                            <p class="mb-0 small"><em>{{ $datosComp['nombre_componente_rubrica'] }}:</em></p>
-                                                            <ul class="list-unstyled ps-3 small">
-                                                            @foreach ($datosComp['criterios_evaluados'] as $datosCrit)
-                                                                <li>
-                                                                    {{ $datosCrit['nombre_criterio_rubrica'] }}:
-                                                                    <strong class="text-info">{{ $datosCrit['calificacion_elegida_nombre'] }} ({{ $datosCrit['calificacion_elegida_valor'] }})</strong>
-                                                                    @if($datosCrit['observacion']) <em class="d-block text-muted">- Obs: {{ $datosCrit['observacion'] }}</em> @endif
-                                                                </li>
-                                                            @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    @endforeach
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    @endif
-                                </div>
-                            @endforeach
-                        @endif
-                    </div>
-                </div>
-            @endif
-
-
-            {{-- SECCIÓN 4: RESUMEN FINAL Y ACTA (Futuro, para Presidente/Admin) --}}
-            @can('exportar-acta-este-tribunal-como-presidente', $tribunal) {{-- O permiso para admin --}}
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill text-danger"></i> Acta y Cierre</h5>
-                    </div>
-                    <div class="card-body">
-                        <p>Aquí se podría mostrar un resumen de las notas finales (promedios si aplica) y el botón para generar/exportar el acta.</p>
-                        {{-- <button class="btn btn-danger"><i class="bi bi-file-pdf-fill"></i> Exportar Acta</button> --}}
-                        {{-- <button class="btn btn-warning"><i class="bi bi-lock-fill"></i> Cerrar Calificaciones</button> --}}
-                    </div>
-                </div>
-            @endcan
-
-        @else
-            {{-- Este div se mostrará si $tribunal es null después de mount (y render se llama) --}}
-            {{-- El mensaje flash de session() ya se maneja con @include('partials.alerts') --}}
-            @if(session()->has('danger') || session()->has('message_tribunal_profile'))
-                {{-- No hacer nada aquí si la alerta ya se muestra --}}
             @else
-                <div class="alert alert-warning">Cargando datos del tribunal o tribunal no encontrado...</div>
+                <div class="fs-2 fw-semibold mb-4">
+                    <span class="text-muted">Perfil del Tribunal</span>
+                </div>
             @endif
-        @endif
-    </div> <!-- container-fluid -->
-</div>
+
+            @include('partials.alerts')
+
+            @if ($tribunal)
+                {{-- SECCIÓN 1: DATOS DEL TRIBUNAL (Con Edición) --}}
+                {{-- Incluimos la vista parcial para los datos del tribunal --}}
+                @include('livewire.tribunales.profile.data-tribunal-form')
+
+                {{-- SECCIÓN 2: RESUMEN DE CALIFICACIONES Y NOTA FINAL --}}
+                @if ($usuarioPuedeVerTodasLasCalificaciones && $planEvaluacionActivo)
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-calculator-fill text-info"></i> Resumen de Calificaciones y
+                                Nota del Tribunal</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (empty($resumenNotasCalculadas))
+                                <p class="text-muted text-center py-3">
+                                    <i class="bi bi-clipboard-x fs-3 d-block mb-2"></i>
+                                    No hay ítems definidos en el Plan de Evaluación o aún no hay calificaciones para mostrar
+                                    un resumen.
+                                </p>
+                            @else
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Ítem de Evaluación</th>
+                                                <th class="text-center">Ponderación Global</th>
+                                                <th class="text-center">Nota Ítem (sobre 20)</th>
+                                                <th class="text-center">Puntaje Ponderado (sobre 20)</th>
+                                                <th class="text-center" style="width:15%">Detalles / Observaciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($resumenNotasCalculadas as $itemPlanId => $itemResumen)
+                                                <tr>
+                                                    <td>
+                                                        <strong>{{ $loop->iteration }}.
+                                                            {{ $itemResumen['nombre_item_plan'] }}</strong>
+                                                        @if ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR' && !empty($itemResumen['rubrica_plantilla_nombre']))
+                                                            <br><small class="text-muted">Rúbrica:
+                                                                {{ $itemResumen['rubrica_plantilla_nombre'] }}</small>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">{{ $itemResumen['ponderacion_global'] }}%</td>
+                                                    <td
+                                                        class="text-center fw-bold fs-5 @if (is_null($itemResumen['nota_tribunal_sobre_20'])) text-muted @else text-primary @endif">
+                                                        {{ !is_null($itemResumen['nota_tribunal_sobre_20']) ? number_format($itemResumen['nota_tribunal_sobre_20'], 2) : 'N/R' }}
+                                                    </td>
+                                                    <td
+                                                        class="text-center fw-bold fs-5 @if (($itemResumen['puntaje_ponderado_item'] ?? 0) > 0) text-success @else text-muted @endif">
+                                                        {{ number_format($itemResumen['puntaje_ponderado_item'] ?? 0, 2) }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if ($itemResumen['tipo_item'] === 'NOTA_DIRECTA')
+                                                            @if (!empty($itemResumen['observacion_general']))
+                                                                <button type="button"
+                                                                    class="btn btn-sm btn-outline-secondary py-1 px-2"
+                                                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                                                    data-bs-html="true"
+                                                                    title="{{ htmlspecialchars($itemResumen['observacion_general']) }}">
+                                                                    <i class="bi bi-chat-left-text"></i> Ver Obs.
+                                                                </button>
+                                                            @else
+                                                                <small class="text-muted"><em>Sin obs.</em></small>
+                                                            @endif
+                                                        @elseif ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR')
+                                                            @if (!empty($todasLasCalificacionesDelTribunal))
+                                                                <button type="button"
+                                                                    class="btn btn-sm btn-outline-info py-1 px-2"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#detalleRubricaModal_{{ $itemPlanId }}">
+                                                                    <i class="bi bi-search"></i> Ver Detalle
+                                                                </button>
+                                                            @else
+                                                                <small class="text-muted"><em>Detalle no
+                                                                        disponible.</em></small>
+                                                            @endif
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="table-group-divider">
+                                            <tr>
+                                                <td colspan="3" class="text-end fw-bold fs-5 align-middle">NOTA FINAL DEL
+                                                    TRIBUNAL (sobre 20):</td>
+                                                <td class="text-center fw-bold fs-4 @if ($notaFinalCalculadaDelTribunal >= 14) text-success @elseif(is_numeric($notaFinalCalculadaDelTribunal)) text-danger @else text-muted @endif"
+                                                    colspan="2">
+                                                    {{ is_numeric($notaFinalCalculadaDelTribunal) ? number_format($notaFinalCalculadaDelTribunal, 2) : 'N/C' }}
+                                                </td>
+                                            </tr>
+                                            @if (round($sumaPonderacionesGlobalesItems, 2) != 100.0 && $planEvaluacionActivo->itemsPlanEvaluacion->isNotEmpty())
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-danger small pt-2">
+                                                        <i class="bi bi-exclamation-triangle-fill"></i> Advertencia: La suma
+                                                        de las ponderaciones globales de los ítems en el Plan de Evaluación
+                                                        ({{ number_format($sumaPonderacionesGlobalesItems, 2) }}%) no es
+                                                        100%. El cálculo de la nota final podría ser incorrecto.
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                        </tfoot>
+                                    </table>
+                                </div>
+
+                                {{-- Modales para el detalle de cada rúbrica por calificador --}}
+                                @foreach ($resumenNotasCalculadas as $itemPlanId => $itemResumen)
+                                    @if ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR' && isset($detalleRubricasParaModal[$itemPlanId]))
+                                        @include(
+                                            'livewire.tribunales.profile.modal-detalle-rubrica',
+                                            [
+                                                'itemPlanId' => $itemPlanId,
+                                                'detalleItemRubrica' => $detalleRubricasParaModal[$itemPlanId], // Pasar el nuevo dato
+                                            ]
+                                        )
+                                    @endif
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                {{-- SECCIÓN 3: HISTORIAL DE CAMBIOS --}}
+                <div class="card mb-4 shadow-sm">
+                    {{-- ... (código del historial como lo tenías, sin cambios) ... --}}
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-clock-history text-success"></i> Historial de Cambios</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        @if ($tribunal->logs && $tribunal->logs->count() > 0)
+                            <ul class="list-group list-group-flush">
+                                @foreach ($tribunal->logs->sortByDesc('created_at') as $log)
+                                    <li class="list-group-item py-2">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <strong
+                                                class="mb-1">{{ Str::title(Str_replace('_', ' ', $log->accion)) }}</strong>
+                                            <small class="text-muted">{{ $log->created_at->diffForHumans() }}</small>
+                                        </div>
+                                        <p class="mb-1 small">{{ $log->descripcion }}</p>
+                                        <small class="text-muted">
+                                            {{ $log->created_at->isoFormat('DD MMM YYYY, hh:mm A') }}
+                                            @if ($log->user)
+                                                por <strong>{{ $log->user->name }}</strong>
+                                            @else
+                                                (Sistema)
+                                            @endif
+                                        </small>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="text-muted text-center py-3">
+                                <i class="bi bi-journal-x fs-4 d-block mb-1"></i>
+                                No hay historial de cambios para este tribunal.
+                            </p>
+                        @endif
+                    </div>
+                </div>
+
+
+                {{-- SECCIÓN 4: ACTA --}}
+                @if ($usuarioPuedeExportarActa)
+                    <div class="card mb-4 shadow-sm">
+                        {{-- ... (código del acta como lo tenías, sin cambios) ... --}}
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill text-danger"></i> Acta del Tribunal
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Aquí se podrá generar y exportar el acta oficial del tribunal una vez que todas las
+                                calificaciones estén completas y el proceso haya finalizado.</p>
+                            <button class="btn btn-danger" wire:click="exportarActa" wire:loading.attr="disabled">
+                                <span wire:loading wire:target="exportarActa" class="spinner-border spinner-border-sm"
+                                    role="status" aria-hidden="true"></span>
+                                <i class="bi bi-file-pdf-fill" wire:loading.remove wire:target="exportarActa"></i>
+                                Exportar Acta (PDF)
+                            </button>
+                            {{-- Futuro: Botón para "Cerrar/Finalizar Tribunal" --}}
+                        </div>
+                    </div>
+                @endif
+            @else
+                {{-- Mensaje si el tribunal no se carga --}}
+                @if (!session()->has('danger'))
+                    {{-- Evitar duplicar el mensaje si ya hay uno de error --}}
+                    <div class="alert alert-warning text-center shadow-sm">
+                        <i class="bi bi-exclamation-octagon-fill fs-3 d-block mb-2"></i>
+                        Cargando datos del tribunal o el tribunal especificado no fue encontrado. <br>Por favor, verifique
+                        el ID o sus permisos de acceso.
+                    </div>
+                @endif
+            @endif
+        </div>
+
+        {{-- Script para inicializar tooltips de Bootstrap (si usas alguno) --}}
+        @push('scripts')
+            <script>
+                document.addEventListener('livewire:load', function() {
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+                    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl)
+                    })
+                });
+                // Si los tooltips se añaden dinámicamente con Livewire, necesitarías reinicializar:
+                // Livewire.hook('message.processed', (message, component) => {
+                //     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+                //     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                //         // Destruir tooltip existente para evitar duplicados
+                //         var existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                //         if (existingTooltip) {
+                //             existingTooltip.dispose();
+                //         }
+                //         return new bootstrap.Tooltip(tooltipTriggerEl)
+                //     })
+                // });
+            </script>
+        @endpush
+    </div>

@@ -30,4 +30,8 @@ class CriterioComponente extends Model
     {
         return $this->hasMany(CalificacionCriterio::class, 'criterio_id', 'id');
     }
+    public function miembrosTribunales()
+    {
+        return $this->hasMany(MiembrosTribunal::class, 'tribunal_id');
+    }
 }
