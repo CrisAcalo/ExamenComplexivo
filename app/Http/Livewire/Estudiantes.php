@@ -2,16 +2,24 @@
 
 namespace App\Http\Livewire;
 
+use App\Imports\EstudiantesImport;
+use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use App\Models\Estudiante;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Estudiantes extends Component
 {
-    use WithPagination;
-
+    use WithPagination, WithFileUploads;
     protected $paginationTheme = 'bootstrap';
     public $selected_id, $keyWord, $nombres, $apellidos, $cedula, $correo, $telefono, $username, $ID_estudiante, $founded;
+    public $archivoExcel;
+    public $importErrors = [];
+    public $importing = false;
+    public $importFinished = false;
+    public $perPage = 10; // NUEVO
 
     public function render()
     {
@@ -25,8 +33,23 @@ class Estudiantes extends Component
                 ->orWhere('telefono', 'LIKE', $keyWord)
                 ->orWhere('username', 'LIKE', $keyWord)
                 ->orWhere('ID_estudiante', 'LIKE', $keyWord)
-                ->paginate(10),
+                ->paginate($this->perPage),
         ]);
+    }
+
+    public function rules() // Renombrar el método a rulesForCRUD o similar para claridad
+    {
+        $rules = [
+            'nombres' => 'required',
+            'apellidos' => 'required',
+            'cedula' => 'required|unique:estudiantes,cedula,' . $this->selected_id,
+            'correo' => 'required|email|unique:estudiantes,correo,' . $this->selected_id,
+            'telefono' => 'nullable',
+            'username' => 'required|unique:estudiantes,username,' . $this->selected_id,
+            'ID_estudiante' => 'required|unique:estudiantes,ID_estudiante,' . $this->selected_id,
+        ];
+
+        return $rules;
     }
 
     public function cancel()
@@ -135,5 +158,53 @@ class Estudiantes extends Component
             session()->flash('success', 'Estudiante Eliminado Exitosamente.');
             $this->founded = null;
         }
+    }
+
+    public function resetImport()
+    {
+        $this->archivoExcel = null;
+        $this->importing = false;
+        $this->importFinished = false;
+        $this->importErrors = [];
+    }
+    public function importarEstudiantes()
+    {
+        $this->validate([
+            'archivoExcel' => 'required|file|mimes:xlsx,xls'
+        ]);
+
+        $this->importing = true;
+        $this->importFinished = false;
+        $this->importErrors = [];
+
+        $import = new EstudiantesImport();
+
+        try {
+            Excel::import($import, $this->archivoExcel->getRealPath());
+
+            // Si llegamos aquí sin excepción, la importación se completó.
+            // Ahora verificamos los fallos de validación.
+            if ($import->failures()->isNotEmpty()) {
+                foreach ($import->failures() as $failure) {
+                    $this->importErrors[] = "Error en la fila {$failure->row()}: {$failure->errors()[0]} para el atributo '{$failure->attribute()}' con valor '{$failure->values()[$failure->attribute()]}'";
+                }
+                // Mensaje de éxito parcial
+                session()->flash('warning', 'Importación completada, pero algunas filas no se importaron debido a errores de validación.');
+            } else {
+                // Mensaje de éxito total
+                session()->flash('success', '¡Todas las filas se importaron exitosamente!');
+            }
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            foreach ($failures as $failure) {
+                $this->importErrors[] = "Error en la fila {$failure->row()}: {$failure->errors()[0]} para el atributo '{$failure->attribute()}' con valor '{$failure->values()[$failure->attribute()]}'";
+            }
+            session()->flash('danger', 'La importación falló debido a errores de validación.');
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Ocurrió un error inesperado durante la importación. Por favor, verifique el formato del archivo y los datos. Error: ' . Str::limit($e->getMessage(), 150));
+        }
+
+        $this->importing = false;
+        $this->importFinished = true;
     }
 }

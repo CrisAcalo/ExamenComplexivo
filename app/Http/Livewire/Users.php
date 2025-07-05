@@ -3,19 +3,28 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
+use App\Imports\ProfesoresImport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Str;
 
 class Users extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     protected $paginationTheme = 'bootstrap';
     public $selected_id, $keyWord, $name, $email, $password, $password_confirmation;
     public $usuarioFounded;
+    public $archivoExcelProfesores;
+    public $importing = false;
+    public $importFinished = false;
+    public $importErrors = [];
+    public $perPage = 13; // NUEVO
 
     protected function rules()
     {
@@ -49,16 +58,14 @@ class Users extends Component
     {
         $keyWord = '%' . $this->keyWord . '%';
         $users = User::where(function ($query) use ($keyWord) {
-                $query
-                    ->orWhere('name', 'LIKE', $keyWord)
-                    ->orWhere('email', 'LIKE', $keyWord);
-            })
-            ->paginate(13);
+            $query
+                ->orWhere('name', 'LIKE', $keyWord)
+                ->orWhere('email', 'LIKE', $keyWord);
+        })
+            ->paginate($this->perPage); // CAMBIO
         return view('livewire.users.view', compact('users'));
     }
-    public function mount()
-    {
-    }
+    public function mount() {}
 
     public function cancel()
     {
@@ -143,8 +150,44 @@ class Users extends Component
 
     public function impersonate($id)
     {
-        $user = User::find($id);
-        Auth::user()->impersonate($user);
-        return redirect()->to('/home'); // Cambia '/dashboard' a la ruta a la que quieras redirigir después de impersonar
+        // $user = User::find($id);
+        // Auth::user()->impersonate($user);
+        // return redirect()->to('/home');
+    }
+    public function resetImport()
+    {
+        $this->archivoExcelProfesores = null;
+        $this->importing = false;
+        $this->importFinished = false;
+        $this->importErrors = [];
+    }
+
+    public function importarProfesores()
+    {
+        $this->validate([
+            'archivoExcelProfesores' => 'required|file|mimes:xlsx,xls'
+        ], [
+            'archivoExcelProfesores.required' => 'Debe seleccionar un archivo.',
+            'archivoExcelProfesores.mimes' => 'El archivo debe ser de tipo Excel (xlsx, xls).',
+        ]);
+
+        $this->importing = true;
+        $this->importFinished = false;
+        $this->importErrors = [];
+
+        $import = new ProfesoresImport();
+        Excel::import($import, $this->archivoExcelProfesores->getRealPath());
+
+        if ($import->failures()->isNotEmpty()) {
+            foreach ($import->failures() as $failure) {
+                $this->importErrors[] = "Error de validación en la fila {$failure->row()}: {$failure->errors()[0]} para '{$failure->attribute()}' con valor '{$failure->values()[$failure->attribute()]}'";
+            }
+            session()->flash('warning', 'La importación finalizó, pero algunas filas tenían errores y no se importaron.');
+        } else {
+            session()->flash('success', 'Importación completada exitosamente.');
+        }
+
+        $this->importing = false;
+        $this->importFinished = true;
     }
 }

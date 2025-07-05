@@ -14,9 +14,26 @@
                             <input wire:model='keyWord' type="text" class="form-control" name="search" id="search"
                                 placeholder="Buscar usuarios">
                         </div>
-                        <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                            <i class="bi bi-plus-lg"></i> Añadir usuarios
+                        <div class="btn-group">
+                            <div class="btn btn-sm btn-success" data-bs-toggle="modal"
+                                data-bs-target="#importProfesoresModal">
+                                <i class="bi bi-file-earmark-excel"></i> Importar Profesores
+                            </div>
+                            <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                <i class="bi bi-plus-lg"></i> Añadir Usuario
+                            </div>
                         </div>
+                    </div>
+                    <div class="mt-2 d-flex align-items-center">
+                        <label class="me-2 mb-0">Mostrar</label>
+                        <select wire:model="perPage" class="form-select form-select-sm w-auto">
+                            <option value="5">5</option>
+                            <option value="13">13</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span class="ms-2">filas</span>
                     </div>
                 </div>
 

@@ -13,7 +13,7 @@ class Estudiante extends Model
 
     protected $table = 'estudiantes';
 
-    protected $fillable = ['nombres','apellidos','ID_estudiante'];
+    protected $fillable = ['nombres','apellidos','ID_estudiante', 'cedula', 'correo', 'telefono', 'username'];
 
     //atributo para retornar nombres_completos_id
     protected $appends = ['nombres_completos_id'];

@@ -629,7 +629,6 @@ class TribunalProfile extends Component
         $this->notaFinalCalculadaDelTribunal = 0;
         $this->sumaPonderacionesGlobalesItems = 0;
 
-        // ... (obtención de miembros, presidente, $todasLasMiembroCalificacionDelTribunal sin cambios) ...
         $miembrosDelTribunal = MiembrosTribunal::with(['user'])->where('tribunal_id', $this->tribunal->id)->get();
         $registroPresidente = $miembrosDelTribunal->firstWhere('status', 'PRESIDENTE');
         $miembroTribunalIdDelPresidente = $registroPresidente ? $registroPresidente->id : null;

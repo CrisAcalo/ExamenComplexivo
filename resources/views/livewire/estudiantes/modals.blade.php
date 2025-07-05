@@ -122,3 +122,65 @@
         @endif
     </div>
 </div>
+
+<!-- Import Modal -->
+<div wire:ignore.self class="modal fade" id="importModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
+    aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">Importar Estudiantes desde Excel</h5>
+                <button wire:click.prevent="resetImport()" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form wire:submit.prevent="importarEstudiantes">
+                    <div class="form-group mb-3">
+                        <label for="archivoExcel" class="form-label">Seleccione el archivo Excel (.xlsx, .xls)</label>
+                        <input type="file" class="form-control @error('archivoExcel') is-invalid @enderror" id="archivoExcel" wire:model="archivoExcel">
+                        @error('archivoExcel') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="alert alert-info small">
+                        <strong>Formato esperado:</strong>
+                        <ul>
+                            <li>El archivo debe ser de tipo Excel (.xlsx o .xls).</li>
+                            <li>Los datos deben empezar en la **fila 7**.</li>
+                            <li>La **fila 6** debe contener los encabezados: `ID ESPE`, `CÉDULA`, `APELLIDOS`, `NOMBRES`, `CORREO`.</li>
+                            <li>Las columnas se mapearán automáticamente. El `username` se generará a partir del correo.</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled" wire:target="importarEstudiantes, archivoExcel">
+                            <span wire:loading wire:target="importarEstudiantes" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <i class="bi bi-upload" wire:loading.remove wire:target="importarEstudiantes"></i>
+                            Importar
+                        </button>
+                    </div>
+                </form>
+
+                {{-- Resultados de la importación --}}
+                @if ($importFinished)
+                    <div class="mt-4">
+                        <h6>Resultados de la Importación:</h6>
+                        @if (empty($importErrors))
+                            <div class="alert alert-success">¡Todas las filas se importaron exitosamente!</div>
+                        @else
+                            <div class="alert alert-warning">
+                                <p>La importación finalizó, pero se encontraron los siguientes errores (las filas con errores no se importaron):</p>
+                                <ul class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    @foreach ($importErrors as $error)
+                                        <li class="list-group-item list-group-item-danger small">{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button wire:click.prevent="resetImport()" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>

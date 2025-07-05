@@ -19,7 +19,15 @@ class User extends Authenticatable
 
     protected $table = 'users';
 
-    protected $fillable = ['name', 'email', 'password']; //aumento del campo password
+    protected $fillable = [
+        'ID_espe',
+        'name',
+        'lastname',
+        'username',
+        'email',
+        'cedula',
+        'password',
+    ];
 
     public function getAuthIdentifierName()
     {

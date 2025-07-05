@@ -93,32 +93,29 @@
     </div>
 </div>
 
-<div wire:ignore.self class="modal fade deleteModal" id="deleteDataModal" data-bs-backdrop="static"
-    data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+{{-- Delete Modal --}}
+<div wire:ignore.self class="modal fade" id="deleteDataModal" data-bs-backdrop="static" data-bs-keyboard="false"
+    aria-labelledby="deleteDataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        @if ($founded)
+        {{-- Usar la propiedad booleana para mostrar/ocultar el contenido --}}
+        @if ($confirmingPeriodoDeletion)
             <div class="modal-content">
-                @include('partials.alerts')
-
                 <div class="modal-header bg-danger text-light">
-                    <h1 class="modal-title fs-5" id="staticBackdropLabel">¿Está seguro
-                        de eliminar al Periodo?
-                    </h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h1 class="modal-title fs-5" id="deleteDataModalLabel">¿Está seguro de eliminar el Periodo?</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                        wire:click="resetDeleteConfirmation"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="text-danger fw-bold">
-                        Los datos no se podrán recuperar
-                    </div>
+                    <p>Está a punto de eliminar el período con ID <strong>{{ $periodoAEliminarId }}</strong>.</p>
+                    <p class="text-danger fw-bold">Los datos no se podrán recuperar.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button class="btn btn-danger" wire:click="destroy({{ $founded->id }})">Eliminar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        wire:click="resetDeleteConfirmation">Cancelar</button>
+                    {{-- El método destroy ya no recibe un ID --}}
+                    <button class="btn btn-danger" wire:click="destroy()">Sí, Eliminar</button>
                 </div>
-
             </div>
         @endif
-    </div>
-</div>
     </div>
 </div>

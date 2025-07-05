@@ -1,4 +1,4 @@
-<div class="mx-auto fixed-top mt-3" style="width:90%;max-width:700px;opacity:0.9;">
+<div class="mx-auto fixed-top mt-3" style="width:90%;max-width:700px;opacity:0.9;z-index:1080;">
     @if (session()->has('success'))
         <div wire:poll.3s class="alert alert-success" style="margin-top:0px; margin-bottom:0px;">
             {{ session('success') }}
