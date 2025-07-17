@@ -84,7 +84,9 @@
                     @for ($i = 0; $i < 3; $i++)
                         <div class="col-md-4 mb-3">
                             <label for="calificador_general_{{ $i }}" class="form-label">Calificador General {{ $i + 1 }}</label>
-                            <select wire:model.defer="calificadoresGeneralesSeleccionados.{{ $i }}" id="calificador_general_{{ $i }}" class="form-select form-select-sm @error('calificadoresGeneralesSeleccionados.'.$i) is-invalid @enderror">
+                            <select wire:model.defer="calificadoresGeneralesSeleccionados.{{ $i }}" id="calificador_general_{{ $i }}"
+                                class="form-select form-select-sm @error('calificadoresGeneralesSeleccionados.'.$i) is-invalid @enderror"
+                                data-search="true" data-placeholder="-- Sin asignar --">
                                 <option value="">-- Sin asignar --</option>
                                 @foreach ($profesoresDisponiblesParaCalificadorGeneral as $profesor)
                                     {{-- Lógica para deshabilitar si ya está seleccionado en otro select --}}
@@ -150,6 +152,7 @@
                                     <th>Fecha</th>
                                     <th>Horario</th>
                                     <th>Miembros del Tribunal</th>
+                                    <th class="text-center">Estado</th>
                                     <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
@@ -180,12 +183,40 @@
                                                 </span><br>
                                             @endforeach
                                         </td>
-                                        <td width="120" class="text-center"> {{-- Ancho ajustado para dos botones --}}
+                                        <td class="text-center">
+                                            @if($row->estado === 'CERRADO')
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-lock-fill"></i> Cerrado
+                                                </span>
+                                            @else
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-unlock-fill"></i> Abierto
+                                                </span>
+                                            @endif
+                                        </td>
+                                        <td width="200" class="text-center"> {{-- Ancho ajustado para más botones --}}
                                             <div class="btn-group btn-group-sm">
                                                 <a href="{{ route('periodos.tribunales.profile', $row->id) }}"
                                                     class="btn btn-primary" title="Ver/Calificar Tribunal">
                                                     <i class="bi bi-pencil-fill"></i>
                                                 </a>
+
+                                                @if($row->estado === 'ABIERTO')
+                                                    <button type="button" class="btn btn-outline-danger"
+                                                        wire:click="cerrarTribunal({{ $row->id }})"
+                                                        wire:confirm="¿Está seguro que desea cerrar este tribunal?"
+                                                        title="Cerrar Tribunal">
+                                                        <i class="bi bi-lock-fill"></i>
+                                                    </button>
+                                                @else
+                                                    <button type="button" class="btn btn-outline-success"
+                                                        wire:click="abrirTribunal({{ $row->id }})"
+                                                        wire:confirm="¿Está seguro que desea abrir este tribunal?"
+                                                        title="Abrir Tribunal">
+                                                        <i class="bi bi-unlock-fill"></i>
+                                                    </button>
+                                                @endif
+
                                                 <button type="button" class="btn btn-danger"
                                                     wire:click="confirmDelete({{ $row->id }})"
                                                     title="Eliminar Tribunal">
@@ -196,7 +227,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="text-center py-3" colspan="6">
+                                        <td class="text-center py-3" colspan="7">
                                             <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
                                             No se encontraron tribunales para mostrar.
                                         </td>

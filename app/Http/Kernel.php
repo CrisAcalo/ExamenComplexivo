@@ -68,5 +68,9 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
 
+        //Custom Middlewares
+        'check.carrera.periodo' => \App\Http\Middleware\CheckCarreraPeriodoAccess::class,
+        'check.tribunal' => \App\Http\Middleware\CheckTribunalAccess::class,
+
     ];
 }

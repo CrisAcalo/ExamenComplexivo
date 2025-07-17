@@ -13,7 +13,14 @@ class Tribunale extends Model
 
     protected $table = 'tribunales';
 
-    protected $fillable = ['carrera_periodo_id', 'estudiante_id', 'fecha', 'hora_inicio', 'hora_fin'];
+    protected $fillable = [
+        'carrera_periodo_id',
+        'estudiante_id',
+        'fecha',
+        'hora_inicio',
+        'hora_fin',
+        'estado'
+    ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasOne

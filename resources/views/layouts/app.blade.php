@@ -19,6 +19,10 @@
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Choices.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Scripts -->
     {{-- @vite(['resources/js/app.js']) --}}
     @livewireStyles
@@ -38,6 +42,70 @@
             height: 100%;
             object-fit: cover;
             filter: opacity(1);
+        }
+
+        /* Mejoras para Choices.js */
+        .choices {
+            margin-bottom: 0;
+        }
+
+        .choices__inner {
+            min-height: 38px;
+            padding: 7px 7.5px 3.75px;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            background-color: #fff;
+            font-size: 1rem;
+        }
+
+        .choices__inner:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .choices__list--dropdown {
+            z-index: 1050; /* Para que aparezca sobre modales */
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+        }
+
+        .choices__item--selectable {
+            padding: 12px;
+        }
+
+        .choices__item--selectable:hover {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .choices__placeholder {
+            color: #6c757d;
+        }
+
+        .choices.is-invalid .choices__inner {
+            border-color: #dc3545;
+        }
+
+        .choices.is-invalid .choices__inner:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+        }
+
+        /* Asegurar que los floating labels funcionen con Choices.js */
+        .form-floating > .choices {
+            height: calc(3.5rem + 2px);
+            padding: 0;
+        }
+
+        .form-floating > .choices .choices__inner {
+            height: calc(3.5rem + 2px);
+            padding: 1rem 0.75rem;
+            border-radius: 0.375rem;
+        }
+
+        .form-floating > label {
+            z-index: 2;
         }
     </style>
 </head>
@@ -106,6 +174,10 @@
         </main>
     </div>
     @livewireScripts
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Choices.js JS -->
+    <script src="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/scripts/choices.min.js"></script>
     <script type="module">
         const addModal = new bootstrap.Modal('#createDataModal');
         const editModal = new bootstrap.Modal('#updateDataModal');

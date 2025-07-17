@@ -1,4 +1,5 @@
 <!-- Add Modal -->
+@can('gestionar estudiantes')
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="createDataModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -25,65 +26,66 @@
                         <input wire:model="correo" type="email" class="form-control" id="correo" placeholder="Correo">@error('correo') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="telefono"></label>
+                        <label for="telefono">Teléfono</label>
                         <input wire:model="telefono" type="text" class="form-control" id="telefono" placeholder="Teléfono">@error('telefono') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="username"></label>
-                        <input wire:model="username" type="text" class="form-control" id="username" placeholder="Username">@error('username') <span class="error text-danger">{{ $message }}</span> @enderror
+                        <label for="username">Nombre de usuario</label>
+                        <input wire:model="username" type="text" class="form-control" id="username" placeholder="Nombre de usuario">@error('username') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="ID_estudiante"></label>
-                        <input wire:model="ID_estudiante" type="text" class="form-control" id="ID_estudiante" placeholder="Id Estudiante">@error('ID_estudiante') <span class="error text-danger">{{ $message }}</span> @enderror
+                        <label for="ID_estudiante">ID Estudiante</label>
+                        <input wire:model="ID_estudiante" type="text" class="form-control" id="ID_estudiante" placeholder="ID Estudiante">@error('ID_estudiante') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
 </div>
+@endcan
 
 <!-- Edit Modal -->
+@can('editar estudiantes')
 <div wire:ignore.self class="modal fade" id="updateDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
        <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="updateModalLabel">Update Estudiante</h5>
+                <h5 class="modal-title" id="updateModalLabel">Actualizar Estudiante</h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form>
 					<input type="hidden" wire:model="selected_id">
                     <div class="form-group">
-                        <label for="nombres"></label>
+                        <label for="nombres">Nombres</label>
                         <input wire:model="nombres" type="text" class="form-control" id="nombres" placeholder="Nombres">@error('nombres') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="apellidos"></label>
+                        <label for="apellidos">Apellidos</label>
                         <input wire:model="apellidos" type="text" class="form-control" id="apellidos" placeholder="Apellidos">@error('apellidos') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="cedula"></label>
+                        <label for="cedula">Cédula</label>
                         <input wire:model="cedula" type="text" class="form-control" id="cedula" placeholder="Cédula">@error('cedula') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="correo"></label>
+                        <label for="correo">Correo</label>
                         <input wire:model="correo" type="email" class="form-control" id="correo" placeholder="Correo">@error('correo') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="telefono"></label>
+                        <label for="telefono">Teléfono</label>
                         <input wire:model="telefono" type="text" class="form-control" id="telefono" placeholder="Teléfono">@error('telefono') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
-                        <label for="username"></label>
-                        <input wire:model="username" type="text" class="form-control" id="username" placeholder="Username">@error('username') <span class="error text-danger">{{ $message }}</span> @enderror
-                    </div>
+                        <label for="username">Nombre de usuario</label>
+                        <input wire:model="username" type="text" class="form-control" id="username" placeholder="Nombre de usuario">@error('username') <span class="error text-danger">{{ $message }}</span> @enderror                    </div>
                     <div class="form-group">
-                        <label for="ID_estudiante"></label>
-                        <input wire:model="ID_estudiante" type="text" class="form-control" id="ID_estudiante" placeholder="Id Estudiante">@error('ID_estudiante') <span class="error text-danger">{{ $message }}</span> @enderror
+                        <label for="ID_estudiante">ID Estudiante</label>
+                        <input wire:model="ID_estudiante" type="text" class="form-control" id="ID_estudiante" placeholder="ID Estudiante">@error('ID_estudiante') <span class="error text-danger">{{ $message }}</span> @enderror
                     </div>
                 </form>
             </div>
@@ -91,10 +93,13 @@
                 <button type="button" wire:click.prevent="cancel()" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" wire:click.prevent="update()" class="btn btn-primary">Save</button>
             </div>
-       </div>
+        </div>
     </div>
 </div>
+@endcan
 
+<!-- Delete Modal -->
+@can('eliminar estudiantes')
 <div wire:ignore.self class="modal fade deleteModal" id="deleteDataModal" data-bs-backdrop="static"
     data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -122,8 +127,10 @@
         @endif
     </div>
 </div>
+@endcan
 
 <!-- Import Modal -->
+@can('importar estudiantes')
 <div wire:ignore.self class="modal fade" id="importModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -184,3 +191,4 @@
         </div>
     </div>
 </div>
+@endcan

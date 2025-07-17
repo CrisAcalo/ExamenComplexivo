@@ -39,55 +39,75 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->midd
 
 Route::middleware('auth')->group(function () {
 
-
-    Route::prefix('roles')->namespace('Roles')->name('roles.')->group(function () {
-        // Route::get('/roles', [RolController::class, 'index'])->name('index');
+    // === ROLES & PERMISOS (Solo Super Admin) ===
+    Route::middleware(['permission:gestionar roles y permisos'])->prefix('roles')->namespace('Roles')->name('roles.')->group(function () {
         Route::view('/', 'livewire.roles.index');
         Route::put('/updatePermisos/{id}', [RolController::class, 'updatePermisos'])->name('updatePermisos');
     });
 
-    // Route::middleware(['can:Permisos - Seccion'])->prefix('permissions')->namespace('Permissions')->name('permissions.')->group(function () {
-    //     Route::view('/', 'livewire.permissions.index');
-    // });
-    Route::prefix('permissions')->namespace('Permissions')->name('permissions.')->group(function () {
+    Route::middleware(['permission:gestionar roles y permisos'])->prefix('permissions')->namespace('Permissions')->name('permissions.')->group(function () {
         Route::view('/', 'livewire.permissions.index');
     });
 
-    Route::prefix('users')->namespace('Users')->name('users.')->group(function () {
+    // === USUARIOS/PROFESORES (Super Admin y Administrador) ===
+    Route::middleware(['permission:gestionar usuarios'])->prefix('users')->namespace('Users')->name('users.')->group(function () {
         Route::view('/', 'livewire.users.index');
         Route::get('/profile/{id}', [UserController::class, 'profile'])->name('profile');
         Route::put('/updateRoles/{id}', [UserController::class, 'updateRoles'])->name('updateRoles');
         Route::get('/exitImpersonate/', [UserController::class, 'exitImpersonate'])->name('exitImpersonate');
     });
 
-    Route::prefix('periodos')->namespace('Periodos')->name('periodos.')->group(function () {
-        Route::view('/', 'livewire.periodos.index');
-        Route::get('/{id}', [PeriodoController::class, 'show'])->name('profile');
-        Route::get('/tribunales/{carreraPeriodoId}', [TribunalesController::class, 'index'])->name('tribunales.index');
-        Route::get('/tribunales/profile/{tribunalId}', [TribunalesController::class, 'profile'])->name('tribunales.profile');
-    });
-
-    Route::prefix('carreras')->namespace('Carreras')->name('carreras.')->group(function () {
+    // === CARRERAS (Super Admin y Administrador) ===
+    Route::middleware(['permission:gestionar carreras'])->prefix('carreras')->namespace('Carreras')->name('carreras.')->group(function () {
         Route::view('/', 'livewire.carreras.index');
     });
 
+    // === ESTUDIANTES (Contextual según carrera-período) ===
     Route::prefix('estudiantes')->namespace('Estudiantes')->name('estudiantes.')->group(function () {
+        // Verificación de permisos básicos - la verificación contextual se hará en los componentes Livewire
         Route::view('/', 'livewire.estudiantes.index');
     });
 
-    Route::prefix('tribunales')->namespace('Tribunales')->name('tribunales.')->group(function () {
-        Route::get('/', [TribunalesController::class,'principal'])->name('principal');
-        Route::get('/calificar/{tribunalId}', [TribunalesController::class,'calificar'])->name('calificar');
-        #Route::get('/componentes/{componenteId}', [TribunalesController::class, 'componenteShow'])->name('componente.show');
-    });
-
+    // === RÚBRICAS (Contextual según carrera-período) ===
     Route::prefix('rubricas')->namespace('Rubricas')->name('rubricas.')->group(function () {
+        // Listado - verificación contextual en el componente
         Route::view('/', 'livewire.rubricas.index');
         Route::get('/create', [RubricaController::class, 'create'])->name('create');
         Route::get('/edit/{id}', [RubricaController::class, 'edit'])->name('edit');
     });
 
+    // === PERÍODOS (Super Admin y Administrador) ===
+    Route::middleware(['permission:gestionar periodos'])->prefix('periodos')->namespace('Periodos')->name('periodos.')->group(function () {
+        Route::view('/', 'livewire.periodos.index');
+        // Profile de período - verificación contextual en el controlador
+        Route::get('/{id}', [PeriodoController::class, 'show'])->name('profile');
+        // Tribunales de carrera-período - verificación contextual en controlador
+        Route::get('/tribunales/{carreraPeriodoId}', [TribunalesController::class, 'index'])->name('tribunales.index');
+        Route::get('/tribunales/profile/{tribunalId}', [TribunalesController::class, 'profile'])->name('tribunales.profile');
+    });
+
+    // === TRIBUNALES (Verificación contextual en controladores) ===
+    Route::prefix('tribunales')->namespace('Tribunales')->name('tribunales.')->group(function () {
+        // Dashboard de tribunales - todos los roles pueden acceder para ver SUS tribunales
+        Route::get('/', [TribunalesController::class,'principal'])->name('principal');
+        // Calificación - verificación contextual en el controlador
+        Route::get('/calificar/{tribunalId}', [TribunalesController::class,'calificar'])->name('calificar');
+    });
+
+    // === PLANES DE EVALUACIÓN (Contextual según carrera-período) ===
     Route::prefix('planes-evaluacion')->name('planes_evaluacion.')->group(function () {
+        // Verificación contextual en el controlador usando Gates
         Route::get('/manage/{carreraPeriodoId}', [PlanEvaluacionController::class, 'manage'])->name('manage');
     });
+
+    // Ruta para descargar archivos PDF temporales
+    Route::get('/download-temp-pdf/{filename}', function ($filename) {
+        $path = storage_path('app/temp/' . $filename);
+
+        if (!file_exists($path)) {
+            abort(404, 'Archivo no encontrado');
+        }
+
+        return response()->download($path)->deleteFileAfterSend(true);
+    })->name('download.temp.pdf');
 });

@@ -29,14 +29,6 @@ class MiembroCalificacion extends Model
     {
         return $this->belongsTo(Tribunale::class, 'tribunal_id');
     }
-    public function miembroTribunal()
-    {
-        return $this->belongsTo(MiembrosTribunal::class, 'miembro_tribunal_id');
-    }
-    public function calificacionesRegistradas()
-    {
-        return $this->hasMany(MiembroCalificacion::class, 'miembro_tribunal_id');
-    }
 
     public function itemPlanEvaluacion()
     {

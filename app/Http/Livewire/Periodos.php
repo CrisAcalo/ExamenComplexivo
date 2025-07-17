@@ -5,6 +5,7 @@ namespace App\Http\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Periodo;
+use Illuminate\Support\Facades\Gate;
 
 class Periodos extends Component
 {
@@ -14,8 +15,32 @@ class Periodos extends Component
     public $selected_id, $keyWord, $codigo_periodo, $descripcion, $fecha_inicio, $fecha_fin, $founded, $periodos_carreras;
     public $periodoAEliminarId;
     public $confirmingPeriodoDeletion = false;
+
+    public function mount()
+    {
+        $this->verificarAccesoPeriodos();
+    }
+
+    private function verificarAccesoPeriodos()
+    {
+        if (!auth()->user()->can('gestionar periodos')) {
+            session()->flash('error', 'No tienes permisos para acceder a la gestión de períodos.');
+            return redirect()->route('dashboard');
+        }
+    }
+
+    public function puedeGestionarPeriodos()
+    {
+        return auth()->user()->can('gestionar periodos');
+    }
+
     public function render()
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para ver los períodos.');
+            return redirect()->route('dashboard');
+        }
+
         $keyWord = '%' . $this->keyWord . '%';
         return view('livewire.periodos.view', [
             'periodos' => Periodo::latest()
@@ -29,6 +54,11 @@ class Periodos extends Component
 
     public function open($periodoID)
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para ver los detalles del período.');
+            return redirect()->route('dashboard');
+        }
+
         return redirect()->route('periodos.profile', $periodoID);
     }
 
@@ -39,6 +69,7 @@ class Periodos extends Component
 
     private function resetInput()
     {
+        $this->selected_id = null;
         $this->codigo_periodo = null;
         $this->descripcion = null;
         $this->fecha_inicio = null;
@@ -47,21 +78,18 @@ class Periodos extends Component
 
     public function store()
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para crear períodos.');
+            return;
+        }
+
         $this->validate([
+            'codigo_periodo' => 'required|string|max:20|unique:periodos,codigo_periodo',
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
-        [$this->codigo_periodo, $this->descripcion] = $this->determinarCodigoYDescripcion();
-
-        $periodoExistente = Periodo::where('codigo_periodo', $this->codigo_periodo)
-            ->orWhere('descripcion', $this->descripcion)
-            ->first();
-        if ($periodoExistente) {
-            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
-            session()->flash('danger', 'El periodo ya existe.');
-            return;
-        }
+        $this->descripcion = $this->generarDescripcion();
 
         Periodo::create([
             'codigo_periodo' => $this->codigo_periodo,
@@ -77,6 +105,11 @@ class Periodos extends Component
 
     public function edit($id)
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para editar períodos.');
+            return;
+        }
+
         $record = Periodo::findOrFail($id);
         $this->selected_id = $id;
         $this->codigo_periodo = $record->codigo_periodo;
@@ -87,24 +120,19 @@ class Periodos extends Component
 
     public function update()
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para actualizar períodos.');
+            return;
+        }
+
         $this->validate([
+            'codigo_periodo' => 'required|string|max:20|unique:periodos,codigo_periodo,' . $this->selected_id,
             'fecha_inicio' => 'required|date',
             'fecha_fin' => 'required|date|after_or_equal:fecha_inicio',
         ]);
 
         if ($this->selected_id) {
-            [$this->codigo_periodo, $this->descripcion] = $this->determinarCodigoYDescripcion();
-            $periodoExistente = Periodo::where(function ($q) {
-                $q->where('codigo_periodo', $this->codigo_periodo)
-                    ->orWhere('descripcion', $this->descripcion);
-            })
-                ->where('id', '!=', $this->selected_id)
-                ->first();
-            if ($periodoExistente) {
-                $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'updateDataModal']);
-                session()->flash('danger', 'El periodo ya existe.');
-                return;
-            }
+            $this->descripcion = $this->generarDescripcion();
 
             $record = Periodo::find($this->selected_id);
             $record->update([
@@ -122,6 +150,11 @@ class Periodos extends Component
 
     public function eliminar($id) // Renombrar a confirmDelete para más claridad
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para eliminar períodos.');
+            return;
+        }
+
         $periodo = Periodo::find($id);
 
         if (!$periodo) {
@@ -144,6 +177,11 @@ class Periodos extends Component
 
     public function destroy()
     {
+        if (!$this->puedeGestionarPeriodos()) {
+            session()->flash('error', 'No tienes permisos para eliminar períodos.');
+            return;
+        }
+
         if (!$this->periodoAEliminarId) {
             // No debería ocurrir si el flujo es correcto
             return;
@@ -181,7 +219,7 @@ class Periodos extends Component
         $this->confirmingPeriodoDeletion = false;
     }
 
-    public function determinarCodigoYDescripcion()
+    public function generarDescripcion()
     {
         $meses = [
             '01' => 'ENE',
@@ -197,24 +235,15 @@ class Periodos extends Component
             '11' => 'NOV',
             '12' => 'DIC'
         ];
+
         $fecha_inicio = \Carbon\Carbon::parse($this->fecha_inicio);
         $fecha_fin = \Carbon\Carbon::parse($this->fecha_fin);
         $mes_inicio = $fecha_inicio->format('m');
         $mes_fin = $fecha_fin->format('m');
         $anio_inicio = $fecha_inicio->format('y');
         $anio_fin = $fecha_fin->format('y');
-        $anio_fin_full = $fecha_fin->format('Y');
         $mes_inicio_nombre = $meses[$mes_inicio];
         $mes_fin_nombre = $meses[$mes_fin];
-
-        // Nuevo código de periodo según el mes de fin
-        if (in_array($mes_fin, ['01', '02', '03', '04'])) {
-            $codigo = $anio_fin_full . '01';
-        } elseif (in_array($mes_fin, ['05', '06', '07', '08'])) {
-            $codigo = $anio_fin_full . '02';
-        } else {
-            $codigo = $anio_fin_full . '03';
-        }
 
         // descripcion: MAY-SEP25 o OCT21-MAR22
         if ($anio_inicio == $anio_fin) {
@@ -222,6 +251,8 @@ class Periodos extends Component
         } else {
             $descripcion = $mes_inicio_nombre . $anio_inicio . '-' . $mes_fin_nombre . $anio_fin;
         }
-        return [$codigo, $descripcion];
+
+        return $descripcion;
     }
+
 }

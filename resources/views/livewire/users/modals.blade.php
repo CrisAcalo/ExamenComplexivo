@@ -1,10 +1,11 @@
 <!-- Add Modal -->
+@can('gestionar usuarios')
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="createDataModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="createDataModalLabel">Create New User</h5>
+                <h5 class="modal-title" id="createDataModalLabel">Crear Nuevo Usuario</h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
@@ -14,7 +15,7 @@
                     <div class="mb-3">
                         <label for="name" class="form-label">Nombre</label>
                         <input type="text" class="form-control @error('name') is-invalid @enderror" wire:model="name"
-                            placeholder="Ej: Juan Vasquez">
+                            placeholder="Ej: Juan Vásquez">
                         @error('name')
                             <span class="error invalid-feedback" role="alert">{{ $message }}</span>
                         @enderror
@@ -22,7 +23,7 @@
                     <div class="mb-3">
                         <label for="email" class="form-label">Correo</label>
                         <input type="email" class="form-control @error('email') is-invalid @enderror"
-                            wire:model="email" placeholder="Ej: nombre@example.com">
+                            wire:model="email" placeholder="Ej: nombre@ejemplo.com">
                         @error('email')
                             <span class="error invalid-feedback" role="alert">{{ $message }}</span>
                         @enderror
@@ -45,20 +46,22 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
 </div>
+@endcan
 
 <!-- Edit Modal -->
+@can('gestionar usuarios')
 <div wire:ignore.self class="modal fade" id="updateDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="updateModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="updateModalLabel">Update User</h5>
+                <h5 class="modal-title" id="updateModalLabel">Actualizar Usuario</h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
@@ -66,16 +69,16 @@
                 <form>
                     <input type="hidden" wire:model="selected_id">
                     <div class="form-group">
-                        <label for="name"></label>
-                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Name">
+                        <label for="name">Nombre</label>
+                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Nombre">
                         @error('name')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label for="email"></label>
+                        <label for="email">Correo</label>
                         <input wire:model="email" type="text" class="form-control" id="email"
-                            placeholder="Email">
+                            placeholder="Correo electrónico">
                         @error('email')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
@@ -84,14 +87,16 @@
             </div>
             <div class="modal-footer">
                 <button type="button" wire:click.prevent="cancel()" class="btn btn-secondary"
-                    data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Save</button>
+                    data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
 </div>
+@endcan
 
 {{-- Delete Modal --}}
+@can('gestionar usuarios')
 <div wire:ignore.self class="modal fade deleteModal" id="deleteDataModal" data-bs-backdrop="static"
     data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -99,7 +104,7 @@
             @if ($usuarioFounded)
                 <div class="modal-header bg-danger text-light">
                     <h1 class="modal-title fs-5" id="staticBackdropLabel">¿Está seguro
-                        de eliminar al cliente {{ $usuarioFounded->name }}?
+                        de eliminar al usuario {{ $usuarioFounded->name }}?
                     </h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -109,15 +114,17 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button class="btn btn-danger" wire:click="destroy({{ $usuarioFounded->id }})">Eliminar</button>
                 </div>
             @endif
         </div>
     </div>
 </div>
+@endcan
 
 <!-- Import Profesores Modal -->
+@can('importar profesores')
 <div wire:ignore.self class="modal fade" id="importProfesoresModal" data-bs-backdrop="static" tabindex="-1"
     role="dialog" aria-labelledby="importProfesoresModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -190,3 +197,4 @@
         </div>
     </div>
 </div>
+@endcan

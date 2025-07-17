@@ -16,11 +16,15 @@
                         </div>
                         <div>
                             <input wire:model='keyWord' type="text" class="form-control" name="search"
-                                id="search" placeholder="Search Tribunales">
+                                id="search" placeholder="Buscar Rúbricas">
                         </div>
-                        <div class="btn btn-sm btn-info" wire:click="create()">
-                            <i class="fa fa-plus"></i> Nueva Rubrica
-                        </div>
+                        @if(auth()->user()->can('gestionar rubricas') || auth()->user()->can('gestionar plantillas rubricas'))
+                            <div class="btn btn-sm btn-info" wire:click="create()">
+                                <i class="fa fa-plus"></i> Nueva Rubrica
+                            </div>
+                        @else
+                            <span class="text-muted small">Solo lectura</span>
+                        @endif
                     </div>
                 </div>
 
@@ -40,36 +44,46 @@
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td>{{ $row->nombre }}</td>
-                                        <td width="180" class="text-center"> {{-- Ajusta el width si es necesario para los 4 iconos --}}
-                                            <div class="btn-group btn-group-sm" role="group"> {{-- btn-group-sm para botones más pequeños --}}
+                                        <td width="180" class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
                                                 {{-- BOTÓN PREVISUALIZAR --}}
-                                                <button type="button" class="btn btn-secondary" {{-- Cambiado de btn-outline-secondary --}}
+                                                <button type="button" class="btn btn-secondary"
                                                     data-bs-toggle="popover" data-bs-trigger="hover focus"
                                                     data-bs-placement="left" data-bs-html="true"
                                                     title="Previsualizar: {{ $row->nombre }}"
                                                     data-bs-content="{{ $this->generarHtmlPrevisualizacion($row->id) }}">
-                                                    <i class="bi bi-eye-fill"></i> {{-- Usando -fill para un ícono más sólido si se prefiere --}}
+                                                    <i class="bi bi-eye-fill"></i>
                                                 </button>
 
                                                 {{-- BOTÓN COPIAR --}}
-                                                <button type="button" class="btn btn-info" {{-- Cambiado de btn-outline-info --}}
-                                                    wire:click="confirmCopy({{ $row->id }})"
-                                                    title="Copiar Rúbrica">
-                                                    <i class="bi bi-copy"></i>
-                                                </button>
+                                                @if(auth()->user()->can('gestionar rubricas') || auth()->user()->can('gestionar plantillas rubricas'))
+                                                    <button type="button" class="btn btn-info"
+                                                        wire:click="confirmCopy({{ $row->id }})"
+                                                        title="Copiar Rúbrica">
+                                                        <i class="bi bi-copy"></i>
+                                                    </button>
+                                                @endif
 
                                                 {{-- BOTÓN EDITAR --}}
-                                                <a href="{{ route('rubricas.edit', $row->id) }}" class="btn btn-primary"
-                                                    {{-- Cambiado de btn-outline-primary --}} title="Editar Rúbrica">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
+                                                @if(auth()->user()->can('gestionar rubricas') || auth()->user()->can('gestionar plantillas rubricas'))
+                                                    <a href="{{ route('rubricas.edit', $row->id) }}" class="btn btn-primary"
+                                                        title="Editar Rúbrica">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </a>
+                                                @endif
 
                                                 {{-- BOTÓN ELIMINAR --}}
-                                                <button type="button" class="btn btn-danger" {{-- Cambiado de btn-outline-danger --}}
-                                                    wire:click="confirmDelete({{ $row->id }})"
-                                                    title="Eliminar Rúbrica">
-                                                    <i class="bi bi-trash-fill"></i> {{-- Usando -fill --}}
-                                                </button>
+                                                @if(auth()->user()->can('gestionar rubricas') || auth()->user()->can('gestionar plantillas rubricas'))
+                                                    <button type="button" class="btn btn-danger"
+                                                        wire:click="confirmDelete({{ $row->id }})"
+                                                        title="Eliminar Rúbrica">
+                                                        <i class="bi bi-trash-fill"></i>
+                                                    </button>
+                                                @endif
+
+                                                @if(!auth()->user()->can('gestionar rubricas') && !auth()->user()->can('gestionar plantillas rubricas'))
+                                                    <span class="text-muted small">Sin permisos</span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -116,4 +130,50 @@
             }
         });
     </script> --}}
+
+    @if(auth()->user()->can('gestionar rubricas') || auth()->user()->can('gestionar plantillas rubricas'))
+        <!-- Modal para confirmar eliminar -->
+        <div wire:ignore.self class="modal fade" id="eliminarRubricaModal" tabindex="-1" aria-labelledby="eliminarRubricaModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="eliminarRubricaModalLabel">Confirmar Eliminación</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro de que quieres eliminar esta rúbrica?</p>
+                        <p><strong>Nombre:</strong> {{ $rubricaSeleccionada->nombre ?? '' }}</p>
+                        <p><strong>Descripción:</strong> {{ $rubricaSeleccionada->descripcion ?? '' }}</p>
+                        <p class="text-danger"><strong>Esta acción no se puede deshacer.</strong></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-danger" wire:click="destroy">Eliminar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para confirmar copiar -->
+        <div wire:ignore.self class="modal fade" id="copiarRubricaModal" tabindex="-1" aria-labelledby="copiarRubricaModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="copiarRubricaModalLabel">Confirmar Copiar</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro de que quieres copiar esta rúbrica?</p>
+                        <p><strong>Nombre:</strong> {{ $rubricaSeleccionada->nombre ?? '' }}</p>
+                        <p><strong>Descripción:</strong> {{ $rubricaSeleccionada->descripcion ?? '' }}</p>
+                        <p class="text-info"><strong>Se creará una copia con el nombre "Copia de [nombre original]".</strong></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" wire:click="copyRubrica">Copiar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>

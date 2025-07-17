@@ -6,6 +6,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Carrera;
 use App\Models\Departamento;
+use Illuminate\Support\Facades\Gate;
 
 class Carreras extends Component
 {
@@ -14,8 +15,34 @@ class Carreras extends Component
     protected $paginationTheme = 'bootstrap';
     public $selected_id, $keyWord, $codigo_carrera, $nombre, $departamento_id, $modalidad, $sede, $founded, $periodos;
 
+    public function mount()
+    {
+        $this->verificarAccesoCarreras();
+    }
+
+    /**
+     * Verificar acceso a la gestión de carreras
+     */
+    private function verificarAccesoCarreras()
+    {
+        if (!Gate::allows('gestionar carreras')) {
+            abort(403, 'No tienes permisos para acceder a la gestión de carreras.');
+        }
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar carreras
+     */
+    private function puedeGestionarCarreras()
+    {
+        return Gate::allows('gestionar carreras');
+    }
+
     public function render()
     {
+        // Verificar acceso al renderizar
+        $this->verificarAccesoCarreras();
+
         $keyWord = '%' . $this->keyWord . '%';
         return view('livewire.carreras.view', [
             'carreras' => Carrera::with('departamento')
@@ -47,6 +74,12 @@ class Carreras extends Component
 
     public function store()
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarCarreras()) {
+            session()->flash('error', 'No tienes permisos para crear carreras.');
+            return;
+        }
+
         $this->validate([
             'codigo_carrera' => 'required|unique:carreras,codigo_carrera',
             'nombre' => 'required',
@@ -55,21 +88,31 @@ class Carreras extends Component
             'sede' => 'required',
         ]);
 
-        Carrera::create([
-            'codigo_carrera' => $this->codigo_carrera,
-            'nombre' => $this->nombre,
-            'departamento_id' => $this->departamento_id,
-            'modalidad' => $this->modalidad,
-            'sede' => $this->sede
-        ]);
+        try {
+            Carrera::create([
+                'codigo_carrera' => $this->codigo_carrera,
+                'nombre' => $this->nombre,
+                'departamento_id' => $this->departamento_id,
+                'modalidad' => $this->modalidad,
+                'sede' => $this->sede
+            ]);
 
-        $this->resetInput();
-        $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
-        session()->flash('success', 'Carrera Creada Exitosamente.');
+            $this->resetInput();
+            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
+            session()->flash('success', 'Carrera creada exitosamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al crear la carrera: ' . $e->getMessage());
+        }
     }
 
     public function edit($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarCarreras()) {
+            session()->flash('error', 'No tienes permisos para editar carreras.');
+            return;
+        }
+
         $record = Carrera::findOrFail($id);
         $this->selected_id = $id;
         $this->codigo_carrera = $record->codigo_carrera;
@@ -81,6 +124,12 @@ class Carreras extends Component
 
     public function update()
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarCarreras()) {
+            session()->flash('error', 'No tienes permisos para actualizar carreras.');
+            return;
+        }
+
         $this->validate([
             'codigo_carrera' => 'required|unique:carreras,codigo_carrera,' . $this->selected_id,
             'nombre' => 'required',
@@ -90,35 +139,66 @@ class Carreras extends Component
         ]);
 
         if ($this->selected_id) {
-            $record = Carrera::find($this->selected_id);
-            $record->update([
-                'codigo_carrera' => $this->codigo_carrera,
-                'nombre' => $this->nombre,
-                'departamento_id' => $this->departamento_id,
-                'modalidad' => $this->modalidad,
-                'sede' => $this->sede
-            ]);
+            try {
+                $record = Carrera::find($this->selected_id);
+                $record->update([
+                    'codigo_carrera' => $this->codigo_carrera,
+                    'nombre' => $this->nombre,
+                    'departamento_id' => $this->departamento_id,
+                    'modalidad' => $this->modalidad,
+                    'sede' => $this->sede
+                ]);
 
-            $this->resetInput();
-            $this->dispatchBrowserEvent('closeModal');
-            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'updateDataModal']);
-            session()->flash('success', 'Carrera Actualizada Exitosamente.');
+                $this->resetInput();
+                $this->dispatchBrowserEvent('closeModal');
+                $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'updateDataModal']);
+                session()->flash('success', 'Carrera actualizada exitosamente.');
+            } catch (\Exception $e) {
+                session()->flash('error', 'Error al actualizar la carrera: ' . $e->getMessage());
+            }
         }
     }
 
     public function eliminar($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarCarreras()) {
+            session()->flash('error', 'No tienes permisos para eliminar carreras.');
+            return;
+        }
+
         $this->founded = Carrera::find($id);
         if ($this->founded && method_exists($this->founded, 'carrerasPeriodos') && $this->founded->carrerasPeriodos->count() > 0) {
-            session()->flash('danger', 'No se puede eliminar la carrera porque tiene periodos asociados.');
+            session()->flash('error', 'No se puede eliminar la carrera porque tiene períodos asociados.');
             return;
         }
     }
 
     public function destroy($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarCarreras()) {
+            session()->flash('error', 'No tienes permisos para eliminar carreras.');
+            return;
+        }
+
         if ($id) {
-            Carrera::where('id', $id)->delete();
+            try {
+                $carrera = Carrera::find($id);
+
+                // Verificar si tiene períodos asociados
+                if ($carrera && method_exists($carrera, 'carrerasPeriodos') && $carrera->carrerasPeriodos->count() > 0) {
+                    session()->flash('error', 'No se puede eliminar la carrera porque tiene períodos asociados.');
+                    return;
+                }
+
+                Carrera::where('id', $id)->delete();
+                session()->flash('success', 'Carrera eliminada exitosamente.');
+                $this->founded = null;
+                $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
+            } catch (\Exception $e) {
+                session()->flash('error', 'Error al eliminar la carrera: ' . $e->getMessage());
+            }
         }
     }
 }

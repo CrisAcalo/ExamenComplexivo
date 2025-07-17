@@ -145,6 +145,12 @@ class TribunalesCalificar extends Component
             return; // La vista mostrará el mensaje
         }
 
+        // Verificar si el tribunal está cerrado
+        if ($this->tribunal->estado === 'CERRADO') {
+            session()->flash('danger', 'Este tribunal está cerrado. No se pueden realizar calificaciones.');
+            return; // La vista mostrará el mensaje
+        }
+
         if ($this->tribunal && $this->usuarioActual && $this->tribunal->carrerasPeriodo) {
             $this->esCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $this->tribunal->carrera_periodo_id)
                 ->where('user_id', $this->usuarioActual->id)->exists();
@@ -314,6 +320,13 @@ class TribunalesCalificar extends Component
     {
         if (!$this->tieneAlgoQueCalificar || !$this->planEvaluacionActivo) {
             session()->flash('danger', 'No hay nada asignado para calificar o el plan no está activo.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        // Verificar si el tribunal está cerrado
+        if ($this->tribunal->estado === 'CERRADO') {
+            session()->flash('danger', 'Este tribunal está cerrado. No se pueden realizar calificaciones.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }

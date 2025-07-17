@@ -3,6 +3,7 @@
 namespace App\Http\Livewire;
 
 use App\Imports\EstudiantesImport;
+use App\Models\CarrerasPeriodo;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -19,21 +20,87 @@ class Estudiantes extends Component
     public $importErrors = [];
     public $importing = false;
     public $importFinished = false;
-    public $perPage = 10; // NUEVO
+    public $perPage = 10;
+    public $carrerasPeriodosAccesibles = [];
+
+    public function mount()
+    {
+        // Verificar autorización básica
+        if (!$this->verificarAccesoEstudiantes()) {
+            abort(403, 'No tienes permisos para gestionar estudiantes.');
+        }
+
+        // Cargar carreras-períodos accesibles para el usuario
+        $this->cargarCarrerasPeriodosAccesibles();
+    }
+
+    /**
+     * Verificar si el usuario puede acceder al módulo de estudiantes
+     */
+    private function verificarAccesoEstudiantes()
+    {
+        $user = auth()->user();
+
+        return $user->hasPermissionTo('gestionar estudiantes') ||
+               $user->hasPermissionTo('ver listado estudiantes') ||
+               $user->hasPermissionTo('importar estudiantes') ||
+               $user->hasPermissionTo('exportar estudiantes');
+    }
+
+    /**
+     * Cargar las carreras-períodos a las que el usuario tiene acceso
+     */
+    private function cargarCarrerasPeriodosAccesibles()
+    {
+        $user = auth()->user();
+
+        if ($user->hasRole(['Super Admin', 'Administrador'])) {
+            // Super Admin y Administrador pueden ver todos
+            $this->carrerasPeriodosAccesibles = CarrerasPeriodo::all()->pluck('id')->toArray();
+        } else {
+            // Director y Docente de Apoyo solo ven sus carreras-períodos asignados
+            $this->carrerasPeriodosAccesibles = CarrerasPeriodo::where(function($query) use ($user) {
+                $query->where('director_id', $user->id)
+                      ->orWhere('docente_apoyo_id', $user->id);
+            })->pluck('id')->toArray();
+        }
+    }
 
     public function render()
     {
+        // Verificar autorización en cada render
+        if (!$this->verificarAccesoEstudiantes()) {
+            abort(403, 'No tienes permisos para gestionar estudiantes.');
+        }
+
         $keyWord = '%' . $this->keyWord . '%';
+
+        // Filtrar estudiantes según las carreras-períodos accesibles
+        $query = Estudiante::latest()
+            ->where(function($q) use ($keyWord) {
+                $q->where('nombres', 'LIKE', $keyWord)
+                  ->orWhere('apellidos', 'LIKE', $keyWord)
+                  ->orWhere('cedula', 'LIKE', $keyWord)
+                  ->orWhere('correo', 'LIKE', $keyWord)
+                  ->orWhere('telefono', 'LIKE', $keyWord)
+                  ->orWhere('username', 'LIKE', $keyWord)
+                  ->orWhere('ID_estudiante', 'LIKE', $keyWord);
+            });
+
+        // Si no es Super Admin o Administrador, filtrar por carreras-períodos accesibles
+        if (!auth()->user()->hasRole(['Super Admin', 'Administrador'])) {
+            if (empty($this->carrerasPeriodosAccesibles)) {
+                // Si no tiene carreras-períodos asignados, no ve ningún estudiante
+                $query->whereRaw('1 = 0');
+            } else {
+                // Aquí deberíamos filtrar por la relación con carreras-períodos
+                // Por ahora, asumimos que todos los estudiantes son visibles para Director/Apoyo
+                // En el futuro, podrías agregar una relación estudiante-carrera-periodo
+            }
+        }
+
         return view('livewire.estudiantes.view', [
-            'estudiantes' => Estudiante::latest()
-                ->where('nombres', 'LIKE', $keyWord)
-                ->orWhere('apellidos', 'LIKE', $keyWord)
-                ->orWhere('cedula', 'LIKE', $keyWord)
-                ->orWhere('correo', 'LIKE', $keyWord)
-                ->orWhere('telefono', 'LIKE', $keyWord)
-                ->orWhere('username', 'LIKE', $keyWord)
-                ->orWhere('ID_estudiante', 'LIKE', $keyWord)
-                ->paginate($this->perPage),
+            'estudiantes' => $query->paginate($this->perPage),
         ]);
     }
 
@@ -70,6 +137,12 @@ class Estudiantes extends Component
 
     public function store()
     {
+        // Verificar autorización para crear estudiantes
+        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+            session()->flash('error', 'No tienes permisos para crear estudiantes.');
+            return;
+        }
+
         $this->validate([
             'nombres' => 'required',
             'apellidos' => 'required',
@@ -92,11 +165,17 @@ class Estudiantes extends Component
 
         $this->resetInput();
         $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
-        session()->flash('success', 'Estudiante Creado Exitosamente.');
+        session()->flash('success', 'Estudiante creado exitosamente.');
     }
 
     public function edit($id)
     {
+        // Verificar autorización para editar estudiantes
+        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+            session()->flash('error', 'No tienes permisos para editar estudiantes.');
+            return;
+        }
+
         $record = Estudiante::findOrFail($id);
         $this->selected_id = $id;
         $this->nombres = $record->nombres;
@@ -110,6 +189,12 @@ class Estudiantes extends Component
 
     public function update()
     {
+        // Verificar autorización para actualizar estudiantes
+        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+            session()->flash('error', 'No tienes permisos para actualizar estudiantes.');
+            return;
+        }
+
         $this->validate([
             'nombres' => 'required',
             'apellidos' => 'required',
@@ -134,12 +219,18 @@ class Estudiantes extends Component
 
             $this->resetInput();
             $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'updateDataModal']);
-            session()->flash('success', 'Estudiante Actualizado Exitosamente.');
+            session()->flash('success', 'Estudiante actualizado exitosamente.');
         }
     }
 
     public function eliminar($id)
     {
+        // Verificar autorización para eliminar estudiantes
+        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+            session()->flash('error', 'No tienes permisos para eliminar estudiantes.');
+            return;
+        }
+
         $this->founded = Estudiante::find($id);
         if ($this->founded && method_exists($this->founded, 'tribunales') && $this->founded->tribunales->count() > 0) {
             $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
@@ -152,10 +243,16 @@ class Estudiantes extends Component
 
     public function destroy($id)
     {
+        // Verificar autorización para eliminar estudiantes
+        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+            session()->flash('error', 'No tienes permisos para eliminar estudiantes.');
+            return;
+        }
+
         if ($id) {
             Estudiante::where('id', $id)->delete();
             $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
-            session()->flash('success', 'Estudiante Eliminado Exitosamente.');
+            session()->flash('success', 'Estudiante eliminado exitosamente.');
             $this->founded = null;
         }
     }
@@ -167,8 +264,15 @@ class Estudiantes extends Component
         $this->importFinished = false;
         $this->importErrors = [];
     }
+
     public function importarEstudiantes()
     {
+        // Verificar autorización para importar estudiantes
+        if (!auth()->user()->hasPermissionTo('importar estudiantes')) {
+            session()->flash('error', 'No tienes permisos para importar estudiantes.');
+            return;
+        }
+
         $this->validate([
             'archivoExcel' => 'required|file|mimes:xlsx,xls'
         ]);
@@ -206,5 +310,29 @@ class Estudiantes extends Component
 
         $this->importing = false;
         $this->importFinished = true;
+    }
+
+    /**
+     * Verificar si el usuario puede realizar operaciones de gestión completa
+     */
+    public function puedeGestionarEstudiantes()
+    {
+        return auth()->user()->hasPermissionTo('gestionar estudiantes');
+    }
+
+    /**
+     * Verificar si el usuario puede importar estudiantes
+     */
+    public function puedeImportarEstudiantes()
+    {
+        return auth()->user()->hasPermissionTo('importar estudiantes');
+    }
+
+    /**
+     * Verificar si el usuario puede exportar estudiantes
+     */
+    public function puedeExportarEstudiantes()
+    {
+        return auth()->user()->hasPermissionTo('exportar estudiantes');
     }
 }

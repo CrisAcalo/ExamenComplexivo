@@ -15,13 +15,19 @@
                                 placeholder="Buscar usuarios">
                         </div>
                         <div class="btn-group">
-                            <div class="btn btn-sm btn-success" data-bs-toggle="modal"
-                                data-bs-target="#importProfesoresModal">
-                                <i class="bi bi-file-earmark-excel"></i> Importar Profesores
-                            </div>
-                            <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                                <i class="bi bi-plus-lg"></i> Añadir Usuario
-                            </div>
+                            @can('importar profesores')
+                                <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#importProfesoresModal">
+                                    <i class="bi bi-file-earmark-excel"></i> Importar Profesores
+                                </div>
+                            @endcan
+                            @can('gestionar usuarios')
+                                <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                    <i class="bi bi-plus-lg"></i> Añadir Usuario
+                                </div>
+                            @endcan
+                            @if(!auth()->user()->can('gestionar usuarios') && !auth()->user()->can('importar profesores'))
+                                <span class="text-muted small">Solo lectura</span>
+                            @endif
                         </div>
                     </div>
                     <div class="mt-2 d-flex align-items-center">
@@ -45,9 +51,9 @@
                                 <tr>
                                     <td>#</td>
                                     <th>Nombre</th>
-                                    <th>Email</th>
+                                    <th>Correo</th>
                                     <th>Rol</th>
-                                    <td>ACTIONS</td>
+                                    <td>ACCIONES</td>
                                 </tr>
                             </thead>
                             <tbody>
@@ -65,19 +71,28 @@
                                             @endforeach
                                         </td>
                                         <td width="120">
-                                            <button class="btn btn-primary btn-sm"
-                                                wire:click="edit({{ $row->id }})">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button class="btn btn-success btn-sm"
-                                                wire:click="impersonate({{ $row->id }})">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
-                                                data-bs-target="#deleteDataModal"
-                                                wire:click="eliminar({{ $row->id }})">
-                                                <i class="bi bi-trash3-fill"></i>
-                                            </button>
+                                            @can('gestionar usuarios')
+                                                <button class="btn btn-primary btn-sm"
+                                                    wire:click="edit({{ $row->id }})">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                            @endcan
+                                            @can('gestionar usuarios')
+                                                <button class="btn btn-success btn-sm"
+                                                    wire:click="impersonate({{ $row->id }})">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                            @endcan
+                                            @can('gestionar usuarios')
+                                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                                                    data-bs-target="#deleteDataModal"
+                                                    wire:click="eliminar({{ $row->id }})">
+                                                    <i class="bi bi-trash3-fill"></i>
+                                                </button>
+                                            @endcan
+                                            @if(!auth()->user()->can('gestionar usuarios'))
+                                                <span class="text-muted small">Sin permisos</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty

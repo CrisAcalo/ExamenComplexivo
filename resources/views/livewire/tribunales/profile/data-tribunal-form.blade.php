@@ -1,13 +1,48 @@
 <div class="card mb-4 shadow-sm">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-info-circle-fill text-primary"></i> Datos del Tribunal</h5>
-        @if ($usuarioPuedeEditarDatosTribunal)
-            <button class="btn btn-sm {{ $modoEdicionTribunal ? 'btn-secondary' : 'btn-outline-primary' }}"
-                wire:click="toggleModoEdicionTribunal">
-                <i class="bi {{ $modoEdicionTribunal ? 'bi-x-circle' : 'bi-pencil-square' }}"></i>
-                {{ $modoEdicionTribunal ? 'Cancelar Edición' : 'Editar Datos' }}
-            </button>
-        @endif
+        <div class="d-flex align-items-center">
+            <h5 class="mb-0 me-3">
+                <i class="bi bi-info-circle-fill text-primary"></i> Datos del Tribunal
+            </h5>
+            @if ($tribunal->estado === 'CERRADO')
+                <span class="badge bg-danger">
+                    <i class="bi bi-lock-fill"></i> Tribunal Cerrado
+                </span>
+            @else
+                <span class="badge bg-success">
+                    <i class="bi bi-unlock-fill"></i> Tribunal Abierto
+                </span>
+            @endif
+        </div>
+
+        <div class="btn-group">
+            @if ($usuarioPuedeEditarDatosTribunal)
+                {{-- Botón para cerrar/abrir tribunal --}}
+                @if ($tribunal->estado === 'ABIERTO')
+                    <button class="btn btn-sm btn-outline-danger"
+                        wire:click="cerrarTribunal"
+                        wire:confirm="¿Está seguro que desea cerrar este tribunal? Al cerrarlo, no se permitirán más modificaciones ni evaluaciones."
+                        wire:loading.attr="disabled">
+                        <i class="bi bi-lock-fill"></i> Cerrar Tribunal
+                    </button>
+                @else
+                    <button class="btn btn-sm btn-outline-success"
+                        wire:click="abrirTribunal"
+                        wire:confirm="¿Está seguro que desea abrir este tribunal? Al abrirlo, se permitirán modificaciones y evaluaciones."
+                        wire:loading.attr="disabled">
+                        <i class="bi bi-unlock-fill"></i> Abrir Tribunal
+                    </button>
+                @endif
+
+                {{-- Botón para editar datos --}}
+                <button class="btn btn-sm {{ $modoEdicionTribunal ? 'btn-secondary' : 'btn-outline-primary' }}"
+                    wire:click="toggleModoEdicionTribunal"
+                    @if($tribunal->estado === 'CERRADO') disabled title="No se puede editar un tribunal cerrado" @endif>
+                    <i class="bi {{ $modoEdicionTribunal ? 'bi-x-circle' : 'bi-pencil-square' }}"></i>
+                    {{ $modoEdicionTribunal ? 'Cancelar Edición' : 'Editar Datos' }}
+                </button>
+            @endif
+        </div>
     </div>
     <div class="card-body">
         @if ($modoEdicionTribunal && $usuarioPuedeEditarDatosTribunal)

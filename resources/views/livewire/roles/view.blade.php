@@ -18,9 +18,11 @@
                             <input wire:model='keyWord' type="text" class="form-control" name="search"
                                 id="search" placeholder="Buscar Roles">
                         </div>
-                        <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                            <i class="bi bi-plus-lg"></i> Add Roles
-                        </div>
+                        @can('gestionar roles y permisos')
+                            <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                <i class="bi bi-plus-lg"></i> Agregar Rol
+                            </div>
+                        @endcan
                     </div>
                 </div>
 
@@ -35,7 +37,7 @@
                                     {{-- <th>Guard Name</th> --}}
                                     <td>Permisos asignados</td>
                                     <td>Asignar permisos</td>
-                                    <td>ACTIONS</td>
+                                    <td>ACCIONES</td>
                                 </tr>
                             </thead>
                             <tbody>
@@ -46,30 +48,43 @@
                                         <td>{{ $row->name }}</td>
                                         <td>
                                             @foreach ($row->permissions as $permiso)
-                                                <span class="badge bg-warning-subtle text-body-secondary">{{ $permiso->name }}</span>
+                                                <span
+                                                    class="badge bg-warning-subtle text-body-secondary">{{ $permiso->name }}</span>
                                             @endforeach
 
                                         </td>
                                         <td width="150">
-                                            <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal"
-                                                data-bs-target="#updatePermisionsModal"
-                                                wire:click="permisosBusqueda({{ $row->id }})">
-                                                Asignar Permisos
-                                            </button>
+                                            @can('gestionar roles y permisos')
+                                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal"
+                                                    data-bs-target="#updatePermisionsModal"
+                                                    wire:click="permisosBusqueda({{ $row->id }})">
+                                                    Asignar Permisos
+                                                </button>
+                                            @else
+                                                <span class="text-muted small">Sin permisos</span>
+                                            @endcan
                                         </td>
                                         <td width="90">
+                                            @can('gestionar roles y permisos')
+                                                <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
+                                                    class="btn btn-sm btn-primary" wire:click="edit({{ $row->id }})">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
 
-                                            <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
-                                                class="btn btn-sm btn-primary" wire:click="edit({{ $row->id }})">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-
-                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
-                                                data-bs-target="#deleteDataModal"
-                                                wire:click="eliminar({{ $row->id }})">
-                                                <i class="bi bi-trash3-fill"></i>
-                                            </button>
+                                                @if(!in_array($row->name, ['Super Admin', 'Administrador']))
+                                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                                                        data-bs-target="#deleteDataModal"
+                                                        wire:click="eliminar({{ $row->id }})">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                @else
+                                                    <small class="text-muted">Protegido</small>
+                                                @endif
+                                            @else
+                                                <span class="text-muted small">Sin permisos</span>
+                                            @endcan
                                         </td>
+                                    </tr>
                                     </tr>
 
                                     <!-- Modal -->
@@ -94,7 +109,7 @@
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-secondary"
-                                                        data-bs-dismiss="modal">Close</button>
+                                                        data-bs-dismiss="modal">Cerrar</button>
                                                     <button class="btn btn-danger"
                                                         wire:click="destroy({{ $row->id }})">Eliminar</button>
                                                 </div>

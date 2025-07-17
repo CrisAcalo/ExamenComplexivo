@@ -1,4 +1,5 @@
-<!-- Add Modal -->
+@can('gestionar periodos')
+    <!-- Add Modal -->
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="createDataModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -11,7 +12,15 @@
             <div class="modal-body">
                 <form>
                     <div class="form-group">
-                        <label for="fecha_inicio"></label>
+                        <label for="codigo_periodo">Código Período</label>
+                        <input wire:model="codigo_periodo" type="text" class="form-control" id="codigo_periodo"
+                            placeholder="Código Período">
+                        @error('codigo_periodo')
+                            <span class="error text-danger">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_inicio">Fecha Inicio</label>
                         <input wire:model="fecha_inicio" type="date" class="form-control" id="fecha_inicio"
                             placeholder="Fecha Inicio">
                         @error('fecha_inicio')
@@ -19,7 +28,7 @@
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label for="fecha_fin"></label>
+                        <label for="fecha_fin">Fecha Fin</label>
                         <input wire:model="fecha_fin" type="date" class="form-control" id="fecha_fin"
                             placeholder="Fecha Fin">
                         @error('fecha_fin')
@@ -51,23 +60,21 @@
                 <form>
                     <input type="hidden" wire:model="selected_id">
                     <div class="form-group">
-                        <label for="codigo_periodo"></label>
+                        <label for="codigo_periodo">Código Período</label>
                         <input wire:model="codigo_periodo" type="text" class="form-control" id="codigo_periodo"
-                            placeholder="Codigo Periodo" disabled>
+                            placeholder="Código Período">
                         @error('codigo_periodo')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label for="descripcion"></label>
+                        <label for="descripcion">Descripción</label>
                         <input wire:model="descripcion" type="text" class="form-control" id="descripcion"
-                            placeholder="Descripción" disabled>
-                        @error('descripcion')
-                            <span class="error text-danger">{{ $message }}</span>
-                        @enderror
+                            placeholder="Descripción" readonly>
+                        <small class="form-text text-muted">La descripción se genera automáticamente basada en las fechas.</small>
                     </div>
                     <div class="form-group">
-                        <label for="fecha_inicio"></label>
+                        <label for="fecha_inicio">Fecha Inicio</label>
                         <input wire:model="fecha_inicio" type="date" class="form-control" id="fecha_inicio"
                             placeholder="Fecha Inicio">
                         @error('fecha_inicio')
@@ -75,7 +82,7 @@
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label for="fecha_fin"></label>
+                        <label for="fecha_fin">Fecha Fin</label>
                         <input wire:model="fecha_fin" type="date" class="form-control" id="fecha_fin"
                             placeholder="Fecha Fin">
                         @error('fecha_fin')
@@ -97,7 +104,6 @@
 <div wire:ignore.self class="modal fade" id="deleteDataModal" data-bs-backdrop="static" data-bs-keyboard="false"
     aria-labelledby="deleteDataModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        {{-- Usar la propiedad booleana para mostrar/ocultar el contenido --}}
         @if ($confirmingPeriodoDeletion)
             <div class="modal-content">
                 <div class="modal-header bg-danger text-light">
@@ -112,10 +118,10 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                         wire:click="resetDeleteConfirmation">Cancelar</button>
-                    {{-- El método destroy ya no recibe un ID --}}
                     <button class="btn btn-danger" wire:click="destroy()">Sí, Eliminar</button>
                 </div>
             </div>
         @endif
     </div>
 </div>
+@endcan

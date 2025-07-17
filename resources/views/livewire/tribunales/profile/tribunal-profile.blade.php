@@ -203,6 +203,14 @@
                                 <i class="bi bi-file-pdf-fill" wire:loading.remove wire:target="exportarActa"></i>
                                 Exportar Acta (PDF)
                             </button>
+
+                            {{-- Botón de prueba para debugging --}}
+                            {{-- <button class="btn btn-outline-secondary ms-2" wire:click="exportarActaSimple" wire:loading.attr="disabled">
+                                <span wire:loading wire:target="exportarActaSimple" class="spinner-border spinner-border-sm"
+                                    role="status" aria-hidden="true"></span>
+                                <i class="bi bi-file-pdf" wire:loading.remove wire:target="exportarActaSimple"></i>
+                                Prueba PDF Simple
+                            </button> --}}
                             {{-- Futuro: Botón para "Cerrar/Finalizar Tribunal" --}}
                         </div>
                     </div>
@@ -229,18 +237,20 @@
                         return new bootstrap.Tooltip(tooltipTriggerEl)
                     })
                 });
-                // Si los tooltips se añaden dinámicamente con Livewire, necesitarías reinicializar:
-                // Livewire.hook('message.processed', (message, component) => {
-                //     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-                //     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                //         // Destruir tooltip existente para evitar duplicados
-                //         var existingTooltip = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                //         if (existingTooltip) {
-                //             existingTooltip.dispose();
-                //         }
-                //         return new bootstrap.Tooltip(tooltipTriggerEl)
-                //     })
-                // });
+
+                // Manejar descarga de archivos PDF
+                window.addEventListener('downloadFile', event => {
+                    const filename = event.detail.path;
+                    const downloadUrl = "{{ route('download.temp.pdf', ':filename') }}".replace(':filename', filename);
+
+                    // Crear un enlace temporal para descargar
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
             </script>
         @endpush
     </div>

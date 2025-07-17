@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str; // Para Str::title y Str::lower
+use Illuminate\Support\Facades\Log;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class TribunalProfile extends Component
 {
@@ -190,23 +193,30 @@ class TribunalProfile extends Component
 
     public function toggleModoEdicionTribunal()
     {
-        if ($this->usuarioPuedeEditarDatosTribunal) {
-            $this->modoEdicionTribunal = !$this->modoEdicionTribunal;
-            if (!$this->modoEdicionTribunal) {
-                // Recargar datos originales si se cancela
-                $this->fecha = $this->tribunal->fecha;
-                $this->hora_inicio = $this->tribunal->hora_inicio;
-                $this->hora_fin = $this->tribunal->hora_fin;
-                foreach ($this->tribunal->miembrosTribunales as $miembro) {
-                    if ($miembro->status == 'PRESIDENTE') $this->presidente_id = $miembro->user_id;
-                    if ($miembro->status == 'INTEGRANTE1') $this->integrante1_id = $miembro->user_id;
-                    if ($miembro->status == 'INTEGRANTE2') $this->integrante2_id = $miembro->user_id;
-                }
-                $this->resetValidation(); // Limpiar errores de validación
-            }
-        } else {
+        if (!$this->usuarioPuedeEditarDatosTribunal) {
             session()->flash('danger', 'No tiene permisos para editar los datos de este tribunal.');
             $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if ($this->tribunal->estado === 'CERRADO') {
+            session()->flash('danger', 'No se puede editar un tribunal cerrado.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        $this->modoEdicionTribunal = !$this->modoEdicionTribunal;
+        if (!$this->modoEdicionTribunal) {
+            // Recargar datos originales si se cancela
+            $this->fecha = $this->tribunal->fecha;
+            $this->hora_inicio = $this->tribunal->hora_inicio;
+            $this->hora_fin = $this->tribunal->hora_fin;
+            foreach ($this->tribunal->miembrosTribunales as $miembro) {
+                if ($miembro->status == 'PRESIDENTE') $this->presidente_id = $miembro->user_id;
+                if ($miembro->status == 'INTEGRANTE1') $this->integrante1_id = $miembro->user_id;
+                if ($miembro->status == 'INTEGRANTE2') $this->integrante2_id = $miembro->user_id;
+            }
+            $this->resetValidation(); // Limpiar errores de validación
         }
     }
 
@@ -214,6 +224,12 @@ class TribunalProfile extends Component
     {
         if (!$this->usuarioPuedeEditarDatosTribunal) {
             session()->flash('danger', 'No tiene permisos para actualizar este tribunal.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if ($this->tribunal->estado === 'CERRADO') {
+            session()->flash('danger', 'No se puede actualizar un tribunal cerrado.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -282,6 +298,71 @@ class TribunalProfile extends Component
         session()->flash('success', 'Datos del tribunal actualizados exitosamente.');
         $this->modoEdicionTribunal = false;
         $this->loadAndPrepareTribunalData(); // Recargar todos los datos, incluyendo los logs
+        $this->dispatchBrowserEvent('showFlashMessage');
+    }
+
+    public function cerrarTribunal()
+    {
+        if (!$this->usuarioPuedeEditarDatosTribunal) {
+            session()->flash('danger', 'No tiene permisos para cerrar este tribunal.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if ($this->tribunal->estado === 'CERRADO') {
+            session()->flash('info', 'El tribunal ya está cerrado.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        DB::transaction(function () {
+            $this->tribunal->update(['estado' => 'CERRADO']);
+
+            TribunalLog::create([
+                'tribunal_id' => $this->tribunal->id,
+                'user_id' => Auth::id(),
+                'accion' => 'CIERRE_TRIBUNAL',
+                'descripcion' => 'Tribunal cerrado. No se permitirán más modificaciones ni evaluaciones.',
+                'datos_antiguos' => ['estado' => 'ABIERTO'],
+                'datos_nuevos' => ['estado' => 'CERRADO']
+            ]);
+        });
+
+        session()->flash('success', 'Tribunal cerrado exitosamente. No se permitirán más modificaciones ni evaluaciones.');
+        $this->loadAndPrepareTribunalData();
+        $this->dispatchBrowserEvent('showFlashMessage');
+    }
+
+    public function abrirTribunal()
+    {
+        if (!$this->usuarioPuedeEditarDatosTribunal) {
+            session()->flash('danger', 'No tiene permisos para abrir este tribunal.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if ($this->tribunal->estado === 'ABIERTO') {
+            session()->flash('info', 'El tribunal ya está abierto.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        DB::transaction(function () {
+            $this->tribunal->update(['estado' => 'ABIERTO']);
+
+            // Registrar log
+            TribunalLog::create([
+                'tribunal_id' => $this->tribunal->id,
+                'user_id' => Auth::id(),
+                'accion' => 'APERTURA_TRIBUNAL',
+                'descripcion' => 'Tribunal abierto. Se permiten modificaciones y evaluaciones.',
+                'datos_antiguos' => ['estado' => 'CERRADO'],
+                'datos_nuevos' => ['estado' => 'ABIERTO']
+            ]);
+        });
+
+        session()->flash('success', 'Tribunal abierto exitosamente. Se permiten modificaciones y evaluaciones.');
+        $this->loadAndPrepareTribunalData(); // Recargar datos
         $this->dispatchBrowserEvent('showFlashMessage');
     }
 
@@ -565,6 +646,13 @@ class TribunalProfile extends Component
                 }
             }
         }
+
+        // Debug temporal
+        logger('DEBUG TribunalProfile - Total items en detalleRubricasParaModal: ' . count($this->detalleRubricasParaModal));
+        logger('DEBUG TribunalProfile - Total en todasLasCalificacionesDelTribunal: ' . count($this->todasLasCalificacionesDelTribunal));
+        foreach ($this->detalleRubricasParaModal as $itemId => $itemData) {
+            logger("DEBUG TribunalProfile - Item $itemId: " . json_encode($itemData));
+        }
     }
 
     protected function calcularNotaComponenteParaUsuario(ComponenteRubrica $componenteR, Collection $calificacionesDelUsuarioParaComp): ?float
@@ -603,211 +691,143 @@ class TribunalProfile extends Component
 
     public function exportarActa()
     {
-        // Lógica para generar y descargar el PDF del acta
-        // Esto requerirá una librería como DomPDF o Browsershot
-        // Por ahora, solo un placeholder
-        if ($this->usuarioPuedeExportarActa) {
-            session()->flash('info', 'Funcionalidad de exportar acta aún no implementada.');
-            // Aquí llamarías a un servicio o generarías el PDF
-            // return response()->streamDownload(function () {
-            //     $pdf = \PDF::loadView('pdfs.acta_tribunal', ['tribunal' => $this->tribunal, 'calificaciones' => $this->todasLasCalificacionesDelTribunal, 'plan' => $this->planEvaluacionActivo]);
-            //     echo $pdf->output();
-            // }, 'acta_tribunal_' . $this->tribunal->id . '.pdf');
-        } else {
-            session()->flash('danger', 'No tiene permisos para exportar el acta.');
+        try {
+            // Verificar permisos
+            if (!$this->usuarioPuedeExportarActa) {
+                session()->flash('danger', 'No tiene permisos para exportar el acta.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Obtener datos necesarios para el PDF
+            $tribunal = $this->tribunal;
+            $planEvaluacionActivo = $this->planEvaluacionActivo;
+            $resumenNotasCalculadas = $this->resumenNotasCalculadas;
+            $todasLasCalificacionesDelTribunal = $this->todasLasCalificacionesDelTribunal;
+            $notaFinalCalculadaDelTribunal = $this->notaFinalCalculadaDelTribunal;
+
+            // Validar que tenemos los datos necesarios
+            if (!$tribunal) {
+                throw new \Exception('Datos del tribunal no disponibles');
+            }
+
+            // Generar el PDF usando DomPDF directamente
+            $options = new Options();
+            $options->set('defaultFont', 'Arial');
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+            $options->set('debugPng', false);
+            $options->set('debugKeepTemp', false);
+            $options->set('debugCss', false);
+
+            $dompdf = new Dompdf($options);
+
+            try {
+                // Renderizar la vista como HTML
+                $html = view('pdfs.acta-tribunal', compact(
+                    'tribunal',
+                    'planEvaluacionActivo',
+                    'resumenNotasCalculadas',
+                    'todasLasCalificacionesDelTribunal',
+                    'notaFinalCalculadaDelTribunal'
+                ))->render();
+
+                // Limpiar el HTML de caracteres problemáticos
+                $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+
+                $dompdf->loadHtml($html);
+                $dompdf->setPaper('A4', 'portrait');
+                $dompdf->render();
+
+            } catch (\Exception $renderError) {
+                throw new \Exception('Error al renderizar el PDF: ' . $renderError->getMessage());
+            }
+
+            // Generar nombre del archivo
+            $nombreEstudiante = $tribunal->estudiante->nombres_completos_id ?? 'Estudiante';
+            $nombreEstudiante = Str::slug($nombreEstudiante, '_');
+            $fecha = $tribunal->fecha ? date('Y-m-d', strtotime($tribunal->fecha)) : date('Y-m-d');
+            $nombreArchivo = "acta_tribunal_{$nombreEstudiante}_{$fecha}.pdf";
+
+            // Guardar temporalmente el PDF
+            $pdfContent = $dompdf->output();
+            $tempPath = storage_path('app/temp/' . $nombreArchivo);
+
+            // Crear directorio si no existe
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+
+            file_put_contents($tempPath, $pdfContent);
+
+            // Mostrar mensaje de éxito y enviar evento para descargar
+            session()->flash('info', 'Acta generada exitosamente. Descargando...');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivo]);
+
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error al generar el acta: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+            Log::error('Error al exportar acta del tribunal: ' . $e->getMessage(), [
+                'tribunal_id' => $this->tribunal->id ?? null,
+                'usuario_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
-        $this->dispatchBrowserEvent('showFlashMessage');
     }
 
-    public function loadTodasLasCalificacionesDelTribunal()
+    // Función de debugging para probar PDF básico
+    public function exportarActaSimple()
     {
-        if (!$this->planEvaluacionActivo || !$this->tribunal) return;
+        try {
+            $options = new Options();
+            $options->set('defaultFont', 'Arial');
 
-        $this->todasLasCalificacionesDelTribunal = [];
-        //$this->calificacionesGlobalesTribunal = [];
-        $this->resumenNotasCalculadas = [];
-        $this->notaFinalCalculadaDelTribunal = 0;
-        $this->sumaPonderacionesGlobalesItems = 0;
+            $dompdf = new Dompdf($options);
 
-        $miembrosDelTribunal = MiembrosTribunal::with(['user'])->where('tribunal_id', $this->tribunal->id)->get();
-        $registroPresidente = $miembrosDelTribunal->firstWhere('status', 'PRESIDENTE');
-        $miembroTribunalIdDelPresidente = $registroPresidente ? $registroPresidente->id : null;
+            $html = '
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Acta de Prueba</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    h1 { text-align: center; color: #333; }
+                    p { line-height: 1.5; }
+                </style>
+            </head>
+            <body>
+                <h1>ACTA DE CALIFICACIÓN - PRUEBA</h1>
+                <p><strong>Estudiante:</strong> ' . ($this->tribunal->estudiante->nombres_completos_id ?? 'N/A') . '</p>
+                <p><strong>Carrera:</strong> ' . ($this->tribunal->carrerasPeriodo->carrera->nombre ?? 'N/A') . '</p>
+                <p><strong>Fecha:</strong> ' . date('d/m/Y') . '</p>
+                <p>Esta es una prueba básica del generador de PDF.</p>
+            </body>
+            </html>';
 
-        $todasLasMiembroCalificacionDelTribunal = MiembroCalificacion::whereIn(
-            'miembro_tribunal_id',
-            $miembrosDelTribunal->pluck('id')->all()
-        )
-            ->with(['itemPlanEvaluacion.rubricaPlantilla', 'criterioCalificado.calificacionesCriterio'])
-            ->get();
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
 
+            $nombreArchivo = "acta_prueba_" . date('Y-m-d_H-i-s') . ".pdf";
+            $pdfContent = $dompdf->output();
+            $tempPath = storage_path('app/temp/' . $nombreArchivo);
 
-        foreach ($this->planEvaluacionActivo->itemsPlanEvaluacion as $itemPlan) {
-            $this->sumaPonderacionesGlobalesItems += $itemPlan->ponderacion_global;
-            $notaItemParaTribunalSobre20 = null;
-            $observacionGeneralItem = ''; // Para NOTA_DIRECTA
-            $puntajePonderadoDelItem = 0;
-
-            if ($itemPlan->tipo_item === 'NOTA_DIRECTA') {
-                $califNotaDirectaDelPresidente = null;
-                if ($miembroTribunalIdDelPresidente) {
-                    $califNotaDirectaDelPresidente = $todasLasMiembroCalificacionDelTribunal
-                        ->where('miembro_tribunal_id', $miembroTribunalIdDelPresidente)
-                        ->where('item_plan_evaluacion_id', $itemPlan->id)
-                        ->whereNull('criterio_id')
-                        ->first();
-                }
-                if ($califNotaDirectaDelPresidente && is_numeric($califNotaDirectaDelPresidente->nota_obtenida_directa)) {
-                    $notaItemParaTribunalSobre20 = (float) $califNotaDirectaDelPresidente->nota_obtenida_directa;
-                    $observacionGeneralItem = $califNotaDirectaDelPresidente->observacion ?? '';
-                }
-                // Llenar $calificacionesGlobalesTribunal (si aún lo usas para algo más, sino podría eliminarse)
-                $this->calificacionesGlobalesTribunal[$itemPlan->id] = [
-                    'nombre_item_plan' => $itemPlan->nombre_item,
-                    'ponderacion_item_plan' => $itemPlan->ponderacion_global,
-                    'tipo' => $itemPlan->tipo_item,
-                    'nota_directa' => $notaItemParaTribunalSobre20,
-                    'observacion_general' => $observacionGeneralItem,
-                ];
-            } elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla) {
-                $notasRubricaPorMiembroParaEsteItem = [];
-                foreach ($miembrosDelTribunal as $miembro) {
-                    $susCalificacionesGuardadas = $todasLasMiembroCalificacionDelTribunal->where('miembro_tribunal_id', $miembro->id);
-                    $notaCalculadaEsteMiembroEstaRubrica = $this->calcularNotaRubricaParaMiembro($itemPlan, $susCalificacionesGuardadas);
-                    if (is_numeric($notaCalculadaEsteMiembroEstaRubrica)) {
-                        $notasRubricaPorMiembroParaEsteItem[$miembro->user_id] = $notaCalculadaEsteMiembroEstaRubrica;
-                    }
-                }
-                if (count($notasRubricaPorMiembroParaEsteItem) > 0) {
-                    $notaItemParaTribunalSobre20 = array_sum($notasRubricaPorMiembroParaEsteItem) / count($notasRubricaPorMiembroParaEsteItem);
-                }
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
             }
 
-            // --- AJUSTE DEL CÁLCULO DEL PUNTAJE PONDERADO DEL ÍTEM ---
-            if (is_numeric($notaItemParaTribunalSobre20) && $itemPlan->ponderacion_global > 0) {
-                // El puntaje ponderado ahora también es sobre una escala efectiva de 20 para la nota final
-                $puntajePonderadoDelItem = $notaItemParaTribunalSobre20 * ($itemPlan->ponderacion_global / 100);
-            }
-            // La nota final se acumula con estos nuevos puntajes ponderados
-            $this->notaFinalCalculadaDelTribunal += $puntajePonderadoDelItem;
+            file_put_contents($tempPath, $pdfContent);
 
+            session()->flash('info', 'PDF de prueba generado exitosamente.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivo]);
 
-            $this->resumenNotasCalculadas[$itemPlan->id] = [
-                'nombre_item_plan' => $itemPlan->nombre_item,
-                'ponderacion_global' => $itemPlan->ponderacion_global,
-                'tipo_item' => $itemPlan->tipo_item,
-                'rubrica_plantilla_nombre' => ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla) ? $itemPlan->rubricaPlantilla->nombre : null,
-                'nota_tribunal_sobre_20' => is_numeric($notaItemParaTribunalSobre20) ? round($notaItemParaTribunalSobre20, 2) : null,
-                'puntaje_ponderado_item' => round($puntajePonderadoDelItem, 2), // Este valor ya está en la escala correcta para sumar a una nota final sobre 20
-                'observacion_general' => ($itemPlan->tipo_item === 'NOTA_DIRECTA') ? $observacionGeneralItem : null,
-            ];
-        }
-
-        // (La lógica para poblar $todasLasCalificacionesDelTribunal para el detalle del popover se mantiene sin cambios)
-        // ...
-        foreach ($miembrosDelTribunal as $miembro) {
-            $calificacionesFormateadasParaEsteMiembro = [];
-            $susCalificacionesGuardadas = $todasLasMiembroCalificacionDelTribunal->where('miembro_tribunal_id', $miembro->id);
-
-            foreach ($this->planEvaluacionActivo->itemsPlanEvaluacion as $itemPlan) {
-                if ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla) {
-                    $califGeneralRubricaDelMiembro = $susCalificacionesGuardadas
-                        ->where('item_plan_evaluacion_id', $itemPlan->id)
-                        ->whereNull('criterio_id')
-                        ->first();
-
-                    $datosItemRubrica = [
-                        'nombre_item_plan' => $itemPlan->nombre_item,
-                        'ponderacion_item_plan' => $itemPlan->ponderacion_global,
-                        'tipo' => $itemPlan->tipo_item,
-                        'observacion_general' => $califGeneralRubricaDelMiembro?->observacion ?? '',
-                        'rubrica_plantilla_nombre' => $itemPlan->rubricaPlantilla->nombre,
-                        'componentes_evaluados' => [],
-                    ];
-                    foreach ($itemPlan->rubricaPlantilla->componentesRubrica as $componenteR) {
-                        $criteriosEvaluadosArray = [];
-                        foreach ($componenteR->criteriosComponente as $criterioR) {
-                            $califCriterioDelMiembro = $susCalificacionesGuardadas
-                                ->where('item_plan_evaluacion_id', $itemPlan->id)
-                                ->where('criterio_id', $criterioR->id)
-                                ->first();
-
-                            $opcionCalificacionElegida = null;
-                            if ($califCriterioDelMiembro && $califCriterioDelMiembro->calificacion_criterio_id) {
-                                $opcionCalificacionElegida = $criterioR->calificacionesCriterio
-                                    ->firstWhere('id', $califCriterioDelMiembro->calificacion_criterio_id);
-                            }
-                            $criteriosEvaluadosArray[$criterioR->id] = [
-                                'nombre_criterio_rubrica' => $criterioR->nombre,
-                                'calificacion_elegida_nombre' => $opcionCalificacionElegida?->nombre ?? null,
-                                'calificacion_elegida_valor' => $opcionCalificacionElegida?->valor ?? null,
-                                'observacion' => $califCriterioDelMiembro?->observacion ?? '',
-                            ];
-                        }
-                        $datosItemRubrica['componentes_evaluados'][$componenteR->id] = [
-                            'nombre_componente_rubrica' => $componenteR->nombre,
-                            'criterios_evaluados' => $criteriosEvaluadosArray,
-                        ];
-                    }
-                    $calificacionesFormateadasParaEsteMiembro[$itemPlan->id] = $datosItemRubrica;
-                }
-            }
-            if (!empty($calificacionesFormateadasParaEsteMiembro)) {
-                $this->todasLasCalificacionesDelTribunal[$miembro->user_id] = [
-                    'nombre_miembro' => $miembro->user->name,
-                    'rol_miembro' => $miembro->status,
-                    'calificaciones_ingresadas' => $calificacionesFormateadasParaEsteMiembro
-                ];
-            }
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error en PDF de prueba: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
         }
     }
-    protected function calcularNotaRubricaParaMiembro(ItemPlanEvaluacion $itemPlan, Collection $calificacionesDelMiembro)
-    {
-        if (!$itemPlan->rubricaPlantilla) return null;
-
-        $puntajeTotalObtenidoMiembro = 0;
-        $sumaPonderacionesComponentes = 0; // Suma de las ponderaciones INTERNAS de los componentes de la rúbrica
-
-        foreach ($itemPlan->rubricaPlantilla->componentesRubrica as $componenteR) {
-            $sumaPonderacionesComponentes += $componenteR->ponderacion;
-            $puntajeObtenidoCriteriosComp = 0;
-            $maxPuntajePosibleCriteriosComp = 0;
-
-            foreach ($componenteR->criteriosComponente as $criterioR) {
-                if ($criterioR->calificacionesCriterio->isNotEmpty()) {
-                    // Asumimos que el valor máximo es el de la opción con mayor valor numérico
-                    $maxValorCriterio = $criterioR->calificacionesCriterio->max('valor');
-                    if (is_numeric($maxValorCriterio)) {
-                        $maxPuntajePosibleCriteriosComp += (float) $maxValorCriterio;
-                    }
-                }
-
-                $califCriterioActual = $calificacionesDelMiembro
-                    ->where('item_plan_evaluacion_id', $itemPlan->id)
-                    ->where('criterio_id', $criterioR->id)
-                    ->first();
-
-                if ($califCriterioActual && $califCriterioActual->calificacion_criterio_id) {
-                    $opcionElegida = $criterioR->calificacionesCriterio->firstWhere('id', $califCriterioActual->calificacion_criterio_id);
-                    if ($opcionElegida && is_numeric($opcionElegida->valor)) {
-                        $puntajeObtenidoCriteriosComp += (float) $opcionElegida->valor;
-                    }
-                }
-            }
-            // Calcular puntaje del componente normalizado y ponderado por su peso en la rúbrica
-            if ($maxPuntajePosibleCriteriosComp > 0) {
-                $puntajeTotalObtenidoMiembro += ($puntajeObtenidoCriteriosComp / $maxPuntajePosibleCriteriosComp) * $componenteR->ponderacion;
-            }
-        }
-
-        if ($sumaPonderacionesComponentes > 0) {
-            // Normalizar el puntaje total obtenido a una base de 100 (si la suma de ponderaciones de componentes no es 100)
-            // y luego convertir a base 20.
-            $notaBase100 = ($puntajeTotalObtenidoMiembro / $sumaPonderacionesComponentes) * 100;
-            return ($notaBase100 / 100) * 20;
-        }
-        return null;
-    }
-
 
     public function render()
     {

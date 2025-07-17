@@ -4,6 +4,7 @@ namespace App\Http\Livewire\Rubricas;
 
 use App\Models\Rubrica;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -22,17 +23,58 @@ class View extends Component
 
     protected $listeners = ['initializePopovers' => 'initializePopoversJs'];
 
+    public function mount()
+    {
+        $this->verificarAccesoRubricas();
+    }
+
+    /**
+     * Verificar acceso a las rúbricas
+     */
+    private function verificarAccesoRubricas()
+    {
+        if (!Gate::allows('ver rubricas') && !Gate::allows('gestionar rubricas') && !Gate::allows('gestionar plantillas rubricas')) {
+            abort(403, 'No tienes permisos para acceder a las rúbricas.');
+        }
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar rúbricas
+     */
+    private function puedeGestionarRubricas()
+    {
+        return Gate::allows('gestionar rubricas');
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar plantillas de rúbricas
+     */
+    private function puedeGestionarPlantillasRubricas()
+    {
+        return Gate::allows('gestionar plantillas rubricas');
+    }
+
+    /**
+     * Verificar si el usuario puede crear rúbricas
+     */
+    private function puedeCrearRubricas()
+    {
+        return $this->puedeGestionarRubricas() || $this->puedeGestionarPlantillasRubricas();
+    }
+
     public function render()
     {
+        // Verificar acceso al renderizar
+        $this->verificarAccesoRubricas();
+
         $keyWord = '%' . $this->keyWord . '%';
         $rubricas = Rubrica::latest()
             ->where('nombre', 'LIKE', $keyWord)
             ->paginate(10);
 
-        // $this->dispatchBrowserEvent('initializePopovers'); // Moveremos esto para evitar llamadas excesivas
         return view('livewire.rubricas.view', [
             'rubricas' => $rubricas,
-        ])->layout('layouts.panel');
+        ]);
     }
 
     // Se puede llamar desde el @push('scripts') en la vista para que se ejecute una vez cargada y después de cada actualización
@@ -78,22 +120,33 @@ class View extends Component
     // --- Acción de Copiar ---
     public function confirmCopy($id)
     {
+        // Verificar permisos
+        if (!$this->puedeCrearRubricas()) {
+            session()->flash('error', 'No tienes permisos para copiar rúbricas.');
+            return;
+        }
+
         $this->rubricaIdToCopy = $id;
         $this->copyRubrica();
     }
 
     public function copyRubrica()
     {
-        // ... (código sin cambios)
+        // Verificar permisos
+        if (!$this->puedeCrearRubricas()) {
+            session()->flash('error', 'No tienes permisos para copiar rúbricas.');
+            return;
+        }
+
         if (!$this->rubricaIdToCopy) {
-            session()->flash('danger', 'No se especificó una rúbrica para copiar.');
+            session()->flash('error', 'No se especificó una rúbrica para copiar.');
             return;
         }
         $originalRubrica = Rubrica::with([
             'componentesRubrica.criteriosComponente.calificacionesCriterio'
         ])->find($this->rubricaIdToCopy);
         if (!$originalRubrica) {
-            session()->flash('danger', 'Rúbrica original no encontrada.');
+            session()->flash('error', 'Rúbrica original no encontrada.');
             $this->rubricaIdToCopy = null;
             return;
         }
@@ -141,7 +194,7 @@ class View extends Component
             });
             session()->flash('success', 'Rúbrica copiada exitosamente.');
         } catch (\Exception $e) {
-            session()->flash('danger', 'Ocurrió un error al copiar la rúbrica. Detalles: ' . $e->getMessage());
+            session()->flash('error', 'Ocurrió un error al copiar la rúbrica: ' . $e->getMessage());
         }
         $this->rubricaIdToCopy = null;
     }
@@ -149,11 +202,17 @@ class View extends Component
     // --- Acción de Eliminar ---
     public function confirmDelete($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarRubricas() && !$this->puedeGestionarPlantillasRubricas()) {
+            session()->flash('error', 'No tienes permisos para eliminar rúbricas.');
+            return;
+        }
+
         $rubrica = Rubrica::find($id);
 
         if (!$rubrica) {
-            session()->flash('danger', 'Rúbrica no encontrada.');
-            $this->dispatchBrowserEvent('showFlashMessage'); // Asume que tienes un listener para mostrar alertas
+            session()->flash('error', 'Rúbrica no encontrada.');
+            $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
 
@@ -163,7 +222,7 @@ class View extends Component
 
         if ($enUsoEnPlan) {
             session()->flash('warning', 'Esta rúbrica no se puede eliminar porque está asignada a uno o más Planes de Evaluación.');
-            $this->dispatchBrowserEvent('showFlashMessage'); // Asume que tienes un listener para mostrar alertas
+            $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
 
@@ -188,9 +247,16 @@ class View extends Component
 
     public function destroy()
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarRubricas() && !$this->puedeGestionarPlantillasRubricas()) {
+            session()->flash('error', 'No tienes permisos para eliminar rúbricas.');
+            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
+            $this->resetDeleteConfirmation();
+            return;
+        }
+
         if (!$this->rubricaAEliminar) {
-            // Esto no debería ocurrir si confirmDelete funciona bien, pero es una salvaguarda
-            session()->flash('danger', 'Error: No se ha especificado la rúbrica a eliminar.');
+            session()->flash('error', 'Error: No se ha especificado la rúbrica a eliminar.');
             $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
             $this->resetDeleteConfirmation();
             $this->dispatchBrowserEvent('showFlashMessage');
@@ -201,13 +267,12 @@ class View extends Component
             $this->rubricaAEliminar->delete();
             session()->flash('success', 'Rúbrica eliminada exitosamente.');
         } catch (\Exception $e) {
-            // Log::error("Error al eliminar rúbrica ID {$this->rubricaAEliminar->id}: " . $e->getMessage());
-            session()->flash('danger', 'Ocurrió un error al intentar eliminar la rúbrica.');
+            session()->flash('error', 'Ocurrió un error al intentar eliminar la rúbrica.');
         }
 
         $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
         $this->resetDeleteConfirmation();
-        $this->dispatchBrowserEvent('showFlashMessage'); // Para mostrar el mensaje de éxito/error
+        $this->dispatchBrowserEvent('showFlashMessage');
     }
 
     public function resetDeleteConfirmation()
@@ -220,6 +285,12 @@ class View extends Component
     // Redirección para el botón "Nueva Rúbrica"
     public function create()
     {
+        // Verificar permisos
+        if (!$this->puedeCrearRubricas()) {
+            session()->flash('error', 'No tienes permisos para crear rúbricas.');
+            return;
+        }
+
         return redirect()->route('rubricas.create');
     }
 }

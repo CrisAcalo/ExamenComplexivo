@@ -14,9 +14,11 @@
                             <input wire:model='keyWord' type="text" class="form-control" name="search" id="search"
                                 placeholder="Buscar permisos">
                         </div>
-                        <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                            <i class="bi bi-plus-lg"></i> Añadir Permisos
-                        </div>
+                        @can('gestionar roles y permisos')
+                            <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                <i class="bi bi-plus-lg"></i> Agregar Permiso
+                            </div>
+                        @endcan
                     </div>
                 </div>
 
@@ -39,16 +41,32 @@
                                         <td>{{ $row->name }}</td>
                                         {{-- <td>{{ $row->guard_name }}</td> --}}
                                         <td width="90">
+                                            @can('gestionar roles y permisos')
+                                                <button data-bs-toggle="modal" data-bs-target="#updateDataModal"
+                                                    class="btn btn-primary btn-sm" wire:click="edit({{ $row->id }})">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
 
-                                            <button data-bs-toggle="modal" data-bs-target="#updateDataModal"
-                                                class="btn btn-primary btn-sm" wire:click="edit({{ $row->id }})"><i
-                                                    class="bi bi-pencil-square"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
-                                                data-bs-target="#deleteDataModal"
-                                                wire:click="eliminar({{ $row->id }})">
-                                                <i class="bi bi-trash3-fill"></i>
-                                            </button>
+                                                @php
+                                                    $criticalPermissions = [
+                                                        'gestionar roles y permisos',
+                                                        'gestionar usuarios',
+                                                        'gestionar configuracion sistema'
+                                                    ];
+                                                @endphp
+
+                                                @if(!in_array($row->name, $criticalPermissions))
+                                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
+                                                        data-bs-target="#deleteDataModal"
+                                                        wire:click="eliminar({{ $row->id }})">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                @else
+                                                    <small class="text-muted">Crítico</small>
+                                                @endif
+                                            @else
+                                                <span class="text-muted small">Sin permisos</span>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @empty

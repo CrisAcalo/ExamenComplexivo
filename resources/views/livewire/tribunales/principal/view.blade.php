@@ -44,7 +44,6 @@
                             @endif
                         </div>
                     @else
-                        {{-- ... (Tabla de tribunales como la tenías, sin cambios significativos aquí) ... --}}
                         <div class="table-responsive">
                             <table class="table table-hover table-sm">
                                 <thead class="table-light">
@@ -55,7 +54,7 @@
                                         <th>Período</th>
                                         <th>Fecha</th>
                                         <th>Horario</th>
-                                        <th>Mi Rol Principal en Tribunal</th>
+                                        <th>Mi Rol Principal en el Tribunal</th>
                                         <th class="text-center">Acciones</th>
                                     </tr>
                                 </thead>

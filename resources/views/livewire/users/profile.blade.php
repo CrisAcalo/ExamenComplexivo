@@ -57,7 +57,7 @@
             </div>
         </div>
 
-        {{-- @if (Auth::user()->hasAnyRole(['Super Admin'])) --}}
+        @can('gestionar roles y permisos')
             <div class="card mx-auto mt-3 p-3">
                 <h3>Roles</h3>
                 <form action="{{ route('users.updateRoles', encrypt($user->id)) }}" id="update_product_info"
@@ -79,7 +79,19 @@
                     <button type="submit" class="btn btn-info mt-3 float-end">Guardar</button>
                 </form>
             </div>
-        {{-- @endif --}}
+        @else
+            <div class="card mx-auto mt-3 p-3">
+                <h3>Roles</h3>
+                <ul class="list-group text-start">
+                    @foreach ($user->roles as $rol)
+                        <li class="list-group-item list-group-item-action list-group-item-info">
+                            <span class="badge bg-info">{{ $rol->name }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                <p class="text-muted mt-2">Solo los administradores pueden modificar roles.</p>
+            </div>
+        @endcan
 
 
     </div>

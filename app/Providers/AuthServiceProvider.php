@@ -70,11 +70,26 @@ class AuthServiceProvider extends ServiceProvider
 
         // Gate para calificar (ingresar/editar propias calificaciones)
         Gate::define('calificar-este-tribunal', function (User $user, Tribunale $tribunal) {
-            // Asumimos que 'calificar mi tribunal' es el permiso base
-            if ($user->hasPermissionTo('calificar mi tribunal')) {
-                // Adicionalmente, verificar si es miembro de ESTE tribunal
-                return $tribunal->miembrosTribunales()->where('user_id', $user->id)->exists();
-                // Aquí podrías añadir lógica de si el tribunal está "abierto para calificación"
+            // Verificar permisos base de calificación
+            if ($user->hasPermissionTo('calificar mi tribunal') || $user->hasPermissionTo('calificar en tribunal')) {
+                // Verificar si es miembro de ESTE tribunal
+                $esMiembroTribunal = $tribunal->miembrosTribunales()->where('user_id', $user->id)->exists();
+                if ($esMiembroTribunal) {
+                    return true;
+                }
+
+                // Verificar si tiene asignaciones de calificación en el plan de evaluación de este tribunal
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    $esDirector = $carreraPeriodo->director_id === $user->id;
+                    $esApoyo = $carreraPeriodo->docente_apoyo_id === $user->id;
+                    $esCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $tribunal->carrera_periodo_id)
+                        ->where('user_id', $user->id)->exists();
+
+                    if ($esDirector || $esApoyo || $esCalificadorGeneral) {
+                        return true;
+                    }
+                }
             }
             return false;
         });
@@ -184,12 +199,225 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('gestionar-calificadores-generales', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('configurar plan evaluacion')) { // O un permiso más específico
-                // if ($user->hasRole('Administrador')) return true;
+                if ($user->hasRole('Administrador')) return true;
                 if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) return true;
-                // Podrías añadir Docente de Apoyo si también puede
+                // Docente de Apoyo también puede gestionar calificadores generales
                 if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) return true;
             }
             return false;
+        });
+
+        // === GATES PARA GESTIÓN DE ESTUDIANTES ===
+        Gate::define('gestionar-estudiantes-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('gestionar estudiantes') || $user->hasPermissionTo('ver listado estudiantes')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        Gate::define('importar-estudiantes-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('importar estudiantes')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // === GATES PARA GESTIÓN DE RÚBRICAS ===
+        Gate::define('gestionar-rubricas-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('gestionar rubricas') || $user->hasPermissionTo('ver rubricas')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        Gate::define('asignar-rubricas-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('asignar rubricas a carrera-periodo')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                // Docente de Apoyo NO puede asignar rúbricas según el seeder
+            }
+            return false;
+        });
+
+        // === GATES PARA OPERACIONES ESPECÍFICAS DE TRIBUNALES ===
+        Gate::define('crear-tribunal-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('crear tribunales')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        Gate::define('editar-tribunal-en-carrera-periodo', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('editar tribunales')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                        return true;
+                    }
+                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        Gate::define('eliminar-tribunal-en-carrera-periodo', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('eliminar tribunales')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                        return true;
+                    }
+                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        Gate::define('gestionar-estado-tribunal', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('gestionar estado tribunales')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                        return true;
+                    }
+                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        Gate::define('asignar-miembros-tribunal', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('asignar miembros tribunales')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                        return true;
+                    }
+                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        // === GATES PARA REPORTES Y ESTADÍSTICAS ===
+        Gate::define('ver-reportes-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('ver resumenes y reportes academicos') || $user->hasPermissionTo('ver estadisticas carrera-periodo')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        Gate::define('exportar-reportes-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
+            if ($user->hasPermissionTo('exportar reportes')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                    return true;
+                }
+                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // === GATES PARA CALIFICACIONES ===
+        Gate::define('exportar-calificaciones-tribunal', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('exportar calificaciones')) {
+                if ($user->hasRole('Administrador')) {
+                    return true;
+                }
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
+                        return true;
+                    }
+                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        // === GATES PARA ADMINISTRACIÓN GLOBAL ===
+        Gate::define('acceder-dashboard-administrativo', function (User $user) {
+            return $user->hasPermissionTo('ver dashboard administrativo');
+        });
+
+        Gate::define('gestionar-estructura-academica', function (User $user) {
+            return $user->hasPermissionTo('gestionar periodos') ||
+                   $user->hasPermissionTo('gestionar carreras') ||
+                   $user->hasPermissionTo('gestionar departamentos');
+        });
+
+        Gate::define('gestionar-plantillas-sistema', function (User $user) {
+            return $user->hasPermissionTo('gestionar plantillas rubricas');
         });
     }
 }

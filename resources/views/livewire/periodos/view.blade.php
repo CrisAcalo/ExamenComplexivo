@@ -19,11 +19,15 @@
                         @endif
                         <div>
                             <input wire:model='keyWord' type="text" class="form-control" name="search"
-                                id="search" placeholder="Search Periodos">
+                                id="search" placeholder="Buscar Períodos">
                         </div>
-                        <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                            <i class="fa fa-plus"></i> Add Periodos
-                        </div>
+                        @can('gestionar periodos')
+                            <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                <i class="fa fa-plus"></i> Add Periodos
+                            </div>
+                        @else
+                            <span class="text-muted">Solo lectura</span>
+                        @endcan
                     </div>
                 </div>
 
@@ -50,16 +54,22 @@
                                         <td>{{ $row->fecha_inicio }}</td>
                                         <td>{{ $row->fecha_fin }}</td>
                                         <td width="200">
-                                            <a class="btn btn-sm btn-info" wire:click="open({{ $row->id }})"><i
-                                                    class="fa fa-edit"></i> Ver </a>
-                                            <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
-                                                class="btn btn-sm btn-primary" wire:click="edit({{ $row->id }})"><i
-                                                    class="fa fa-edit"></i> Edit </a>
-                                            <a class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                                                data-bs-target="#deleteDataModal"
-                                                wire:click="eliminar({{ $row->id }})">
-                                                <i class="bi bi-trash3-fill"></i>
+                                            <a class="btn btn-sm btn-info" wire:click="open({{ $row->id }})">
+                                                <i class="fa fa-edit"></i> Ver
                                             </a>
+                                            @can('gestionar periodos')
+                                                <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
+                                                    class="btn btn-sm btn-primary" wire:click="edit({{ $row->id }})">
+                                                    <i class="fa fa-edit"></i> Edit
+                                                </a>
+                                                <a class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                                    data-bs-target="#deleteDataModal"
+                                                    wire:click="eliminar({{ $row->id }})">
+                                                    <i class="bi bi-trash3-fill"></i>
+                                                </a>
+                                            @else
+                                                <span class="text-muted small">Sin permisos</span>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @empty

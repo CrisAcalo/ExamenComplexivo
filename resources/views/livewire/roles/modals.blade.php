@@ -11,8 +11,8 @@
             <div class="modal-body">
                 <form>
                     <div class="form-group">
-                        <label for="name"></label>
-                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Name">
+                        <label for="name">Nombre</label>
+                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Nombre del rol">
                         @error('name')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
@@ -41,8 +41,8 @@
                 <form>
                     <input type="hidden" wire:model="selected_id">
                     <div class="form-group">
-                        <label for="name"></label>
-                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Name">
+                        <label for="name">Nombre</label>
+                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Nombre del rol">
                         @error('name')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
@@ -51,8 +51,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" wire:click.prevent="cancel()" class="btn btn-secondary"
-                    data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Save</button>
+                    data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
@@ -76,7 +76,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button class="btn btn-danger" wire:click="destroy({{ $rolEncontrado->id }})">Eliminar</button>
                 </div>
             @endif

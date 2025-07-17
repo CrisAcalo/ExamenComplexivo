@@ -1,10 +1,6 @@
-{{-- livewire.tribunales.modals.blade.php --}}
-
-<!-- Add Modal (Crear Tribunal) -->
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="createDataModalLabel" aria-hidden="true">
-    {{-- ... (contenido del modal de creación sin cambios, asegúrate que los wire:model sean correctos) ... --}}
-    <div class="modal-dialog modal-lg" role="document"> {{-- modal-lg para más espacio --}}
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="createDataModalLabel">Añadir Nuevo Tribunal</h5>
@@ -25,28 +21,35 @@
                                 <option value="" disabled>No hay estudiantes disponibles sin tribunal asignado.</option>
                             @endforelse
                         </select>
-                        @error('estudiante_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        @error('estudiante_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="row">
                         {{-- Fecha --}}
                         <div class="col-md-4 mb-3">
                             <label for="fecha_create" class="form-label">Fecha <span class="text-danger">*</span></label>
-                            <input wire:model.defer="fecha" type="date" class="form-control @error('fecha') is-invalid @enderror" id="fecha_create">
-                            @error('fecha') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            <input wire:model.lazy="fecha" type="date" class="form-control @error('fecha') is-invalid @enderror" id="fecha_create">
+                            @error('fecha') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         {{-- Hora Inicio --}}
                         <div class="col-md-4 mb-3">
                             <label for="hora_inicio_create" class="form-label">Hora Inicio <span class="text-danger">*</span></label>
-                            <input wire:model.defer="hora_inicio" type="time" class="form-control @error('hora_inicio') is-invalid @enderror" id="hora_inicio_create">
-                            @error('hora_inicio') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            <input wire:model.lazy="hora_inicio" type="time" class="form-control @error('hora_inicio') is-invalid @enderror" id="hora_inicio_create">
+                            @error('hora_inicio') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         {{-- Hora Fin --}}
                         <div class="col-md-4 mb-3">
                             <label for="hora_fin_create" class="form-label">Hora Fin <span class="text-danger">*</span></label>
-                            <input wire:model.defer="hora_fin" type="time" class="form-control @error('hora_fin') is-invalid @enderror" id="hora_fin_create">
-                            @error('hora_fin') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                            <input wire:model.lazy="hora_fin" type="time" class="form-control @error('hora_fin') is-invalid @enderror" id="hora_fin_create">
+                            @error('hora_fin') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+                    </div>
+
+                    {{-- Mensaje informativo sobre horarios --}}
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Importante:</strong> Los horarios de tribunales no pueden solaparse en la misma fecha.
+                        Asegúrese de que el horario seleccionado no esté ocupado por otro tribunal.
                     </div>
 
 
@@ -65,7 +68,7 @@
                                         @endif
                                     @endforeach
                                 </select>
-                                @error('presidente_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                @error('presidente_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             {{-- Integrante 1 --}}
                             <div class="col-md-4 mb-3">
@@ -79,7 +82,7 @@
                                         @endif
                                     @endforeach
                                 </select>
-                                @error('integrante1_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                @error('integrante1_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             {{-- Integrante 2 --}}
                             <div class="col-md-4 mb-3">
@@ -93,7 +96,7 @@
                                         @endif
                                     @endforeach
                                 </select>
-                                @error('integrante2_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                                @error('integrante2_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
                     </div>

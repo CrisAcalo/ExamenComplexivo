@@ -5,6 +5,7 @@ namespace App\Http\Livewire\Users;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 class Profile extends Component
@@ -38,11 +39,27 @@ class Profile extends Component
     }
     public function mount()
     {
+        $this->verificarAccesoProfile();
+    }
+
+    /**
+     * Verificar acceso al perfil del usuario
+     */
+    private function verificarAccesoProfile()
+    {
+        // Puede acceder si es su propio perfil O si puede gestionar usuarios
+        if (auth()->id() !== $this->userId && !Gate::allows('gestionar usuarios')) {
+            abort(403, 'No tienes permisos para acceder a este perfil.');
+        }
     }
 
     public function update()
     {
+        // Verificar permisos para actualizar perfil
+        $this->verificarAccesoProfile();
+
         $user = User::find($this->userId);
+
         if ($user->email === $this->email) {
             $this->validate([
                 'name' => 'required|min:6',
@@ -57,12 +74,16 @@ class Profile extends Component
             ]);
         }
 
-        $user->name = $this->name;
-        $user->email = $this->email;
-        if ($this->password) {
-            $user->password = bcrypt($this->password);
+        try {
+            $user->name = $this->name;
+            $user->email = $this->email;
+            if ($this->password) {
+                $user->password = bcrypt($this->password);
+            }
+            $user->save();
+            session()->flash('success', 'Perfil actualizado correctamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al actualizar el perfil: ' . $e->getMessage());
         }
-        $user->save();
-        session()->flash('success', 'Perfil actualizado correctamente.');
     }
 }

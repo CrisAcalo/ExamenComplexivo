@@ -3,6 +3,166 @@
     @section('title', $tribunal && $estudianteNombreCompleto ? 'Calificar Tribunal: ' . $estudianteNombreCompleto :
         'Calificar Tribunal')
 
+
+        @push('styles')
+            <style>
+                .celda-calificacion label {
+                    transition: all 0.2s ease-in-out;
+                    border: 2px solid transparent;
+                    display: flex !important;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: flex-start;
+                    width: 100% !important;
+                    height: 100% !important;
+                    min-height: 100px;
+                    padding: 15px 10px;
+                    margin: 0 !important;
+                    box-sizing: border-box;
+                }
+
+                .celda-calificacion label:hover {
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                }
+
+                .celda-calificacion input[type="radio"]:checked+span {
+                    color: #0d6efd !important;
+                    font-weight: 600;
+                }
+
+                .celda-calificacion input[type="radio"]:checked {
+                    transform: scale(1.2);
+                    border-color: #0d6efd;
+                }
+
+                /* Fallback para navegadores sin soporte de :has() */
+                .celda-calificacion label.selected {
+                    background-color: #e7f1ff !important;
+                    border: 2px solid #0d6efd !important;
+                    border-radius: 8px !important;
+                }
+
+                /* Para navegadores modernos que soportan :has() */
+                @supports selector(:has(*)) {
+                    .celda-calificacion label:has(input[type="radio"]:checked) {
+                        background-color: #e7f1ff;
+                        border: 2px solid #0d6efd;
+                        border-radius: 8px;
+                    }
+                }
+
+                .cursor-pointer {
+                    cursor: pointer !important;
+                }
+
+                .table-rubrica-calificacion .celda-calificacion {
+                    vertical-align: top;
+                    padding: 0 !important;
+                    position: relative;
+                    height: 120px;
+                }
+
+                .celda-calificacion .form-check-input {
+                    margin-bottom: 8px;
+                    position: static;
+                    z-index: 2;
+                }
+
+                .celda-calificacion .descripcion-texto {
+                    text-align: center;
+                    text-justify: inter-word;
+                    hyphens: auto;
+                    word-wrap: break-word;
+                    line-height: 1.3;
+                    flex-grow: 1;
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
+                    text-align: center;
+                }
+            </style>
+        @endpush
+
+        @push('scripts')
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Agregar event listeners para mejorar la selección visual
+                    function updateRadioSelection() {
+                        // Remover clase 'selected' de todos los labels de radio buttons
+                        document.querySelectorAll('.celda-calificacion label').forEach(label => {
+                            label.classList.remove('selected');
+                        });
+
+                        // Agregar clase 'selected' a labels que contienen radio buttons seleccionados
+                        document.querySelectorAll('.celda-calificacion input[type="radio"]:checked').forEach(radio => {
+                            const label = radio.closest('label');
+                            if (label) {
+                                label.classList.add('selected');
+                            }
+                        });
+                    }
+
+                    // Actualizar al cargar la página
+                    updateRadioSelection();
+
+                    // Actualizar cuando cambien los radio buttons
+                    document.addEventListener('change', function(e) {
+                        if (e.target.type === 'radio' && e.target.closest('.celda-calificacion')) {
+                            updateRadioSelection();
+                        }
+                    });
+
+                    // Mejorar efectos hover - ahora que los labels ocupan toda la celda
+                    document.querySelectorAll('.celda-calificacion label').forEach(label => {
+                        label.addEventListener('mouseenter', function() {
+                            if (!this.classList.contains('selected')) {
+                                this.style.transform = 'translateY(-2px)';
+                            }
+                        });
+
+                        label.addEventListener('mouseleave', function() {
+                            if (!this.classList.contains('selected')) {
+                                this.style.transform = 'translateY(0)';
+                            }
+                        });
+                    });
+
+                    // Asegurar que las celdas tengan la altura correcta
+                    function adjustCellHeights() {
+                        const rows = document.querySelectorAll('.table-rubrica-calificacion tbody tr');
+                        rows.forEach(row => {
+                            const cells = row.querySelectorAll('.celda-calificacion');
+                            if (cells.length > 0) {
+                                // Encontrar la altura máxima en esta fila
+                                let maxHeight = 0;
+                                cells.forEach(cell => {
+                                    const label = cell.querySelector('label');
+                                    if (label) {
+                                        const height = label.scrollHeight;
+                                        maxHeight = Math.max(maxHeight, height);
+                                    }
+                                });
+
+                                // Aplicar la altura máxima a todas las celdas de la fila
+                                if (maxHeight > 0) {
+                                    cells.forEach(cell => {
+                                        cell.style.height = Math.max(maxHeight, 120) + 'px';
+                                    });
+                                }
+                            }
+                        });
+                    }
+
+                    // Ajustar alturas al cargar y cuando la ventana cambie de tamaño
+                    adjustCellHeights();
+                    window.addEventListener('resize', adjustCellHeights);
+                });
+            </script>
+        @endpush
+
         <div class="container-fluid p-0">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="fs-2 fw-semibold">
@@ -31,7 +191,18 @@
 
             @include('partials.alerts')
 
-            @if ($tribunal && $planEvaluacionActivo && $tieneAlgoQueCalificar)
+            {{-- Mostrar estado del tribunal --}}
+            @if ($tribunal && $tribunal->estado === 'CERRADO')
+                <div class="alert alert-warning d-flex align-items-center mb-4">
+                    <i class="bi bi-lock-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Tribunal Cerrado:</strong> Este tribunal está cerrado y no se pueden realizar calificaciones.
+                        Solo se permite consultar información y exportar el acta.
+                    </div>
+                </div>
+            @endif
+
+            @if ($tribunal && $planEvaluacionActivo && $tieneAlgoQueCalificar && $tribunal->estado === 'ABIERTO')
                 <div class="card shadow-sm">
                     {{-- En resources/views/livewire/tribunales/principal/calificar.blade.php --}}
 
@@ -125,16 +296,6 @@
                                         @elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla)
                                             @php
                                                 $rubricaParaCalificar = $itemPlan->rubricaPlantilla;
-                                                // $nivelesEncabezado =
-                                                //     $calificaciones[$itemPlanId]['componentes_evaluados'][
-                                                //         $rubricaParaCalificar->componentesRubrica->first()->id
-                                                //     ]['criterios_evaluados'][
-                                                //         $rubricaParaCalificar->componentesRubrica
-                                                //             ->first()
-                                                //             ->criteriosComponente->first()->id
-                                                //     ]['opciones_calificacion'] ?? collect();
-
-
 
                                                 $opcionesDelPrimerCriterio = collect(); // Default a colección vacía
                                                 if (
@@ -166,20 +327,8 @@
                                                         );
                                                     }
                                                 }
-                                                // $opcionesDelPrimerCriterio ahora es una colección de objetos (CalificacionCriterio o stdClass)
-                                                // Si ya tiene la estructura correcta (nombre, valor) para los encabezados, la usamos.
-                                                // Si $opcionesDelPrimerCriterio contiene los modelos CalificacionCriterio completos, está bien.
-                                                $nivelesEncabezado = $opcionesDelPrimerCriterio; // Asumimos que esto ya está ordenado y es único si es necesario.
-                                                // La lógica anterior de unique y map la podemos simplificar si
-                                                // $opciones_calificacion ya viene bien desde el backend.
-                                                // Si necesitas procesarla más (ej. solo nombre y valor):
-                                                // $nivelesEncabezado = $opcionesDelPrimerCriterio->map(fn($op) => (object)['nombre' => $op->nombre, 'valor' => $op->valor])
-                                                //                                             ->unique(fn($item) => $item->nombre . '-' . $item->valor)
-                                                //                                             ->sortByDesc('valor') // Asegurar orden
-                                                //                                             ->values();
-                                                // Si $nivelesEncabezado sigue siendo una colección de modelos CalificacionCriterio, está bien.
-                                                // Si necesitas solo nombre y valor, puedes mapearlo como antes.
-                                                // $nivelesEncabezado = $nivelesEncabezado->map(fn($nc) => (object)['nombre' => $nc->nombre, 'valor' => $nc->valor])->unique(fn($item) => $item->nombre . '-' . $item->valor)->values();
+                                                $nivelesEncabezado = $opcionesDelPrimerCriterio;
+
                                             @endphp
                                             <p class="text-muted small">Usando plantilla:
                                                 {{ $rubricaParaCalificar->nombre }}</p>
@@ -209,7 +358,6 @@
                                                                         </th>
                                                                         @if ($nivelesEncabezado->isNotEmpty())
                                                                             @foreach ($nivelesEncabezado as $nivel)
-                                                                                {{-- $nivel es un objeto CalificacionCriterio --}}
                                                                                 <th class="text-center">
                                                                                     {{ $nivel->nombre }} <br>
                                                                                     ({{ $nivel->valor }})
@@ -224,12 +372,9 @@
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    {{-- En calificar.blade.php, dentro del bucle de criteriosComponente --}}
                                                                     @foreach ($componenteR->criteriosComponente as $criterioR)
                                                                         @php
                                                                             $pathBaseCalif = "calificaciones.{$itemPlanId}.componentes_evaluados.{$componenteR->id}.criterios_evaluados.{$criterioR->id}";
-
-                                                                            // Obtener los datos de las opciones
                                                                             $opcionesData =
                                                                                 $calificaciones[$itemPlanId][
                                                                                     'componentes_evaluados'
@@ -239,7 +384,6 @@
                                                                                     'opciones_calificacion'
                                                                                 ] ?? null;
 
-                                                                            // Asegurar que sea una colección para poder usar firstWhere
                                                                             if (
                                                                                 $opcionesData instanceof
                                                                                 \Illuminate\Support\Collection
@@ -269,14 +413,12 @@
 
                                                                             @if ($nivelesEncabezado->isNotEmpty())
                                                                                 @foreach ($nivelesEncabezado as $nivelColumna)
-                                                                                    {{-- $nivelColumna es un objeto CalificacionCriterio o stdClass con 'valor' --}}
                                                                                     @php
                                                                                         $opcionCalifParaColumnaCruda = $opcionesParaEsteCriterio->firstWhere(
                                                                                             'valor',
                                                                                             (string) $nivelColumna->valor,
-                                                                                        ); // Comparar como string por si acaso
+                                                                                        );
 
-                                                                                        // Paso de decodificación/aseguramiento de objeto:
                                                                                         $opcionCalifParaColumna = null;
                                                                                         if (
                                                                                             $opcionCalifParaColumnaCruda
@@ -289,7 +431,6 @@
                                                                                                 $decoded = json_decode(
                                                                                                     $opcionCalifParaColumnaCruda,
                                                                                                 );
-                                                                                                // json_decode puede devolver null si falla, o un objeto/array
                                                                                                 $opcionCalifParaColumna = is_object(
                                                                                                     $decoded,
                                                                                                 )
@@ -315,27 +456,24 @@
                                                                                         }
                                                                                     @endphp
                                                                                     <td
-                                                                                        class="text-center celda-calificacion">
-                                                                                        {{-- DEBUG: Descomenta para ver el tipo y contenido exacto de $opcionCalifParaColumna antes del if --}}
-                                                                                        {{-- <pre style="font-size: 0.7rem; text-align: left;">Tipo: {{ gettype($opcionCalifParaColumna) }} || Contenido: {{ print_r($opcionCalifParaColumna, true) }}</pre> --}}
-                                                                                        {{-- {{$opcionCalifParaColumna}} --}}
+                                                                                        class="text-center celda-calificacion p-0">
+
                                                                                         @if ($opcionCalifParaColumna && is_object($opcionCalifParaColumna) && isset($opcionCalifParaColumna->id))
-                                                                                            {{-- <p syle="color:red">{{$opcionCalifParaColumna}}</p> --}}
-                                                                                            <div
-                                                                                                class="form-check d-flex flex-column align-items-center">
+                                                                                            <label
+                                                                                                class="cursor-pointer position-relative"
+                                                                                                for="calif_{{ $itemPlanId }}_{{ $componenteR->id }}_{{ $criterioR->id }}_{{ $opcionCalifParaColumna->id }}">
                                                                                                 <input
-                                                                                                    class="form-check-input mb-1"
+                                                                                                    class="form-check-input"
                                                                                                     type="radio"
                                                                                                     wire:model.defer="{{ $pathBaseCalif }}.calificacion_criterio_id"
                                                                                                     name="calif_radio_{{ $itemPlanId }}_{{ $componenteR->id }}_{{ $criterioR->id }}"
                                                                                                     id="calif_{{ $itemPlanId }}_{{ $componenteR->id }}_{{ $criterioR->id }}_{{ $opcionCalifParaColumna->id }}"
                                                                                                     value="{{ $opcionCalifParaColumna->id }}">
-                                                                                                <label
-                                                                                                    class="form-check-label small text-muted"
-                                                                                                    for="calif_{{ $itemPlanId }}_{{ $componenteR->id }}_{{ $criterioR->id }}_{{ $opcionCalifParaColumna->id }}">
+                                                                                                <span
+                                                                                                    class="small text-muted descripcion-texto">
                                                                                                     {{ $opcionCalifParaColumna->descripcion }}
-                                                                                                </label>
-                                                                                            </div>
+                                                                                                </span>
+                                                                                            </label>
                                                                                         @else
                                                                                             <span
                                                                                                 class="text-muted small">-</span>
@@ -350,7 +488,7 @@
 
                                                                             <td>
                                                                                 <textarea class="form-control form-control-sm @error($pathBaseCalif . '.observacion_criterio') is-invalid @enderror"
-                                                                                    rows="3" placeholder="Observación específica..." {{-- Ajustado rows a 3 --}}
+                                                                                    rows="3" placeholder="Observación específica..."
                                                                                     wire:model.defer="{{ $pathBaseCalif }}.observacion_criterio"></textarea>
                                                                                 @error($pathBaseCalif .
                                                                                     '.observacion_criterio')

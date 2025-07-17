@@ -25,8 +25,8 @@ class Profile extends Component
         $this->periodoId = $periodoId;
         $this->periodo = Periodo::find($this->periodoId);
         $this->refreshCarrerasPeriodos();
-        $this->carreras = Carrera::all();
-        $this->users = User::all();
+        $this->carreras = Carrera::orderBy('nombre')->get();
+        $this->users = User::orderBy('name')->get();
     }
 
     public function render()

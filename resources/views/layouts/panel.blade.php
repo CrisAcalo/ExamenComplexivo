@@ -14,7 +14,36 @@
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Estilos personalizados para formularios -->
+    <style>
+        /* Estilos para labels */
+        .form-label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #495057;
+        }
 
+        /* Estilos para indicadores de campos requeridos */
+        .text-danger {
+            color: #dc3545 !important;
+        }
+
+        /* Mejorar espaciado en modales */
+        .modal-body .mb-3:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        /* Estilos para selects */
+        .form-select {
+            min-height: 38px;
+        }
+
+        .form-select:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+    </style>
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
@@ -22,6 +51,7 @@
     {{-- importar el resources/css/app.css --}}
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
+    @stack('styles')
     @livewireStyles
 </head>
 
@@ -486,12 +516,125 @@
     }
 
 
-
-
     .login-button:hover {
         background-color: #007bff;
         background-image: radial-gradient(at 30% 30%, rgba(255, 255, 255, 0.15), transparent 50%), radial-gradient(at 90% 20%, rgba(0, 0, 0, 0.1), transparent 50%);
         box-shadow: 0 0.25rem 0.5rem rgba(0, 123, 255, 0.25), 0 0.2rem 1rem rgba(0, 123, 255, 0.15);
+    }
+
+    .choices {
+        margin-bottom: 0;
+        position: relative;
+    }
+
+    .choices__inner {
+        min-height: 40px;
+        padding: 7.5px 7.5px 3.75px;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        background-color: #fff;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #495057;
+    }
+
+    .choices__inner:focus-within {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .choices.is-invalid .choices__inner {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+    }
+
+    .choices__list--dropdown {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        z-index: 1050;
+    }
+
+    .choices__item--selectable {
+        padding: 8px 12px;
+    }
+
+    .choices__item--selectable:hover {
+        background-color: #f8f9fa;
+    }
+
+    .choices__item--highlighted {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+
+    .choices__placeholder {
+        color: #6c757d;
+        opacity: 1;
+    }
+
+    .choices__input {
+        color: #495057;
+        background-color: transparent;
+        margin: 0;
+        padding: 0;
+    }
+
+    .choices__input:focus {
+        outline: none;
+    }
+
+    /* Estilos para labels */
+    .form-label {
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    /* Cuando el select tiene valor o está enfocado */
+    .form-floating>.choices.is-focused+label,
+    .form-floating>.choices:not(.choices--disabled)+label {
+        opacity: 0.65;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    }
+
+    /* Para selects normales (no floating) */
+    .choices:not(.form-floating .choices) {
+        margin-bottom: 1rem;
+    }
+
+    .choices:not(.form-floating .choices) .choices__inner {
+        min-height: 38px;
+        padding: 7px 7.5px 3.75px;
+    }
+
+    /* Estilo mejorado para el dropdown */
+    .choices__list--dropdown .choices__item--selectable {
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    .choices__list--dropdown .choices__item--selectable:last-child {
+        border-bottom: none;
+    }
+
+    .choices__input {
+        background-color: transparent;
+    }
+
+    /* Estilos para elementos deshabilitados */
+    .choices__item--disabled {
+        color: #6c757d;
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+
+    /* Mejoras para la búsqueda */
+    .choices__input--cloned {
+        background-color: transparent;
+        border: none;
+        outline: none;
+        box-shadow: none;
     }
 </style>
 
@@ -502,88 +645,161 @@
             <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px;" id="sidebar">
                 <a href="{{ url('/') }}"
                     class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none text-center">
-
                     <span class="fs-4">Sistema Examen Complexivo</span>
-
                 </a>
+
+                {{-- Mostrar rol del usuario --}}
+                <div class="text-center mb-2">
+                    <small class="text-muted">
+                        @php
+                            // Verificar roles contextuales
+                            $esDirectorCarrera = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())->exists();
+                            $esDocenteApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())->exists();
+                            $esMiembroTribunal = \App\Models\MiembrosTribunal::where('user_id', Auth::id())->exists();
+                        @endphp
+
+                        @if (Auth::user()->hasRole('Super Admin'))
+                            <span class="badge bg-danger">Super Admin</span>
+                        @elseif(Auth::user()->hasRole('Administrador'))
+                            <span class="badge bg-warning text-dark">Administrador</span>
+                        @elseif($esDirectorCarrera && Auth::user()->hasRole('Director de Carrera'))
+                            <span class="badge bg-success">Director de Carrera</span>
+                        @elseif($esDocenteApoyo && Auth::user()->hasRole('Docente de Apoyo'))
+                            <span class="badge bg-info">Docente de Apoyo</span>
+                        @elseif($esMiembroTribunal && Auth::user()->hasRole('Docente'))
+                            <span class="badge bg-primary">Docente (Miembro Tribunal)</span>
+                        @elseif(Auth::user()->hasRole('Docente'))
+                            <span class="badge bg-secondary">Docente</span>
+                        @else
+                            <span class="badge bg-light text-dark">Sin Rol Asignado</span>
+                        @endif
+                    </small>
+                </div>
                 <hr>
                 <h5 class="fs-6 text-secondary">Control</h5>
 
                 <ul class="list-group nav nav-pills flex-column mb-auto list-unstyled ps-0">
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('periodos.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-people"></i></span>
-                            Periodos
-                        </a>
-                    </li>
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('carreras.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-people"></i></span>
-                            Carreras
-                        </a>
-                    </li>
+                    @php
+                        // Verificar roles contextuales para el menú
+                        $esDirectorCarrera = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())->exists();
+                        $esDocenteApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())->exists();
+                        $esMiembroTribunal = \App\Models\MiembrosTribunal::where('user_id', Auth::id())->exists();
 
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('estudiantes.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-people"></i></span>
-                            Estudiantes
-                        </a>
-                    </li>
+                        // Verificar permisos específicos
+                        $puedeGestionarPeriodos = Auth::user()->can('gestionar periodos');
+                        $puedeGestionarCarreras = Auth::user()->can('gestionar carreras');
+                        $puedeVerEstudiantes = Auth::user()->can('ver listado estudiantes') ||
+                                              Auth::user()->can('gestionar estudiantes') ||
+                                              $esDirectorCarrera || $esDocenteApoyo;
+                        $puedeVerRubricas = Auth::user()->can('ver rubricas') ||
+                                           Auth::user()->can('gestionar rubricas') ||
+                                           Auth::user()->can('gestionar plantillas rubricas') ||
+                                           $esDirectorCarrera || $esDocenteApoyo;
+                        $puedeVerTribunales = Auth::user()->can('ver listado tribunales') ||
+                                             $esDirectorCarrera || $esDocenteApoyo || $esMiembroTribunal;
+                    @endphp
 
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('rubricas.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-people"></i></span>
-                            Rubricas
-                        </a>
-                    </li>
+                    {{-- Períodos: Solo usuarios con permiso específico --}}
+                    @if ($puedeGestionarPeriodos)
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('periodos.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-calendar3"></i></span>
+                                Períodos
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Carreras: Solo usuarios con permiso específico --}}
+                    @if ($puedeGestionarCarreras)
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('carreras.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-mortarboard"></i></span>
+                                Carreras
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Estudiantes: Usuarios con permisos o asignaciones contextuales --}}
+                    @if ($puedeVerEstudiantes)
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('estudiantes.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-people"></i></span>
+                                Estudiantes
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Rúbricas: Usuarios con permisos o asignaciones contextuales --}}
+                    @if ($puedeVerRubricas)
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('rubricas.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-grid-3x3-gap"></i></span>
+                                Rúbricas
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Tribunales: Usuarios con permisos o asignaciones contextuales --}}
+                    @if ($puedeVerTribunales)
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('tribunales.principal') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-person-lines-fill"></i></span>
+                                Tribunales
+                            </a>
+                        </li>
+                    @endif
+
+                    {{-- Mensaje para usuarios sin acceso --}}
+                    @if (!$puedeGestionarPeriodos && !$puedeGestionarCarreras && !$puedeVerEstudiantes && !$puedeVerRubricas && !$puedeVerTribunales)
+                        <li class="nav-item">
+                            <div class="alert alert-info py-2 px-3 mb-2">
+                                <small>
+                                    <i class="bi bi-info-circle"></i>
+                                    No tienes asignaciones activas actualmente.
+                                </small>
+                            </div>
+                        </li>
+                    @endif
 
 
+                    {{-- Roles y Permisos: Solo Super Admin --}}
+                    @if (Auth::user()->hasRole('Super Admin'))
+                        <hr>
+                        <h5 class="fs-6 text-secondary">Acceso</h5>
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('roles.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-list-columns-reverse"></i></span>
+                                Roles
+                            </a>
+                        </li>
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('permissions.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-list"></i></span>
+                                Permisos
+                            </a>
+                        </li>
+                    @endif
 
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('tribunales.principal') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-person-lines-fill"></i></span>
-                            Tribunales
-                        </a>
-                    </li>
 
-                    <hr>
-                    <h5 class="fs-6 text-secondary">Acceso</h5>
-                    {{-- @if (Auth::user()->can('Roles - Seccion')) --}}
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('roles.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-list-columns-reverse"></i></span>
-                            Roles
-                        </a>
-                    </li>
-                    {{-- @endif --}}
-
-                    {{-- @if (Auth::user()->can('Permisos - Seccion')) --}}
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('permissions.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-list"></i></span>
-                            Permisos
-                        </a>
-                    </li>
-                    {{-- @endif --}}
-
-                    <hr>
-                    <h5 class="fs-6 text-secondary">Usuarios</h5>
-                    {{-- @if (Auth::user()->can('Usuarios - Seccion')) --}}
-                    <li class="nav-item list-group nav-link-item">
-                        <a href="{{ route('users.') }}" class="nav-link text-white">
-                            <span class="icon-wrapper">
-                                <i class="bi bi-person-lines-fill"></i></span>
-                            Usuarios
-                        </a>
-                    </li>
-                    {{-- @endif --}}
+                    {{-- Usuarios: Super Admin y Administrador --}}
+                    @if (Auth::user()->hasRole(['Super Admin', 'Administrador']))
+                        <hr>
+                        <h5 class="fs-6 text-secondary">Usuarios</h5>
+                        <li class="nav-item list-group nav-link-item">
+                            <a href="{{ route('users.') }}" class="nav-link text-white">
+                                <span class="icon-wrapper">
+                                    <i class="bi bi-person-lines-fill"></i></span>
+                                Usuarios
+                            </a>
+                        </li>
+                    @endif
 
                     @impersonating($guard = null)
                         <li class="nav-item list-group nav-link-item">
@@ -595,17 +811,127 @@
                         </li>
                     @endImpersonating
                 </ul>
+
+                {{-- Información contextual del usuario --}}
+                @php
+                    // Obtener asignaciones contextuales del usuario
+                    $carrerasAsignadas = collect();
+                    $esMiembroTribunal = false;
+
+                    // Verificar asignaciones como Director de Carrera
+                    if (Auth::user()->hasRole('Director de Carrera')) {
+                        $carrerasDirector = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())
+                            ->with(['carrera', 'periodo'])
+                            ->get()
+                            ->map(function($cp) {
+                                return [
+                                    'texto' => $cp->carrera->nombre . ' - ' . $cp->periodo->codigo_periodo,
+                                    'tipo' => 'Director'
+                                ];
+                            });
+                        $carrerasAsignadas = $carrerasAsignadas->merge($carrerasDirector);
+                    }
+
+                    // Verificar asignaciones como Docente de Apoyo
+                    if (Auth::user()->hasRole('Docente de Apoyo')) {
+                        $carrerasApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())
+                            ->with(['carrera', 'periodo'])
+                            ->get()
+                            ->map(function($cp) {
+                                return [
+                                    'texto' => $cp->carrera->nombre . ' - ' . $cp->periodo->codigo_periodo,
+                                    'tipo' => 'Apoyo'
+                                ];
+                            });
+                        $carrerasAsignadas = $carrerasAsignadas->merge($carrerasApoyo);
+                    }
+
+                    // Verificar si es miembro de algún tribunal
+                    $tribunalesAsignados = \App\Models\MiembrosTribunal::where('user_id', Auth::id())
+                        ->with(['tribunal.estudiante', 'tribunal.carrerasPeriodo.carrera'])
+                        ->get();
+
+                    $esMiembroTribunal = $tribunalesAsignados->isNotEmpty();
+                @endphp
+
+                @if ($carrerasAsignadas->isNotEmpty() || $esMiembroTribunal)
+                    <div class="text-center mb-3">
+                        <small class="text-muted">
+                            <strong>Contexto Actual:</strong><br>
+
+                            {{-- Mostrar asignaciones como Director/Apoyo --}}
+                            @if ($carrerasAsignadas->isNotEmpty())
+                                @foreach ($carrerasAsignadas->take(3) as $carrera)
+                                    <span class="badge bg-{{ $carrera['tipo'] == 'Director' ? 'success' : 'info' }} mb-1 d-block">
+                                        {{ $carrera['tipo'] }}: {{ $carrera['texto'] }}
+                                    </span>
+                                @endforeach
+                                @if ($carrerasAsignadas->count() > 3)
+                                    <span class="text-muted">... y {{ $carrerasAsignadas->count() - 3 }} más</span>
+                                @endif
+                            @endif
+
+                            {{-- Mostrar asignaciones como Miembro de Tribunal --}}
+                            @if ($esMiembroTribunal)
+                                @if ($carrerasAsignadas->isNotEmpty())
+                                    <br><small class="text-muted">También:</small><br>
+                                @endif
+                                <span class="badge bg-primary mb-1 d-block">
+                                    Miembro en {{ $tribunalesAsignados->count() }} tribunal(es)
+                                </span>
+                            @endif
+                        </small>
+                    </div>
+                @elseif(Auth::user()->hasRole(['Director de Carrera', 'Docente de Apoyo', 'Docente']))
+                    <div class="text-center mb-3">
+                        <small class="text-muted">
+                            <strong>Contexto:</strong><br>
+                            <span class="badge bg-warning text-dark">Sin asignaciones actuales</span>
+                        </small>
+                    </div>
+                @endif
+
                 <hr>
 
 
                 <div class="dropdown">
-                    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle"
-                        id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-                        {{-- <img src="https://github.com/mdo.png" alt="" width="32" height="32"
-                            class="rounded-circle me-2"> --}}
-                        <strong>{{ Auth::user()->name }}</strong>
+                    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle text-break"
+                        id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" style="white-space: normal;">
+                        <strong class="text-break" style="word-break: break-word;">{{ Auth::user()->name }}</strong>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
+                        {{-- Información del rol actual --}}
+                        <li class="dropdown-header">
+                            <small class="text-muted">
+                                Rol:
+                                @php
+                                    // Verificar roles contextuales para el dropdown
+                                    $esDirectorCarrera = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())->exists();
+                                    $esDocenteApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())->exists();
+                                    $esMiembroTribunal = \App\Models\MiembrosTribunal::where('user_id', Auth::id())->exists();
+                                @endphp
+
+                                @if (Auth::user()->hasRole('Super Admin'))
+                                    <span class="badge bg-danger">Super Admin</span>
+                                @elseif(Auth::user()->hasRole('Administrador'))
+                                    <span class="badge bg-warning text-dark">Administrador</span>
+                                @elseif($esDirectorCarrera && Auth::user()->hasRole('Director de Carrera'))
+                                    <span class="badge bg-success">Director de Carrera</span>
+                                @elseif($esDocenteApoyo && Auth::user()->hasRole('Docente de Apoyo'))
+                                    <span class="badge bg-info">Docente de Apoyo</span>
+                                @elseif($esMiembroTribunal && Auth::user()->hasRole('Docente'))
+                                    <span class="badge bg-primary">Docente (Miembro Tribunal)</span>
+                                @elseif(Auth::user()->hasRole('Docente'))
+                                    <span class="badge bg-secondary">Docente</span>
+                                @else
+                                    <span class="badge bg-light text-dark">Sin Rol Activo</span>
+                                @endif
+                            </small>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
 
                         <li>
                             <a class="dropdown-item"
@@ -668,6 +994,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
     </script>
+
     <script>
         const modales = {};
 
@@ -836,6 +1163,8 @@
             }
         });
     </script>
+
+    @stack('scripts')
 </body>
 
 </html>

@@ -7,6 +7,7 @@ use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Hash;
 use App\Imports\ProfesoresImport;
@@ -54,18 +55,60 @@ class Users extends Component
         $this->validateOnly($propertyName);
     }
 
+    public function mount()
+    {
+        $this->verificarAccesoUsuarios();
+    }
+
+    /**
+     * Verificar acceso a la gestión de usuarios
+     */
+    private function verificarAccesoUsuarios()
+    {
+        if (!Gate::allows('gestionar usuarios')) {
+            abort(403, 'No tienes permisos para acceder a la gestión de usuarios.');
+        }
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar usuarios
+     */
+    private function puedeGestionarUsuarios()
+    {
+        return Gate::allows('gestionar usuarios');
+    }
+
+    /**
+     * Verificar si el usuario puede importar profesores
+     */
+    private function puedeImportarProfesores()
+    {
+        return Gate::allows('importar profesores');
+    }
+
+    /**
+     * Verificar si el usuario puede gestionar roles
+     */
+    private function puedeGestionarRoles()
+    {
+        return Gate::allows('gestionar roles y permisos');
+    }
+
     public function render()
     {
+        // Verificar acceso al renderizar
+        $this->verificarAccesoUsuarios();
+
         $keyWord = '%' . $this->keyWord . '%';
         $users = User::where(function ($query) use ($keyWord) {
             $query
                 ->orWhere('name', 'LIKE', $keyWord)
                 ->orWhere('email', 'LIKE', $keyWord);
         })
-            ->paginate($this->perPage); // CAMBIO
+            ->paginate($this->perPage);
+
         return view('livewire.users.view', compact('users'));
     }
-    public function mount() {}
 
     public function cancel()
     {
@@ -82,58 +125,98 @@ class Users extends Component
 
     public function store()
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para crear usuarios.');
+            return;
+        }
+
         $this->validate();
 
-        $user = new User();
-        $user->name = $this->name;
-        $user->email = $this->email;
-        $user->password = Hash::make($this->password);
-        $user->save();
+        try {
+            $user = new User();
+            $user->name = $this->name;
+            $user->email = $this->email;
+            $user->password = Hash::make($this->password);
+            $user->save();
 
-        $this->resetInput();
-        $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
-        session()->flash('success', 'User Successfully created.');
+            $this->resetInput();
+            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
+            session()->flash('success', 'Usuario creado exitosamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al crear el usuario: ' . $e->getMessage());
+        }
     }
 
     public function edit($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para editar usuarios.');
+            return;
+        }
+
         return redirect()->route('users.profile', ['id' => encrypt($id)]);
-        // $record = User::findOrFail($id);
-        // $this->selected_id = $id;
-        // $this->name = $record->name;
-        // $this->email = $record->email;
-        // $this->updated_at = $record->updated_at;
     }
 
     public function update()
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para actualizar usuarios.');
+            return;
+        }
+
         $this->validate([
             'name' => 'required',
             'email' => 'required',
         ]);
 
         if ($this->selected_id) {
-            $record = User::find($this->selected_id);
-            $record->assignRole('writer');
+            try {
+                $record = User::find($this->selected_id);
+                $record->assignRole('writer');
 
-            $record->update([
-                'name' => $this->name,
-                'email' => $this->email
-            ]);
+                $record->update([
+                    'name' => $this->name,
+                    'email' => $this->email
+                ]);
 
-            $this->resetInput();
-            $this->dispatchBrowserEvent('closeModal');
-            session()->flash('success', 'Usuario actualizado exitosamente.');
+                $this->resetInput();
+                $this->dispatchBrowserEvent('closeModal');
+                session()->flash('success', 'Usuario actualizado exitosamente.');
+            } catch (\Exception $e) {
+                session()->flash('error', 'Error al actualizar el usuario: ' . $e->getMessage());
+            }
         }
     }
     public function eliminar($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para eliminar usuarios.');
+            return;
+        }
+
         $this->usuarioFounded = User::find($id);
     }
     public function destroy($id)
     {
+        // Verificar permisos
+        if (!$this->puedeGestionarUsuarios()) {
+            session()->flash('error', 'No tienes permisos para eliminar usuarios.');
+            return;
+        }
+
         if ($id) {
             try {
+                // Verificar que no se elimine a sí mismo
+                if ($id == auth()->id()) {
+                    $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
+                    session()->flash('error', 'No puedes eliminar tu propio usuario.');
+                    return;
+                }
+
                 User::where('id', $id)->delete();
                 session()->flash('success', 'Usuario eliminado exitosamente.');
                 $this->resetInput();
@@ -143,7 +226,7 @@ class Users extends Component
                 $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
                 $this->resetInput();
                 $this->usuarioFounded = null;
-                session()->flash('danger', 'No se puede eliminar el usurio ya que tiene cheques asignados.');
+                session()->flash('error', 'No se puede eliminar el usuario ya que tiene registros asociados.');
             }
         }
     }
@@ -164,6 +247,12 @@ class Users extends Component
 
     public function importarProfesores()
     {
+        // Verificar permisos
+        if (!$this->puedeImportarProfesores()) {
+            session()->flash('error', 'No tienes permisos para importar profesores.');
+            return;
+        }
+
         $this->validate([
             'archivoExcelProfesores' => 'required|file|mimes:xlsx,xls'
         ], [
@@ -175,16 +264,20 @@ class Users extends Component
         $this->importFinished = false;
         $this->importErrors = [];
 
-        $import = new ProfesoresImport();
-        Excel::import($import, $this->archivoExcelProfesores->getRealPath());
+        try {
+            $import = new ProfesoresImport();
+            Excel::import($import, $this->archivoExcelProfesores->getRealPath());
 
-        if ($import->failures()->isNotEmpty()) {
-            foreach ($import->failures() as $failure) {
-                $this->importErrors[] = "Error de validación en la fila {$failure->row()}: {$failure->errors()[0]} para '{$failure->attribute()}' con valor '{$failure->values()[$failure->attribute()]}'";
+            if ($import->failures()->isNotEmpty()) {
+                foreach ($import->failures() as $failure) {
+                    $this->importErrors[] = "Error de validación en la fila {$failure->row()}: {$failure->errors()[0]} para '{$failure->attribute()}' con valor '{$failure->values()[$failure->attribute()]}'";
+                }
+                session()->flash('warning', 'La importación finalizó, pero algunas filas tenían errores y no se importaron.');
+            } else {
+                session()->flash('success', 'Importación de profesores completada exitosamente.');
             }
-            session()->flash('warning', 'La importación finalizó, pero algunas filas tenían errores y no se importaron.');
-        } else {
-            session()->flash('success', 'Importación completada exitosamente.');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error durante la importación: ' . $e->getMessage());
         }
 
         $this->importing = false;

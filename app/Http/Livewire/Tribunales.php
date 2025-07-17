@@ -10,6 +10,7 @@ use App\Models\MiembrosTribunal;
 use App\Models\Periodo;
 use App\Models\PlanEvaluacion;
 use App\Models\Tribunale;
+use App\Models\TribunalLog;
 use App\Models\User;
 use App\Models\CalificadorGeneralCarreraPeriodo; // Nuevo modelo
 use Illuminate\Support\Facades\DB;
@@ -69,7 +70,16 @@ class Tribunales extends Component
         $rules = [
             'estudiante_id' => 'required|exists:estudiantes,id|unique:tribunales,estudiante_id,NULL,id,carrera_periodo_id,' . $this->carreraPeriodoId,
             'fecha' => 'required|date|after_or_equal:today',
-            'hora_inicio' => 'required|date_format:H:i',
+            'hora_inicio' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) {
+                    if (!$this->fecha || !$this->hora_fin) {
+                        return;
+                    }
+                    $this->validarHorariosSolapados($fail);
+                }
+            ],
             'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
             'presidente_id' => 'required|exists:users,id|different:integrante1_id|different:integrante2_id',
             'integrante1_id' => 'required|exists:users,id|different:presidente_id|different:integrante2_id',
@@ -125,7 +135,9 @@ class Tribunales extends Component
             'fecha.required' => 'La fecha es obligatoria.',
             'fecha.after_or_equal' => 'La fecha no puede ser anterior a hoy.',
             'hora_inicio.required' => 'La hora de inicio es obligatoria.',
+            'hora_inicio.date_format' => 'La hora de inicio debe tener formato HH:MM.',
             'hora_fin.required' => 'La hora de fin es obligatoria.',
+            'hora_fin.date_format' => 'La hora de fin debe tener formato HH:MM.',
             'hora_fin.after' => 'La hora de fin debe ser posterior a la hora de inicio.',
             'presidente_id.required' => 'Debe seleccionar un presidente.',
             'presidente_id.different' => 'El presidente no puede ser igual a otro miembro.',
@@ -236,7 +248,15 @@ class Tribunales extends Component
         $tribunalRules = [
             'estudiante_id' => 'required|exists:estudiantes,id|unique:tribunales,estudiante_id,NULL,id,carrera_periodo_id,' . $this->carreraPeriodoId,
             'fecha' => 'required|date|after_or_equal:today',
-            'hora_inicio' => 'required|date_format:H:i',
+            'hora_inicio' => [
+                'required',
+                'date_format:H:i',
+                function ($attribute, $value, $fail) {
+                    if ($this->fecha && $this->hora_fin) {
+                        $this->validarHorariosSolapados($fail);
+                    }
+                }
+            ],
             'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
         ];
 
@@ -349,7 +369,7 @@ class Tribunales extends Component
     // --- MÉTODOS PARA ELIMINAR TRIBUNAL ---
     public function confirmDelete($tribunalId)
     {
-        $tribunal = Tribunale::with('miembrosTribunales.calificacionesRegistradas')->find($tribunalId);
+        $tribunal = Tribunale::with('miembrosTribunales')->find($tribunalId);
 
         if (!$tribunal) {
             session()->flash('danger', 'Tribunal no encontrado.');
@@ -360,7 +380,7 @@ class Tribunales extends Component
         // Verificar si el tribunal tiene calificaciones (más robusto)
         $tieneCalificaciones = false;
         foreach ($tribunal->miembrosTribunales as $miembro) {
-            if ($miembro->calificacionesRegistradas->isNotEmpty()) {
+            if ($miembro->tieneCalificaciones()) {
                 $tieneCalificaciones = true;
                 break;
             }
@@ -409,6 +429,74 @@ class Tribunales extends Component
         $this->dispatchBrowserEvent('showFlashMessage');
     }
 
+    public function cerrarTribunal($tribunalId)
+    {
+        $tribunal = Tribunale::find($tribunalId);
+
+        if (!$tribunal) {
+            session()->flash('danger', 'Tribunal no encontrado.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if ($tribunal->estado === 'CERRADO') {
+            session()->flash('info', 'El tribunal ya está cerrado.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        DB::transaction(function () use ($tribunal) {
+            $tribunal->update(['estado' => 'CERRADO']);
+
+            // Registrar log
+            TribunalLog::create([
+                'tribunal_id' => $tribunal->id,
+                'user_id' => Auth::id(),
+                'accion' => 'CIERRE_TRIBUNAL',
+                'descripcion' => 'Tribunal cerrado desde lista de tribunales. No se permitirán más modificaciones ni evaluaciones.',
+                'datos_antiguos' => ['estado' => 'ABIERTO'],
+                'datos_nuevos' => ['estado' => 'CERRADO']
+            ]);
+        });
+
+        session()->flash('success', 'Tribunal cerrado exitosamente.');
+        $this->dispatchBrowserEvent('showFlashMessage');
+    }
+
+    public function abrirTribunal($tribunalId)
+    {
+        $tribunal = Tribunale::find($tribunalId);
+
+        if (!$tribunal) {
+            session()->flash('danger', 'Tribunal no encontrado.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if ($tribunal->estado === 'ABIERTO') {
+            session()->flash('info', 'El tribunal ya está abierto.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        DB::transaction(function () use ($tribunal) {
+            $tribunal->update(['estado' => 'ABIERTO']);
+
+            // Registrar log
+            TribunalLog::create([
+                'tribunal_id' => $tribunal->id,
+                'user_id' => Auth::id(),
+                'accion' => 'APERTURA_TRIBUNAL',
+                'descripcion' => 'Tribunal abierto desde lista de tribunales. Se permiten modificaciones y evaluaciones.',
+                'datos_antiguos' => ['estado' => 'CERRADO'],
+                'datos_nuevos' => ['estado' => 'ABIERTO']
+            ]);
+        });
+
+        session()->flash('success', 'Tribunal abierto exitosamente.');
+        $this->dispatchBrowserEvent('showFlashMessage');
+    }
+
     // En App\Http\Livewire\Tribunales.php
 
     protected function actualizarProfesoresDisponibles()
@@ -444,5 +532,108 @@ class Tribunales extends Component
     public function resetDeleteConfirmation()
     {
         $this->tribunalAEliminar = null;
+    }
+
+    /**
+     * Valida que el nuevo horario no se solape con tribunales existentes en la misma fecha
+     */
+    private function validarHorariosSolapados($fail)
+    {
+        // Convertir las horas a objetos Carbon para comparar fácilmente
+        $nuevaHoraInicio = \Carbon\Carbon::createFromFormat('H:i', $this->hora_inicio);
+        $nuevaHoraFin = \Carbon\Carbon::createFromFormat('H:i', $this->hora_fin);
+
+        // Buscar tribunales existentes en la misma fecha
+        $tribunalesExistentes = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+            ->where('fecha', $this->fecha)
+            ->when($this->selected_id, function ($query) {
+                // Si estamos editando, excluir el tribunal actual
+                return $query->where('id', '!=', $this->selected_id);
+            })
+            ->get(['hora_inicio', 'hora_fin']);
+
+        foreach ($tribunalesExistentes as $tribunal) {
+            // Usar H:i:s para parsear las horas de la base de datos que incluyen segundos
+            $horaInicioExistente = \Carbon\Carbon::createFromFormat('H:i:s', $tribunal->hora_inicio);
+            $horaFinExistente = \Carbon\Carbon::createFromFormat('H:i:s', $tribunal->hora_fin);
+
+            // Verificar si hay solapamiento
+            // Caso 1: El nuevo tribunal inicia antes de que termine el existente Y termina después de que inicia el existente
+            if ($nuevaHoraInicio->lt($horaFinExistente) && $nuevaHoraFin->gt($horaInicioExistente)) {
+                $fail(sprintf(
+                    'El horario seleccionado (%s - %s) se solapa con un tribunal existente (%s - %s) en la fecha %s.',
+                    $this->hora_inicio,
+                    $this->hora_fin,
+                    substr($tribunal->hora_inicio, 0, 5), // Mostrar solo H:i en el mensaje
+                    substr($tribunal->hora_fin, 0, 5),
+                    \Carbon\Carbon::parse($this->fecha)->format('d/m/Y')
+                ));
+                return;
+            }
+        }
+    }
+
+    /**
+     * Validación en tiempo real cuando cambia la hora de inicio
+     */
+    public function updatedHoraInicio()
+    {
+        if ($this->fecha && $this->hora_inicio && $this->hora_fin) {
+            $this->validarHorarios();
+        }
+    }
+
+    /**
+     * Validación en tiempo real cuando cambia la hora de fin
+     */
+    public function updatedHoraFin()
+    {
+        if ($this->fecha && $this->hora_inicio && $this->hora_fin) {
+            $this->validarHorarios();
+        }
+    }
+
+    /**
+     * Validación en tiempo real cuando cambia la fecha
+     */
+    public function updatedFecha()
+    {
+        if ($this->fecha && $this->hora_inicio && $this->hora_fin) {
+            $this->validarHorarios();
+        }
+    }
+
+    /**
+     * Método auxiliar para validar horarios en tiempo real
+     */
+    private function validarHorarios()
+    {
+        // Limpiar errores anteriores de horarios
+        $this->resetErrorBag(['hora_inicio', 'hora_fin', 'fecha']);
+
+        // Validar formato de horas
+        if (!preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $this->hora_inicio)) {
+            $this->addError('hora_inicio', 'La hora de inicio debe tener formato HH:MM.');
+            return;
+        }
+
+        if (!preg_match('/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/', $this->hora_fin)) {
+            $this->addError('hora_fin', 'La hora de fin debe tener formato HH:MM.');
+            return;
+        }
+
+        // Validar que hora fin sea mayor que hora inicio
+        $horaInicio = \Carbon\Carbon::createFromFormat('H:i', $this->hora_inicio);
+        $horaFin = \Carbon\Carbon::createFromFormat('H:i', $this->hora_fin);
+
+        if ($horaFin->lte($horaInicio)) {
+            $this->addError('hora_fin', 'La hora de fin debe ser posterior a la hora de inicio.');
+            return;
+        }
+
+        // Validar solapamiento con otros tribunales
+        $this->validarHorariosSolapados(function ($message) {
+            $this->addError('hora_inicio', $message);
+        });
     }
 }

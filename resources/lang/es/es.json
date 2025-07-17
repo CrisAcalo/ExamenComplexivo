@@ -1,0 +1,5 @@
+{
+    "The :attribute must be accepted.": "El campo :attribute debe ser aceptado.",
+    "The :attribute must be a valid URL.": "El campo :attribute debe ser una URL válida.",
+    "The :attribute may only contain letters.": "El campo :attribute solo puede contener letras."
+}

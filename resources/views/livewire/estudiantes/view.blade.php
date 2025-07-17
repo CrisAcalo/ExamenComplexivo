@@ -8,7 +8,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div class="float-left">
                             <h4><i class="fab fa-laravel text-info"></i>
-                                Estudiante Listing </h4>
+                                Listado de Estudiantes </h4>
                         </div>
                         @if (session()->has('message'))
                             <div wire:poll.4s class="btn btn-sm btn-success" style="margin-top:0px; margin-bottom:0px;">
@@ -16,15 +16,22 @@
                         @endif
                         <div>
                             <input wire:model='keyWord' type="text" class="form-control" name="search"
-                                id="search" placeholder="Search Estudiantes">
+                                id="search" placeholder="Buscar Estudiantes">
                         </div>
                         <div class="btn-group">
-                            <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
-                                <i class="bi bi-file-earmark-excel"></i> Importar Estudiantes
-                            </div>
-                            <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                                <i class="bi bi-plus-lg"></i> Añadir Estudiante
-                            </div>
+                            @can('importar estudiantes')
+                                <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
+                                    <i class="bi bi-file-earmark-excel"></i> Importar Estudiantes
+                                </div>
+                            @endcan
+                            @can('gestionar estudiantes')
+                                <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                    <i class="bi bi-plus-lg"></i> Agregar Estudiante
+                                </div>
+                            @endcan
+                            @if(!auth()->user()->can('gestionar estudiantes') && !auth()->user()->can('importar estudiantes'))
+                                <span class="text-muted small">Solo lectura</span>
+                            @endif
                         </div>
                     </div>
                     <div class="mt-2 d-flex align-items-center">
@@ -70,14 +77,21 @@
                                         <td>{{ $row->ID_estudiante }}</td>
                                         <td width="90">
                                             <div class="dropdown">
-                                                <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
-                                                    class="btn btn-sm btn-primary"
-                                                    wire:click="edit({{ $row->id }})"><i class="fa fa-edit"></i>
-                                                    Edit </a>
-                                                <a class="btn btn-sm btn-danger"
-                                                    wire:click="eliminar({{ $row->id }})">
-                                                    <i class="bi bi-trash3-fill"></i>
-                                                </a>
+                                                @can('editar estudiantes')
+                                                    <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
+                                                        class="btn btn-sm btn-primary"
+                                                        wire:click="edit({{ $row->id }})"><i class="fa fa-edit"></i>
+                                                        Edit </a>
+                                                @endcan
+                                                @can('eliminar estudiantes')
+                                                    <a class="btn btn-sm btn-danger"
+                                                        wire:click="eliminar({{ $row->id }})">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </a>
+                                                @endcan
+                                                @if(!auth()->user()->can('editar estudiantes') && !auth()->user()->can('eliminar estudiantes'))
+                                                    <span class="text-muted small">Sin permisos</span>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

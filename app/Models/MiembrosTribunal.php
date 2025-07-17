@@ -25,8 +25,19 @@ class MiembrosTribunal extends Model
     {
         return $this->belongsTo(User::class);
     }
+
     public function calificacionesRegistradas()
     {
-        return $this->hasMany(MiembroCalificacion::class, 'miembro_tribunal_id');
+        // Obtener calificaciones de este miembro para este tribunal específico
+        return MiembroCalificacion::where('user_id', $this->user_id)
+                                  ->where('tribunal_id', $this->tribunal_id);
+    }
+
+    /**
+     * Método helper para verificar si tiene calificaciones
+     */
+    public function tieneCalificaciones()
+    {
+        return $this->calificacionesRegistradas()->exists();
     }
 }

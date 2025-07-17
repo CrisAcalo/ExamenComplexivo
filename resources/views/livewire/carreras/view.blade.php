@@ -8,7 +8,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div class="float-left">
                             <h4><i class="fab fa-laravel text-info"></i>
-                                Carrera Listing </h4>
+                                Listado de Carreras </h4>
                         </div>
                         @if (session()->has('message'))
                             <div wire:poll.4s class="btn btn-sm btn-success" style="margin-top:0px; margin-bottom:0px;">
@@ -16,11 +16,15 @@
                         @endif
                         <div>
                             <input wire:model='keyWord' type="text" class="form-control" name="search"
-                                id="search" placeholder="Search Carreras">
+                                id="search" placeholder="Buscar Carreras">
                         </div>
-                        <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                            <i class="fa fa-plus"></i> Add Carreras
-                        </div>
+                        @can('gestionar carreras')
+                            <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
+                                <i class="fa fa-plus"></i> Añadir Carreras
+                            </div>
+                        @else
+                            <span class="text-muted small">Solo lectura</span>
+                        @endcan
                     </div>
                 </div>
 
@@ -50,15 +54,19 @@
                                         <td>{{ $row->sede }}</td>
                                         <td width="90">
                                             <div class="dropdown">
-                                                <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
-                                                    class="btn btn-sm btn-primary"
-                                                    wire:click="edit({{ $row->id }})"><i class="fa fa-edit"></i>
-                                                    Edit </a>
-                                                <a class="btn btn-sm btn-danger" data-bs-toggle="modal"
-                                                    data-bs-target="#deleteDataModal"
-                                                    wire:click="eliminar({{ $row->id }})">
-                                                    <i class="bi bi-trash3-fill"></i>
-                                                </a>
+                                                @can('gestionar carreras')
+                                                    <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
+                                                        class="btn btn-sm btn-primary"
+                                                        wire:click="edit({{ $row->id }})"><i class="fa fa-edit"></i>
+                                                        Edit </a>
+                                                    <a class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                                        data-bs-target="#deleteDataModal"
+                                                        wire:click="eliminar({{ $row->id }})">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="text-muted small">Sin permisos</span>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

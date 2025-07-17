@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class Roles extends Component
 {
@@ -18,37 +19,43 @@ class Roles extends Component
 
     public $rolEncontrado = null;
     public $test, $sections = [];
+
     public function mount()
     {
+        // Verificar autorización al montar el componente
+        if (!auth()->user()->can('gestionar roles y permisos')) {
+            abort(403, 'No tienes permisos para gestionar roles y permisos.');
+        }
+
         $this->permisos = Permission::all();
         $this->guard_name = 'web';
     }
 
     public function render()
     {
-        // if (Auth::user()->hasRole('Super Admin')) {
-            $permissions = Permission::all();
-            $this->sections = [];
-            foreach ($permissions as $permission) {
-                $parts = explode(' - ', $permission->name);
-                $section = $parts[0];
-                if (!array_key_exists($section, $this->sections)) {
-                    $this->sections[$section] = [];
-                }
-                $this->sections[$section][] = $permission;
+        // Verificar autorización en cada render
+        if (!auth()->user()->can('gestionar roles y permisos')) {
+            abort(403, 'No tienes permisos para gestionar roles y permisos.');
+        }
+
+        $permissions = Permission::all();
+        $this->sections = [];
+        foreach ($permissions as $permission) {
+            $parts = explode(' - ', $permission->name);
+            $section = $parts[0];
+            if (!array_key_exists($section, $this->sections)) {
+                $this->sections[$section] = [];
             }
-            $keyWord = '%' . $this->keyWord . '%';
+            $this->sections[$section][] = $permission;
+        }
+        $keyWord = '%' . $this->keyWord . '%';
 
-            return view('livewire.roles.view', [
-                'roles' => Role::latest()
-                    ->orWhere('name', 'LIKE', $keyWord)
-                    ->orWhere('guard_name', 'LIKE', $keyWord)
-                    ->paginate(10),
-
-            ]);
-        // } else {
-        //     abort(403, 'No tiene permisos para acceder a esta página.');
-        // }
+        return view('livewire.roles.view', [
+            'roles' => Role::latest()
+                ->orWhere('name', 'LIKE', $keyWord)
+                ->orWhere('guard_name', 'LIKE', $keyWord)
+                ->paginate(10),
+        ]);
     }
 
     public function cancel()
@@ -64,7 +71,12 @@ class Roles extends Component
 
     public function store()
     {
-        // if (Auth::user()->hasAnyRole(['Admin'])) {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para crear roles.');
+            return;
+        }
+
         $this->validate([
             'name' => 'required|string|max:200',
         ]);
@@ -76,11 +88,16 @@ class Roles extends Component
         $this->resetInput();
         $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
         session()->flash('success', 'Rol creado exitosamente.');
-
     }
 
     public function edit($id)
     {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para editar roles.');
+            return;
+        }
+
         $record = Role::findById($id);
         $this->selected_id = $id;
         $this->name = $record->name;
@@ -89,6 +106,12 @@ class Roles extends Component
 
     public function permisosBusqueda($id)
     {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para gestionar permisos de roles.');
+            return;
+        }
+
         $role = Role::findOrFail($id);
         $this->selected_id = $id;
         $this->name = $role->name;
@@ -99,6 +122,12 @@ class Roles extends Component
 
     public function update()
     {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para actualizar roles.');
+            return;
+        }
+
         $this->validate([
             'name' => 'required',
         ]);
@@ -116,6 +145,19 @@ class Roles extends Component
 
     public function destroy($id)
     {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para eliminar roles.');
+            return;
+        }
+
+        // Verificar que no sea un rol del sistema protegido
+        $role = Role::findById($id);
+        if (in_array($role->name, ['Super Admin', 'Administrador'])) {
+            session()->flash('error', 'No se puede eliminar este rol del sistema.');
+            return;
+        }
+
         if ($id) {
             Role::findById($id)->delete();
             $this->rolEncontrado = null;
@@ -126,6 +168,12 @@ class Roles extends Component
 
     public function editPermisionsId($id) //Funcion para editar los permisos a un rol
     {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para editar permisos de roles.');
+            return;
+        }
+
         $record = Role::findOrFail($id);
         $this->selected_id = $id;
         $this->name = $record->name;
@@ -134,6 +182,12 @@ class Roles extends Component
 
     public function eliminar($id)
     {
+        // Verificar autorización
+        if (!auth()->user()->hasPermissionTo('gestionar roles y permisos')) {
+            session()->flash('error', 'No tienes permisos para eliminar roles.');
+            return;
+        }
+
         $this->rolEncontrado = Role::findById($id);
     }
 }

@@ -28,6 +28,10 @@ class Estudiante extends Model
         return $this->nombres . ' ' . $this->apellidos . ' (' . $this->ID_estudiante . ')';
     }
 
+    public function getNombreCompleto(){
+        return $this->nombres . ' ' . $this->apellidos;
+    }
+
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany

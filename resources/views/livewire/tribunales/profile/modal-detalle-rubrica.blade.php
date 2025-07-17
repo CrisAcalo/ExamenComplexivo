@@ -5,64 +5,141 @@
     aria-labelledby="detalleRubricaModalLabel_{{ $itemPlanId }}" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="detalleRubricaModalLabel_{{ $itemPlanId }}">
-                    <i class="bi bi-card-list"></i> Detalle Calificación: {{ $detalleItemRubrica['nombre_item_plan'] ?? 'N/A' }}
+            <div class="modal-header bg-gradient bg-primary text-white">
+                <div>
+                    <h4 class="modal-title mb-1" id="detalleRubricaModalLabel_{{ $itemPlanId }}">
+                        <i class="bi bi-clipboard-data me-2"></i>{{ $detalleItemRubrica['nombre_item_plan'] ?? 'N/A' }}
+                    </h4>
                     @if (!empty($detalleItemRubrica['rubrica_plantilla_nombre']))
-                        <small class="d-block fw-normal">Plantilla: {{ $detalleItemRubrica['rubrica_plantilla_nombre'] }}</small>
+                        <small class="opacity-75">
+                            <i class="bi bi-file-text me-1"></i>Plantilla de Rúbrica: {{ $detalleItemRubrica['rubrica_plantilla_nombre'] }}
+                        </small>
                     @endif
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 @if (empty($detalleItemRubrica['componentes']))
-                    <p class="text-muted text-center">No hay detalle de componentes o calificaciones para mostrar.</p>
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-4 text-muted mb-3 d-block"></i>
+                        <h5 class="text-muted">Sin calificaciones disponibles</h5>
+                        <p class="text-muted">No hay calificaciones de rúbrica para mostrar en este ítem.</p>
+                    </div>
                 @else
-                    @foreach ($detalleItemRubrica['componentes'] as $componenteId => $datosComponenteModal)
-                        <div class="mb-4 p-3 border rounded shadow-sm bg-light">
-                            <h6 class="text-primary border-bottom pb-2 mb-2">
-                                <i class="bi bi-diagram-2-fill"></i> Componente: <strong>{{ $datosComponenteModal['nombre_componente_rubrica'] }}</strong>
-                            </h6>
+                    {{-- Tabla única con todas las calificaciones --}}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary sticky-top">
+                                <tr>
+                                    <th style="width: 20%;">Componente</th>
+                                    <th style="width: 15%;">Evaluador</th>
+                                    <th style="width: 10%;">Rol</th>
+                                    <th style="width: 25%;">Criterio</th>
+                                    <th style="width: 15%;">Calificación</th>
+                                    <th style="width: 15%;">Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($detalleItemRubrica['componentes'] as $componenteId => $datosComponente)
+                                    @php
+                                        $numeroCalificadores = count($datosComponente['calificaciones_por_usuario'] ?? []);
+                                        $primeraFila = true;
+                                    @endphp
 
-                            @if (empty($datosComponenteModal['calificaciones_por_usuario']))
-                                <p class="text-muted small">Nadie ha calificado este componente aún.</p>
-                            @else
-                                @foreach ($datosComponenteModal['calificaciones_por_usuario'] as $userId => $califUsuario)
-                                    <div class="mb-3 ps-2 border-start border-3 border-info">
-                                        <div class="d-flex align-items-center mb-1">
-                                            <strong>{{ $califUsuario['nombre_usuario'] }}</strong>
-                                            <span class="badge bg-secondary ms-2">{{ Str::title(Str::lower(Str_replace('_', ' ', $califUsuario['rol_evaluador']))) }}</span>
-                                        </div>
-                                        @if (!empty($califUsuario['observacion_general_item_miembro']))
-                                            <p class="ms-1 mb-2 text-muted border-start border-2 border-secondary ps-2">
-                                                <em>Obs. General del Ítem (por este miembro): {{ $califUsuario['observacion_general_item_miembro'] }}</em>
-                                            </p>
-                                        @endif
-                                        @if (isset($califUsuario['criterios_evaluados']) && !empty($califUsuario['criterios_evaluados']))
-                                            <ul class="list-unstyled ps-1 mb-0">
-                                                @foreach ($califUsuario['criterios_evaluados'] as $criterioId => $datosCrit)
-                                                    <li class="border-bottom py-1">
-                                                        {{ $datosCrit['nombre_criterio_rubrica'] }}:
-                                                        <span class="text-info fw-bold">{{ $datosCrit['calificacion_elegida_nombre'] ?? 'N/R' }}
-                                                            ({{ $datosCrit['calificacion_elegida_valor'] ?? 'N/R' }})</span>
-                                                        @if (!empty($datosCrit['observacion']))
-                                                            <br><em class="text-muted" style="font-size:0.9em;">  - Obs: {{ $datosCrit['observacion'] }}</em>
+                                    @if (empty($datosComponente['calificaciones_por_usuario']))
+                                        <tr>
+                                            <td class="text-center fw-bold">{{ $datosComponente['nombre_componente_rubrica'] }}</td>
+                                            <td colspan="5" class="text-muted text-center">
+                                                <em>No hay calificaciones para este componente</em>
+                                            </td>
+                                        </tr>
+                                    @else
+                                        @foreach ($datosComponente['calificaciones_por_usuario'] as $userId => $datosUsuario)
+                                            @php
+                                                $numeroCriterios = count($datosUsuario['criterios_evaluados'] ?? []);
+                                                $primeraFilaUsuario = true;
+                                            @endphp
+
+                                            @if (empty($datosUsuario['criterios_evaluados']))
+                                                <tr>
+                                                    @if ($primeraFila)
+                                                        <td rowspan="{{ $numeroCalificadores }}" class="align-middle text-center fw-bold bg-light">
+                                                            {{ $datosComponente['nombre_componente_rubrica'] }}
+                                                        </td>
+                                                        @php $primeraFila = false; @endphp
+                                                    @endif
+                                                    <td class="fw-semibold">{{ $datosUsuario['nombre_usuario'] }}</td>
+                                                    <td>
+                                                        <span class="badge bg-secondary">{{ $datosUsuario['rol_evaluador'] }}</span>
+                                                    </td>
+                                                    <td colspan="3" class="text-muted">
+                                                        <em>Sin criterios calificados</em>
+                                                    </td>
+                                                </tr>
+                                            @else
+                                                @foreach ($datosUsuario['criterios_evaluados'] as $criterioId => $datosCriterio)
+                                                    <tr>
+                                                        @if ($primeraFila)
+                                                            <td rowspan="{{ array_sum(array_map(fn($u) => max(1, count($u['criterios_evaluados'] ?? [])), $datosComponente['calificaciones_por_usuario'])) }}"
+                                                                class="align-middle text-center fw-bold bg-light">
+                                                                {{ $datosComponente['nombre_componente_rubrica'] }}
+                                                            </td>
+                                                            @php $primeraFila = false; @endphp
                                                         @endif
-                                                    </li>
+
+                                                        @if ($primeraFilaUsuario)
+                                                            <td rowspan="{{ $numeroCriterios }}" class="align-middle fw-semibold">
+                                                                {{ $datosUsuario['nombre_usuario'] }}
+                                                            </td>
+                                                            <td rowspan="{{ $numeroCriterios }}" class="align-middle">
+                                                                <span class="badge
+                                                                    @if($datosUsuario['rol_evaluador'] === 'PRESIDENTE') bg-warning text-dark
+                                                                    @elseif($datosUsuario['rol_evaluador'] === 'INTEGRANTE1' || $datosUsuario['rol_evaluador'] === 'INTEGRANTE2') bg-info
+                                                                    @elseif($datosUsuario['rol_evaluador'] === 'DIRECTOR_CARRERA') bg-success
+                                                                    @elseif($datosUsuario['rol_evaluador'] === 'DOCENTE_APOYO') bg-primary
+                                                                    @else bg-secondary
+                                                                    @endif">
+                                                                    {{ $datosUsuario['rol_evaluador'] }}
+                                                                </span>
+                                                            </td>
+                                                            @php $primeraFilaUsuario = false; @endphp
+                                                        @endif
+
+                                                        <td>{{ $datosCriterio['nombre_criterio_rubrica'] }}</td>
+                                                        <td>
+                                                            @if ($datosCriterio['calificacion_elegida_nombre'])
+                                                                <span class="fw-semibold text-primary">
+                                                                    {{ $datosCriterio['calificacion_elegida_nombre'] }}
+                                                                </span>
+                                                                @if ($datosCriterio['calificacion_elegida_valor'])
+                                                                    <small class="text-muted">({{ $datosCriterio['calificacion_elegida_valor'] }})</small>
+                                                                @endif
+                                                            @else
+                                                                <span class="text-muted">Sin calificar</span>
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if ($datosCriterio['observacion'])
+                                                                <small class="text-muted">{{ $datosCriterio['observacion'] }}</small>
+                                                            @else
+                                                                <span class="text-muted">-</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
                                                 @endforeach
-                                            </ul>
-                                        @else
-                                            <p class="text-muted small"><em>No calificó criterios para este componente.</em></p>
-                                        @endif
-                                    </div>
+                                            @endif
+                                        @endforeach
+                                    @endif
                                 @endforeach
-                            @endif
-                        </div>
-                    @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 @endif
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>Cerrar
+                </button>
             </div>
         </div>
     </div>

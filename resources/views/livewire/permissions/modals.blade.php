@@ -4,15 +4,15 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="createDataModalLabel">Create New Permission</h5>
+                <h5 class="modal-title" id="createDataModalLabel">Crear Nuevo Permiso</h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form>
                     <div class="form-group">
-                        <label for="name"></label>
-                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Name">
+                        <label for="name">Nombre</label>
+                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Nombre del permiso">
                         @error('name')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
@@ -20,8 +20,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary close-btn" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="store()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>
@@ -33,7 +33,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="updateModalLabel">Update Permission</h5>
+                <h5 class="modal-title" id="updateModalLabel">Actualizar Permiso</h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
@@ -41,8 +41,8 @@
                 <form>
                     <input type="hidden" wire:model="selected_id">
                     <div class="form-group">
-                        <label for="name"></label>
-                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Name">
+                        <label for="name">Nombre</label>
+                        <input wire:model="name" type="text" class="form-control" id="name" placeholder="Nombre del permiso">
                         @error('name')
                             <span class="error text-danger">{{ $message }}</span>
                         @enderror
@@ -53,8 +53,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" wire:click.prevent="cancel()" class="btn btn-secondary"
-                    data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Save</button>
+                    data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="update()" class="btn btn-primary">Guardar</button>
             </div>
         </div>
     </div>

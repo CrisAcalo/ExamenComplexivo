@@ -3,16 +3,12 @@
 namespace App\Http\Livewire;
 
 use App\Models\MiembrosTribunal;
-use App\Models\Tribunale;
 use App\Models\PlanEvaluacion;
-use App\Models\ItemPlanEvaluacion;
-use App\Models\AsignacionCalificadorComponentePlan;
+use App\Models\MiembroCalificacion;
 use App\Models\CalificadorGeneralCarreraPeriodo;
-use App\Models\MiembroCalificacion; // Para verificar calificaciones existentes
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB; // Para subqueries si es necesario
 
 class TribunalesPrincipal extends Component
 {
@@ -21,6 +17,7 @@ class TribunalesPrincipal extends Component
 
     public $searchTerm = '';
     public $filtroEstado = 'PENDIENTES'; // Opciones: PENDIENTES, COMPLETADOS, TODOS
+    public $tribunalesActuales;
 
     public function mount()
     {
@@ -38,189 +35,283 @@ class TribunalesPrincipal extends Component
             ])->layout('layouts.panel');
         }
 
-        // Obtener todos los carrera_periodo_id donde el usuario tiene algún rol de calificación
-        // Esta parte puede ser compleja y optimizable.
-        // 1. CarreraPeriodos donde es Director o Apoyo
-        $carreraPeriodosComoDirectorOApoyo = DB::table('carreras_periodos')
-            ->where('director_id', $user->id)
-            ->orWhere('docente_apoyo_id', $user->id)
-            ->pluck('id');
-
-        // 2. CarreraPeriodos donde es Calificador General
-        $carreraPeriodosComoCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('user_id', $user->id)
-            ->pluck('carrera_periodo_id');
-
-        // 3. Tribunales donde es Miembro (y obtener sus carrera_periodo_id)
+        // Consulta directa y simple: obtener todos los tribunales donde el usuario es miembro
         $tribunalesDondeEsMiembro = MiembrosTribunal::where('user_id', $user->id)
-            ->with('tribunal') // Cargar la relación tribunal
+            ->with(['tribunal.estudiante', 'tribunal.carrerasPeriodo.carrera', 'tribunal.carrerasPeriodo.periodo'])
             ->get();
-        $carreraPeriodosDeSusTribunales = $tribunalesDondeEsMiembro->map(function ($miembro) {
-            return $miembro->tribunal?->carrera_periodo_id;
-        })->filter()->unique();
 
-
-        $todosLosCarreraPeriodosRelevantes = $carreraPeriodosComoDirectorOApoyo
-            ->merge($carreraPeriodosComoCalificadorGeneral)
-            ->merge($carreraPeriodosDeSusTribunales)
-            ->unique()
-            ->values();
-
-        if ($todosLosCarreraPeriodosRelevantes->isEmpty()) {
+        if ($tribunalesDondeEsMiembro->isEmpty()) {
             return view('livewire.tribunales.principal.view', [
                 'tribunalesAsignados' => collect(),
             ])->layout('layouts.panel');
         }
 
-        // Obtener todos los planes de evaluación para esos carrera_periodos
-        $planes = PlanEvaluacion::whereIn('carrera_periodo_id', $todosLosCarreraPeriodosRelevantes)
-            ->with([
-                'itemsPlanEvaluacion.rubricaPlantilla.componentesRubrica', // Para saber qué componentes hay
-                'itemsPlanEvaluacion.asignacionesCalificadorComponentes'   // Para saber quién califica qué
-            ])->get()->keyBy('carrera_periodo_id');
+        // Extraer los tribunales de la relación
+        $tribunales = $tribunalesDondeEsMiembro->map(function ($miembro) {
+            return $miembro->tribunal;
+        })->filter(); // Filtrar nulls si los hay
 
+        // Cargar planes de evaluación de una vez para evitar consultas N+1
+        $carreraPeriodoIds = $tribunales->pluck('carrera_periodo_id')->unique();
+        $planes = PlanEvaluacion::whereIn('carrera_periodo_id', $carreraPeriodoIds)
+            ->with(['itemsPlanEvaluacion.asignacionesCalificadorComponentes'])
+            ->get()
+            ->keyBy('carrera_periodo_id');
 
-        // Ahora, buscar tribunales en esos carrera_periodos y filtrar
-        $query = Tribunale::query()
-            ->whereIn('carrera_periodo_id', $todosLosCarreraPeriodosRelevantes)
-            ->with([
-                'estudiante',
-                'carrerasPeriodo.carrera',
-                'carrerasPeriodo.periodo',
-                'miembrosTribunales' => function ($q) use ($user) {
-                    $q->where('user_id', $user->id); // Rol del usuario en este tribunal
-                }
-            ]);
+        // Verificar si el usuario es calificador general en algún carrera_periodo
+        $calificadorGeneralIds = CalificadorGeneralCarreraPeriodo::whereIn('carrera_periodo_id', $carreraPeriodoIds)
+            ->where('user_id', $user->id)
+            ->pluck('carrera_periodo_id')
+            ->toArray();
 
+        // Precargar todas las calificaciones del usuario para estos tribunales
+        $tribunalIds = $tribunales->pluck('id');
+        $calificacionesUsuario = MiembroCalificacion::whereIn('tribunal_id', $tribunalIds)
+            ->where('user_id', $user->id)
+            ->get()
+            ->groupBy(function($calificacion) {
+                return $calificacion->tribunal_id . '_' . $calificacion->item_plan_evaluacion_id;
+            });
+
+        // Aplicar filtros de búsqueda si existe
         if (!empty($this->searchTerm)) {
-            // ... (lógica de búsqueda como la tenías) ...
-            $query->where(function ($q) {
-                $q->whereHas('estudiante', function ($sq) {
-                    $sq->where('nombres', 'like', '%' . $this->searchTerm . '%')
-                        ->orWhere('apellidos', 'like', '%' . $this->searchTerm . '%')
-                        ->orWhere('ID_estudiante', 'like', '%' . $this->searchTerm . '%');
-                })
-                    ->orWhereHas('carrerasPeriodo.carrera', function ($sq) {
-                        $sq->where('nombre', 'like', '%' . $this->searchTerm . '%');
-                    })
-                    ->orWhereHas('carrerasPeriodo.periodo', function ($sq) {
-                        $sq->where('codigo_periodo', 'like', '%' . $this->searchTerm . '%');
-                    });
+            $tribunales = $tribunales->filter(function ($tribunal) {
+                $estudiante = $tribunal->estudiante;
+                $carrera = $tribunal->carrerasPeriodo->carrera ?? null;
+                $periodo = $tribunal->carrerasPeriodo->periodo ?? null;
+
+                $searchTerm = strtolower($this->searchTerm);
+
+                // Buscar en nombres del estudiante
+                if ($estudiante) {
+                    if (str_contains(strtolower($estudiante->nombres), $searchTerm) ||
+                        str_contains(strtolower($estudiante->apellidos), $searchTerm) ||
+                        str_contains(strtolower($estudiante->ID_estudiante ?? ''), $searchTerm)) {
+                        return true;
+                    }
+                }
+
+                // Buscar en nombre de carrera
+                if ($carrera && str_contains(strtolower($carrera->nombre), $searchTerm)) {
+                    return true;
+                }
+
+                // Buscar en código de período
+                if ($periodo && str_contains(strtolower($periodo->codigo_periodo), $searchTerm)) {
+                    return true;
+                }
+
+                return false;
             });
         }
 
-        $tribunalesPotenciales = $query->orderBy('fecha', 'desc')->orderBy('hora_inicio', 'asc')->get();
+        // Aplicar filtro de estado
+        if ($this->filtroEstado !== 'TODOS') {
+            $tribunales = $tribunales->filter(function ($tribunal) use ($user, $planes, $calificadorGeneralIds, $calificacionesUsuario) {
+                $estadoTribunal = $this->determinarEstadoTribunalOptimizado($tribunal, $user, $planes, $calificadorGeneralIds, $calificacionesUsuario);
 
-        $tribunalesFiltradosFinal = $tribunalesPotenciales->filter(function ($tribunal) use ($user, $planes) {
-            $plan = $planes->get($tribunal->carrera_periodo_id);
-            if (!$plan) return false; // No hay plan, no puede calificar
-
-            $tieneItemsPendientes = false;
-            $miembroTribunalRegistro = $tribunal->miembrosTribunales->first(); // El rol del user en este tribunal (si es miembro)
-
-            foreach ($plan->itemsPlanEvaluacion as $itemPlan) {
-                $debeCalificarEsteItem = false;
-
-                if ($itemPlan->tipo_item === 'NOTA_DIRECTA') {
-                    if (($itemPlan->calificado_por_nota_directa === 'DIRECTOR_CARRERA' && $tribunal->carrerasPeriodo->director_id == $user->id) ||
-                        ($itemPlan->calificado_por_nota_directa === 'DOCENTE_APOYO' && $tribunal->carrerasPeriodo->docente_apoyo_id == $user->id)
-                    ) {
-                        $debeCalificarEsteItem = true;
-                    }
-                } elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR') {
-                    foreach ($itemPlan->asignacionesCalificadorComponentes as $asignacion) {
-                        if ($asignacion->calificado_por === 'MIEMBROS_TRIBUNAL' && $miembroTribunalRegistro) {
-                            $debeCalificarEsteItem = true;
-                            break;
-                        }
-                        if ($asignacion->calificado_por === 'CALIFICADORES_GENERALES' && CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $tribunal->carrera_periodo_id)->where('user_id', $user->id)->exists()) {
-                            $debeCalificarEsteItem = true;
-                            break;
-                        }
-                        if ($asignacion->calificado_por === 'DIRECTOR_CARRERA' && $tribunal->carrerasPeriodo->director_id == $user->id) {
-                            $debeCalificarEsteItem = true;
-                            break;
-                        }
-                        if ($asignacion->calificado_por === 'DOCENTE_APOYO' && $tribunal->carrerasPeriodo->docente_apoyo_id == $user->id) {
-                            $debeCalificarEsteItem = true;
-                            break;
-                        }
-                    }
+                if ($this->filtroEstado === 'PENDIENTES') {
+                    return $estadoTribunal === 'PENDIENTE';
+                } elseif ($this->filtroEstado === 'COMPLETADOS') {
+                    return $estadoTribunal === 'COMPLETADO';
                 }
 
-                if ($debeCalificarEsteItem) {
-                    // Verificar si ya calificó este ítem
-                    $calificacionExistente = MiembroCalificacion::where('tribunal_id', $tribunal->id)
-                        ->where('user_id', $user->id)
-                        ->where('item_plan_evaluacion_id', $itemPlan->id)
-                        ->exists();
-                    if (!$calificacionExistente) {
-                        $tieneItemsPendientes = true;
-                        break; // Si hay al menos un ítem pendiente, incluimos el tribunal (para filtro PENDIENTES)
-                    }
-                }
-            }
+                return true; // Para cualquier otro caso
+            });
+        }
 
-            if ($this->filtroEstado === 'PENDIENTES') {
-                return $tieneItemsPendientes;
-            } elseif ($this->filtroEstado === 'COMPLETADOS') {
-                // Para 'COMPLETADOS', necesitaríamos verificar que *todos* los ítems que debe calificar estén calificados.
-                // Esto es más complejo: primero identificar todos los ítems que debe calificar, luego ver si todos tienen entrada.
-                // Por ahora, simplificamos: si no tiene ítems pendientes, y debe calificar algo, lo consideramos "completado" para este filtro.
-                // Una lógica más precisa sería: si $debeCalificarAlgoEnGeneral && !$tieneItemsPendientes
-                $debeCalificarAlgoEnGeneral = $this->usuarioDebeCalificarAlgoEnTribunal($user, $tribunal, $plan);
-                return $debeCalificarAlgoEnGeneral && !$tieneItemsPendientes;
-            }
-            // Para filtroEstado === 'TODOS' (o si no hay PENDIENTES ni COMPLETADOS estrictos)
-            return $this->usuarioDebeCalificarAlgoEnTribunal($user, $tribunal, $plan);
+        // Ordenar tribunales
+        $tribunales = $tribunales->sortByDesc(function ($tribunal) {
+            return $tribunal->fecha . ' ' . $tribunal->hora_inicio;
         });
 
         // Paginación manual de la colección filtrada
         $page = $this->resolvePage();
         $perPage = 10;
-        $itemsForCurrentPage = $tribunalesFiltradosFinal->slice(($page - 1) * $perPage, $perPage);
+        $itemsForCurrentPage = $tribunales->slice(($page - 1) * $perPage, $perPage);
         $paginatedTribunales = new \Illuminate\Pagination\LengthAwarePaginator(
             $itemsForCurrentPage,
-            $tribunalesFiltradosFinal->count(),
+            $tribunales->count(),
             $perPage,
             $page,
-            // Laravel usualmente puede inferir la ruta actual,
-            // o puedes especificarla explícitamente si es necesario.
-            // Para componentes Livewire, a menudo es mejor dejar que maneje la URL
-            // o usar la URL actual si hay problemas con la inferencia.
-            ['path' => request()->url()] // Usa la URL actual para los enlaces de paginación
-            // Alternativamente, si tu componente siempre se renderiza en la misma ruta nombrada:
-            // ['path' => route(request()->route()->getName())]
-            // O incluso a menudo puedes omitir la opción 'path' y Laravel lo manejará.
+            ['path' => request()->url()]
         );
 
+        // Mantener la consulta simple para debugging
+        $this->tribunalesActuales = $tribunalesDondeEsMiembro;
 
         return view('livewire.tribunales.principal.view', [
             'tribunalesAsignados' => $paginatedTribunales,
         ])->layout('layouts.panel');
     }
 
-    // Helper para determinar si el usuario tiene *alguna* responsabilidad de calificación en este tribunal
-    protected function usuarioDebeCalificarAlgoEnTribunal($user, $tribunal, $plan)
+    /**
+     * Determina el estado de un tribunal para un usuario específico (versión optimizada)
+     * @param $tribunal
+     * @param $user
+     * @param $planes Collection de planes precargados
+     * @param $calificadorGeneralIds Array de IDs donde el usuario es calificador general
+     * @param $calificacionesUsuario Collection de calificaciones precargadas agrupadas
+     * @return string 'PENDIENTE' o 'COMPLETADO'
+     */
+    private function determinarEstadoTribunalOptimizado($tribunal, $user, $planes, $calificadorGeneralIds, $calificacionesUsuario)
     {
-        if (!$plan) return false;
-        $miembroTribunalRegistro = $tribunal->miembrosTribunales->where('user_id', $user->id)->first();
+        // Obtener el plan de evaluación desde la colección precargada
+        $plan = $planes->get($tribunal->carrera_periodo_id);
+
+        if (!$plan) {
+            return 'PENDIENTE'; // Si no hay plan, consideramos pendiente
+        }
+
+        $itemsQueDebeCalificar = [];
+        $itemsCalificados = [];
+
+        // Verificar si el usuario es calificador general (desde array precargado)
+        $esCalificadorGeneral = in_array($tribunal->carrera_periodo_id, $calificadorGeneralIds);
+
+        // Verificar si es director o docente de apoyo
+        $esDirector = $tribunal->carrerasPeriodo->director_id == $user->id;
+        $esDocenteApoyo = $tribunal->carrerasPeriodo->docente_apoyo_id == $user->id;
 
         foreach ($plan->itemsPlanEvaluacion as $itemPlan) {
+            $debeCalificarEsteItem = false;
+
             if ($itemPlan->tipo_item === 'NOTA_DIRECTA') {
-                if (($itemPlan->calificado_por_nota_directa === 'DIRECTOR_CARRERA' && $tribunal->carrerasPeriodo->director_id == $user->id) ||
-                    ($itemPlan->calificado_por_nota_directa === 'DOCENTE_APOYO' && $tribunal->carrerasPeriodo->docente_apoyo_id == $user->id)
-                ) {
-                    return true;
+                // Para items de nota directa, verificar quién debe calificar
+                if ($itemPlan->calificado_por_nota_directa === 'DIRECTOR_CARRERA' && $esDirector) {
+                    $debeCalificarEsteItem = true;
+                } elseif ($itemPlan->calificado_por_nota_directa === 'DOCENTE_APOYO' && $esDocenteApoyo) {
+                    $debeCalificarEsteItem = true;
                 }
             } elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR') {
+                // Para items de rúbrica, verificar las asignaciones de componentes
                 foreach ($itemPlan->asignacionesCalificadorComponentes as $asignacion) {
-                    if ($asignacion->calificado_por === 'MIEMBROS_TRIBUNAL' && $miembroTribunalRegistro) return true;
-                    if ($asignacion->calificado_por === 'CALIFICADORES_GENERALES' && CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $tribunal->carrera_periodo_id)->where('user_id', $user->id)->exists()) return true;
-                    if ($asignacion->calificado_por === 'DIRECTOR_CARRERA' && $tribunal->carrerasPeriodo->director_id == $user->id) return true;
-                    if ($asignacion->calificado_por === 'DOCENTE_APOYO' && $tribunal->carrerasPeriodo->docente_apoyo_id == $user->id) return true;
+                    if ($asignacion->calificado_por === 'MIEMBROS_TRIBUNAL') {
+                        // Ya sabemos que el usuario es miembro del tribunal (por la consulta inicial)
+                        $debeCalificarEsteItem = true;
+                        break;
+                    } elseif ($asignacion->calificado_por === 'CALIFICADORES_GENERALES' && $esCalificadorGeneral) {
+                        $debeCalificarEsteItem = true;
+                        break;
+                    } elseif ($asignacion->calificado_por === 'DIRECTOR_CARRERA' && $esDirector) {
+                        $debeCalificarEsteItem = true;
+                        break;
+                    } elseif ($asignacion->calificado_por === 'DOCENTE_APOYO' && $esDocenteApoyo) {
+                        $debeCalificarEsteItem = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($debeCalificarEsteItem) {
+                $itemsQueDebeCalificar[] = $itemPlan->id;
+
+                // Verificar si ya calificó este ítem usando datos precargados
+                $claveCalificacion = $tribunal->id . '_' . $itemPlan->id;
+                if ($calificacionesUsuario->has($claveCalificacion)) {
+                    $itemsCalificados[] = $itemPlan->id;
                 }
             }
         }
-        return false;
+
+        // Si no debe calificar nada, consideramos como PENDIENTE
+        if (empty($itemsQueDebeCalificar)) {
+            return 'PENDIENTE';
+        }
+
+        // Si calificó todos los items que debe calificar, está COMPLETADO
+        if (count($itemsCalificados) === count($itemsQueDebeCalificar)) {
+            return 'COMPLETADO';
+        }
+
+        // Si aún le faltan items por calificar, está PENDIENTE
+        return 'PENDIENTE';
+    }
+
+    /**
+     * Determina el estado de un tribunal para un usuario específico
+     * @param $tribunal
+     * @param $user
+     * @return string 'PENDIENTE' o 'COMPLETADO'
+     */
+    private function determinarEstadoTribunal($tribunal, $user)
+    {
+        // Obtener el plan de evaluación para este tribunal
+        $plan = PlanEvaluacion::where('carrera_periodo_id', $tribunal->carrera_periodo_id)
+            ->with([
+                'itemsPlanEvaluacion.asignacionesCalificadorComponentes'
+            ])
+            ->first();
+
+        if (!$plan) {
+            return 'PENDIENTE'; // Si no hay plan, consideramos pendiente
+        }
+
+        $itemsQueDebeCalificar = [];
+        $itemsCalificados = [];
+
+        // Verificar si el usuario es calificador general
+        $esCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $tribunal->carrera_periodo_id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        $esDirector = $tribunal->carrerasPeriodo->director_id == $user->id;
+        $esDocenteApoyo = $tribunal->carrerasPeriodo->docente_apoyo_id == $user->id;
+
+        foreach ($plan->itemsPlanEvaluacion as $itemPlan) {
+            $debeCalificarEsteItem = false;
+
+            if ($itemPlan->tipo_item === 'NOTA_DIRECTA') {
+                if ($itemPlan->calificado_por_nota_directa === 'DIRECTOR_CARRERA' && $esDirector) {
+                    $debeCalificarEsteItem = true;
+                } elseif ($itemPlan->calificado_por_nota_directa === 'DOCENTE_APOYO' && $esDocenteApoyo) {
+                    $debeCalificarEsteItem = true;
+                }
+            } elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR') {
+                foreach ($itemPlan->asignacionesCalificadorComponentes as $asignacion) {
+                    if ($asignacion->calificado_por === 'MIEMBROS_TRIBUNAL') {
+                        $esMiembroTribunal = MiembrosTribunal::where('tribunal_id', $tribunal->id)
+                            ->where('user_id', $user->id)
+                            ->exists();
+                        if ($esMiembroTribunal) {
+                            $debeCalificarEsteItem = true;
+                            break;
+                        }
+                    } elseif ($asignacion->calificado_por === 'CALIFICADORES_GENERALES' && $esCalificadorGeneral) {
+                        $debeCalificarEsteItem = true;
+                        break;
+                    } elseif ($asignacion->calificado_por === 'DIRECTOR_CARRERA' && $esDirector) {
+                        $debeCalificarEsteItem = true;
+                        break;
+                    } elseif ($asignacion->calificado_por === 'DOCENTE_APOYO' && $esDocenteApoyo) {
+                        $debeCalificarEsteItem = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($debeCalificarEsteItem) {
+                $itemsQueDebeCalificar[] = $itemPlan->id;
+
+                $calificacionExistente = MiembroCalificacion::where('tribunal_id', $tribunal->id)
+                    ->where('user_id', $user->id)
+                    ->where('item_plan_evaluacion_id', $itemPlan->id)
+                    ->exists();
+
+                if ($calificacionExistente) {
+                    $itemsCalificados[] = $itemPlan->id;
+                }
+            }
+        }
+
+        if (empty($itemsQueDebeCalificar)) {
+            return 'PENDIENTE';
+        }
+
+        if (count($itemsCalificados) === count($itemsQueDebeCalificar)) {
+            return 'COMPLETADO';
+        }
+
+        return 'PENDIENTE';
     }
 }
