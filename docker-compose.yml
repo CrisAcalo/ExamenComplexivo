@@ -3,18 +3,15 @@ version: '3.8'
 services:
   # Servicio de la aplicación (PHP-FPM)
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production # Le decimos que construya solo hasta la etapa 'production'
+    image: crisacalo/examen_complexivo:latest
     container_name: laravel_app
     restart: unless-stopped
     working_dir: /var/www/html
     volumes:
-      # En desarrollo, puedes descomentar la línea de abajo para sincronizar tu código en tiempo real.
-      # Para producción, el código debe estar dentro de la imagen, como está configurado ahora.
-      # - ./:/var/www/html
-      - ./.env:/var/www/html/.env # Mapeamos el .env para que sea fácil de cambiar
+      # Compartimos el código de la aplicación a través de un volumen con nombre
+      - code:/var/www/html
+      # Aún montamos el .env para poder configurarlo externamente
+      - ./.env:/var/www/html/.env
     networks:
       - laravel
 
@@ -24,10 +21,10 @@ services:
     container_name: laravel_web
     restart: unless-stopped
     ports:
-      # Expone el puerto 80 del contenedor en el puerto 8000 de tu máquina host
       - "8000:80"
     volumes:
-      - ./:/var/www/html
+      # Montamos el mismo volumen con nombre para que Nginx pueda leer los archivos
+      - code:/var/www/html
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     networks:
       - laravel
@@ -40,21 +37,22 @@ services:
     environment:
       MYSQL_DATABASE: ExamenComplexivo
       MYSQL_PASSWORD: root
-      MYSQL_ROOT_PASSWORD: root  # Puedes usar una contraseña de root diferente y más segura
+      MYSQL_ROOT_PASSWORD: root
     volumes:
-      # El volumen 'dbdata' persiste los datos de la base de datos
       - dbdata:/var/lib/mysql
     ports:
-      # Opcional: Expone el puerto de MySQL a tu máquina host para conectar un cliente como TablePlus
       - "33066:3306"
     networks:
       - laravel
 
-# Definición de la red y el volumen
+# Definición de la red y los volúmenes
 networks:
   laravel:
     driver: bridge
 
 volumes:
   dbdata:
+    driver: local
+  # Definimos el nuevo volumen para compartir el código
+  code:
     driver: local
