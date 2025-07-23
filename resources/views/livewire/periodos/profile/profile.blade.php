@@ -9,10 +9,18 @@
 
     <div class="mt-4 d-flex flex-row align-items-center">
         <h3 class="me-3">Carreras</h3>
-        <button data-bs-toggle="modal" data-bs-target="#createDataModal" class="btn btn-sm btn-info me-3"
-            style="height: max-content">
-            Añadir Carrera
-        </button>
+        @php
+            $user = auth()->user();
+            $canManageCarrerasPeriodos = $user->hasRole(['Super Admin', 'Administrador']) && $user->hasPermissionTo('asignar carrera a periodo');
+        @endphp
+        @if($canManageCarrerasPeriodos)
+            <button data-bs-toggle="modal" data-bs-target="#createDataModal" class="btn btn-sm btn-info me-3"
+                style="height: max-content">
+                Añadir Carrera
+            </button>
+        @else
+            <span class="text-muted small">Solo lectura</span>
+        @endif
     </div>
 
     <div class="row mt-3">
@@ -36,16 +44,20 @@
                                 class="btn btn-outline-info btn-sm flex-fill">
                                 <i class="bi bi-people"></i> Tribunales
                             </a>
-                            <button class="btn btn-outline-primary btn-sm flex-fill"
-                                wire:click="edit({{ $periodoCarrera->id }})"
-                                data-bs-toggle="modal" data-bs-target="#updateDataModal">
-                                <i class="fa fa-edit"></i> Editar
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm flex-fill"
-                                wire:click="eliminar({{ $periodoCarrera->id }})"
-                                data-bs-toggle="modal" data-bs-target="#deleteDataModal">
-                                <i class="fa fa-trash"></i> Eliminar
-                            </button>
+                            @if($canManageCarrerasPeriodos)
+                                <button class="btn btn-outline-primary btn-sm flex-fill"
+                                    wire:click="edit({{ $periodoCarrera->id }})"
+                                    data-bs-toggle="modal" data-bs-target="#updateDataModal">
+                                    <i class="fa fa-edit"></i> Editar
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm flex-fill"
+                                    wire:click="eliminar({{ $periodoCarrera->id }})"
+                                    data-bs-toggle="modal" data-bs-target="#deleteDataModal">
+                                    <i class="fa fa-trash"></i> Eliminar
+                                </button>
+                            @else
+                                <span class="text-muted small flex-fill text-center">Sin permisos de edición</span>
+                            @endif
                         </div>
                     </div>
                 </div>

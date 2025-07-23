@@ -15,10 +15,12 @@
                 <h5 class="mb-0">
                     <i class="bi bi-card-checklist text-success"></i>
                     Plan de Evaluación Activo: <span class="fw-normal">{{ $planEvaluacionActivo->nombre }}</span>
+                    @if ($puedeGestionar)
                     <a href="{{ route('planes_evaluacion.manage', ['carreraPeriodoId' => $carreraPeriodo->id]) }}"
                         class="btn btn-sm btn-outline-primary float-end">
                         <i class="bi bi-pencil-square"></i> Gestionar Plan
                     </a>
+                    @endif
                 </h5>
             </div>
             @if ($planEvaluacionActivo->itemsPlanEvaluacion->count() > 0)
@@ -62,18 +64,19 @@
                 <i class="bi bi-exclamation-triangle-fill"></i>
                 No se ha configurado un Plan de Evaluación para esta carrera y período.
             </div>
+            @if ($puedeGestionar)
             <a href="{{ route('planes_evaluacion.manage', ['carreraPeriodoId' => $carreraPeriodo->id]) }}"
                 class="btn btn-sm btn-warning">
                 <i class="bi bi-pencil-square"></i> Configurar Plan Ahora
             </a>
+            @endif
         </div>
     @endif
     {{-- Fin Sección Plan de Evaluación --}}
 
 
     {{-- NUEVA SECCIÓN: ASIGNACIÓN DE CALIFICADORES GENERALES --}}
-    {{-- Este @can debe verificar si el usuario puede gestionar estos calificadores --}}
-    {{-- Ejemplo: @can('gestionar-calificadores-generales', $carreraPeriodo) --}}
+    @if ($puedeGestionar)
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-light">
             <h5 class="mb-0"><i class="bi bi-people-fill text-info"></i> Asignar Calificadores Generales</h5>
@@ -117,6 +120,7 @@
             </form>
         </div>
     </div>
+    @endif
     {{-- FIN NUEVA SECCIÓN --}}
 
 
@@ -133,10 +137,12 @@
                                 placeholder="Buscar por estudiante o fecha...">
                         </div>
                         <div> {{-- Botón Añadir Tribunal --}}
+                            @if ($puedeGestionar)
                             <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
                                 data-bs-target="#createDataModal">
                                 <i class="bi bi-plus-lg"></i> Añadir Tribunal
                             </button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -201,6 +207,7 @@
                                                     <i class="bi bi-pencil-fill"></i>
                                                 </a>
 
+                                                @if ($puedeGestionar)
                                                 @if($row->estado === 'ABIERTO')
                                                     <button type="button" class="btn btn-outline-danger"
                                                         wire:click="cerrarTribunal({{ $row->id }})"
@@ -222,6 +229,7 @@
                                                     title="Eliminar Tribunal">
                                                     <i class="bi bi-trash-fill"></i>
                                                 </button>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

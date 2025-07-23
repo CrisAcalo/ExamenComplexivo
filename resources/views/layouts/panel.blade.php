@@ -652,26 +652,41 @@
                 <div class="text-center mb-2">
                     <small class="text-muted">
                         @php
-                            // Verificar roles contextuales
-                            $esDirectorCarrera = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())->exists();
-                            $esDocenteApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())->exists();
-                            $esMiembroTribunal = \App\Models\MiembrosTribunal::where('user_id', Auth::id())->exists();
+                            use App\Helpers\ContextualAuth;
+
+                            // Obtener información contextual del usuario
+                            $userContext = ContextualAuth::getUserContextInfo(auth()->user());
+                            $esDirectorCarrera = $userContext['carreras_director']->isNotEmpty();
+                            $esDocenteApoyo = $userContext['carreras_apoyo']->isNotEmpty();
+                            $esMiembroTribunal = $userContext['tribunales']->isNotEmpty();
+                            $esCalificadorGeneral = $userContext['calificador_general']->isNotEmpty();
                         @endphp
 
-                        @if (Auth::user()->hasRole('Super Admin'))
-                            <span class="badge bg-danger">Super Admin</span>
-                        @elseif(Auth::user()->hasRole('Administrador'))
-                            <span class="badge bg-warning text-dark">Administrador</span>
-                        @elseif($esDirectorCarrera && Auth::user()->hasRole('Director de Carrera'))
-                            <span class="badge bg-success">Director de Carrera</span>
-                        @elseif($esDocenteApoyo && Auth::user()->hasRole('Docente de Apoyo'))
-                            <span class="badge bg-info">Docente de Apoyo</span>
-                        @elseif($esMiembroTribunal && Auth::user()->hasRole('Docente'))
-                            <span class="badge bg-primary">Docente (Miembro Tribunal)</span>
-                        @elseif(Auth::user()->hasRole('Docente'))
-                            <span class="badge bg-secondary">Docente</span>
+                        @if (ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
+                            @if (Auth::user()->roles->where('name', 'Super Admin')->isNotEmpty())
+                                <span class="badge bg-danger">Super Admin</span>
+                            @else
+                                <span class="badge bg-warning text-dark">Administrador</span>
+                            @endif
                         @else
-                            <span class="badge bg-light text-dark">Sin Rol Asignado</span>
+                            {{-- Mostrar todas las asignaciones contextuales que apliquen --}}
+                            @if ($esDirectorCarrera)
+                                <span class="badge bg-success">Director de Carrera</span>
+                            @endif
+                            @if ($esDocenteApoyo)
+                                <span class="badge bg-info">Docente de Apoyo</span>
+                            @endif
+                            @if ($esCalificadorGeneral)
+                                <span class="badge bg-warning text-dark">Calificador General</span>
+                            @endif
+                            @if ($esMiembroTribunal)
+                                <span class="badge bg-primary">Miembro Tribunal</span>
+                            @endif
+
+                            {{-- Si no tiene asignaciones contextuales, mostrar rol base --}}
+                            @if (!$esDirectorCarrera && !$esDocenteApoyo && !$esCalificadorGeneral && !$esMiembroTribunal)
+                                <span class="badge bg-secondary">Docente</span>
+                            @endif
                         @endif
                     </small>
                 </div>
@@ -680,27 +695,38 @@
 
                 <ul class="list-group nav nav-pills flex-column mb-auto list-unstyled ps-0">
                     @php
-                        // Verificar roles contextuales para el menú
-                        $esDirectorCarrera = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())->exists();
-                        $esDocenteApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())->exists();
-                        $esMiembroTribunal = \App\Models\MiembrosTribunal::where('user_id', Auth::id())->exists();
+                        // Verificar roles contextuales para el menú usando ContextualAuth
+                        $userContext = ContextualAuth::getUserContextInfo(auth()->user());
+                        $esDirectorCarrera = $userContext['carreras_director']->isNotEmpty();
+                        $esDocenteApoyo = $userContext['carreras_apoyo']->isNotEmpty();
+                        $esMiembroTribunal = $userContext['tribunales']->isNotEmpty();
+                        $esCalificadorGeneral = $userContext['calificador_general']->isNotEmpty();
 
                         // Verificar permisos específicos
                         $puedeGestionarPeriodos = Auth::user()->can('gestionar periodos');
+                        $puedeVerPeriodos = $puedeGestionarPeriodos || $esDirectorCarrera || $esDocenteApoyo;
                         $puedeGestionarCarreras = Auth::user()->can('gestionar carreras');
-                        $puedeVerEstudiantes = Auth::user()->can('ver listado estudiantes') ||
-                                              Auth::user()->can('gestionar estudiantes') ||
-                                              $esDirectorCarrera || $esDocenteApoyo;
-                        $puedeVerRubricas = Auth::user()->can('ver rubricas') ||
-                                           Auth::user()->can('gestionar rubricas') ||
-                                           Auth::user()->can('gestionar plantillas rubricas') ||
-                                           $esDirectorCarrera || $esDocenteApoyo;
-                        $puedeVerTribunales = Auth::user()->can('ver listado tribunales') ||
-                                             $esDirectorCarrera || $esDocenteApoyo || $esMiembroTribunal;
+                        $puedeVerEstudiantes =
+                            Auth::user()->can('ver listado estudiantes') ||
+                            Auth::user()->can('gestionar estudiantes') ||
+                            $esDirectorCarrera ||
+                            $esDocenteApoyo;
+                        $puedeVerRubricas =
+                            Auth::user()->can('ver rubricas') ||
+                            Auth::user()->can('gestionar rubricas') ||
+                            Auth::user()->can('gestionar plantillas rubricas') ||
+                            $esDirectorCarrera ||
+                            $esDocenteApoyo;
+                        $puedeVerTribunales =
+                            Auth::user()->can('ver listado tribunales') ||
+                            $esDirectorCarrera ||
+                            $esDocenteApoyo ||
+                            $esMiembroTribunal ||
+                            $esCalificadorGeneral;
                     @endphp
 
-                    {{-- Períodos: Solo usuarios con permiso específico --}}
-                    @if ($puedeGestionarPeriodos)
+                    {{-- Períodos: Usuarios con permisos específicos o asignaciones contextuales --}}
+                    @if ($puedeVerPeriodos)
                         <li class="nav-item list-group nav-link-item">
                             <a href="{{ route('periodos.') }}" class="nav-link text-white">
                                 <span class="icon-wrapper">
@@ -755,7 +781,12 @@
                     @endif
 
                     {{-- Mensaje para usuarios sin acceso --}}
-                    @if (!$puedeGestionarPeriodos && !$puedeGestionarCarreras && !$puedeVerEstudiantes && !$puedeVerRubricas && !$puedeVerTribunales)
+                    @if (
+                        !$puedeGestionarPeriodos &&
+                            !$puedeGestionarCarreras &&
+                            !$puedeVerEstudiantes &&
+                            !$puedeVerRubricas &&
+                            !$puedeVerTribunales)
                         <li class="nav-item">
                             <div class="alert alert-info py-2 px-3 mb-2">
                                 <small>
@@ -768,7 +799,7 @@
 
 
                     {{-- Roles y Permisos: Solo Super Admin --}}
-                    @if (Auth::user()->hasRole('Super Admin'))
+                    @if (Auth::user()->roles->where('name', 'Super Admin')->isNotEmpty())
                         <hr>
                         <h5 class="fs-6 text-secondary">Acceso</h5>
                         <li class="nav-item list-group nav-link-item">
@@ -789,7 +820,7 @@
 
 
                     {{-- Usuarios: Super Admin y Administrador --}}
-                    @if (Auth::user()->hasRole(['Super Admin', 'Administrador']))
+                    @if (ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
                         <hr>
                         <h5 class="fs-6 text-secondary">Usuarios</h5>
                         <li class="nav-item list-group nav-link-item">
@@ -814,55 +845,45 @@
 
                 {{-- Información contextual del usuario --}}
                 @php
-                    // Obtener asignaciones contextuales del usuario
+                    // Usar ContextualAuth para obtener información contextual del usuario
+                    $userContextInfo = ContextualAuth::getUserContextInfo(Auth::user());
                     $carrerasAsignadas = collect();
-                    $esMiembroTribunal = false;
 
-                    // Verificar asignaciones como Director de Carrera
-                    if (Auth::user()->hasRole('Director de Carrera')) {
-                        $carrerasDirector = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())
-                            ->with(['carrera', 'periodo'])
-                            ->get()
-                            ->map(function($cp) {
-                                return [
-                                    'texto' => $cp->carrera->nombre . ' - ' . $cp->periodo->codigo_periodo,
-                                    'tipo' => 'Director'
-                                ];
-                            });
-                        $carrerasAsignadas = $carrerasAsignadas->merge($carrerasDirector);
+                    // Agregar asignaciones como Director
+                    foreach ($userContextInfo['carreras_director'] as $carreraDirector) {
+                        $carrerasAsignadas->push([
+                            'texto' =>
+                                $carreraDirector->carrera->nombre . ' - ' . $carreraDirector->periodo->codigo_periodo,
+                            'tipo' => 'Director',
+                        ]);
                     }
 
-                    // Verificar asignaciones como Docente de Apoyo
-                    if (Auth::user()->hasRole('Docente de Apoyo')) {
-                        $carrerasApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())
-                            ->with(['carrera', 'periodo'])
-                            ->get()
-                            ->map(function($cp) {
-                                return [
-                                    'texto' => $cp->carrera->nombre . ' - ' . $cp->periodo->codigo_periodo,
-                                    'tipo' => 'Apoyo'
-                                ];
-                            });
-                        $carrerasAsignadas = $carrerasAsignadas->merge($carrerasApoyo);
+                    // Agregar asignaciones como Docente de Apoyo
+                    foreach ($userContextInfo['carreras_apoyo'] as $carreraApoyo) {
+                        $carrerasAsignadas->push([
+                            'texto' => $carreraApoyo->carrera->nombre . ' - ' . $carreraApoyo->periodo->codigo_periodo,
+                            'tipo' => 'Apoyo',
+                        ]);
                     }
 
-                    // Verificar si es miembro de algún tribunal
-                    $tribunalesAsignados = \App\Models\MiembrosTribunal::where('user_id', Auth::id())
-                        ->with(['tribunal.estudiante', 'tribunal.carrerasPeriodo.carrera'])
-                        ->get();
-
+                    // Asignaciones en tribunales
+                    $tribunalesAsignados = $userContextInfo['tribunales'];
                     $esMiembroTribunal = $tribunalesAsignados->isNotEmpty();
+
+                    // Asignaciones como Calificador General
+                    $calificadorGeneralAsignaciones = $userContextInfo['calificador_general'];
                 @endphp
 
-                @if ($carrerasAsignadas->isNotEmpty() || $esMiembroTribunal)
+                @if ($carrerasAsignadas->isNotEmpty() || $esMiembroTribunal || $calificadorGeneralAsignaciones->isNotEmpty())
                     <div class="text-center mb-3">
                         <small class="text-muted">
-                            <strong>Contexto Actual:</strong><br>
+                            <p class="text-light fw-bold"><strong>Contexto Actual:</strong></p>
 
                             {{-- Mostrar asignaciones como Director/Apoyo --}}
                             @if ($carrerasAsignadas->isNotEmpty())
                                 @foreach ($carrerasAsignadas->take(3) as $carrera)
-                                    <span class="badge bg-{{ $carrera['tipo'] == 'Director' ? 'success' : 'info' }} mb-1 d-block">
+                                    <span
+                                        class="badge bg-{{ $carrera['tipo'] == 'Director' ? 'success' : 'info' }} mb-1 d-block text-wrap">
                                         {{ $carrera['tipo'] }}: {{ $carrera['texto'] }}
                                     </span>
                                 @endforeach
@@ -871,9 +892,26 @@
                                 @endif
                             @endif
 
+                            {{-- Mostrar asignaciones como Calificador General --}}
+                            @if ($calificadorGeneralAsignaciones->isNotEmpty())
+                                @if ($carrerasAsignadas->isNotEmpty())
+                                    <p class="text-light fw-bold"><small>También:</small><br></p>
+                                @endif
+                                @foreach ($calificadorGeneralAsignaciones->take(2) as $calificador)
+                                    <span class="badge bg-warning text-dark mb-1 d-block text-wrap">
+                                        Calificador General: {{ $calificador->carreraPeriodo->carrera->nombre }} -
+                                        {{ $calificador->carreraPeriodo->periodo->codigo_periodo }}
+                                    </span>
+                                @endforeach
+                                @if ($calificadorGeneralAsignaciones->count() > 2)
+                                    <span class="text-muted">... y {{ $calificadorGeneralAsignaciones->count() - 2 }}
+                                        más</span>
+                                @endif
+                            @endif
+
                             {{-- Mostrar asignaciones como Miembro de Tribunal --}}
                             @if ($esMiembroTribunal)
-                                @if ($carrerasAsignadas->isNotEmpty())
+                                @if ($carrerasAsignadas->isNotEmpty() || $calificadorGeneralAsignaciones->isNotEmpty())
                                     <br><small class="text-muted">También:</small><br>
                                 @endif
                                 <span class="badge bg-primary mb-1 d-block">
@@ -882,7 +920,7 @@
                             @endif
                         </small>
                     </div>
-                @elseif(Auth::user()->hasRole(['Director de Carrera', 'Docente de Apoyo', 'Docente']))
+                @elseif(!ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
                     <div class="text-center mb-3">
                         <small class="text-muted">
                             <strong>Contexto:</strong><br>
@@ -895,44 +933,13 @@
 
 
                 <div class="dropdown">
-                    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle text-break"
-                        id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false" style="white-space: normal;">
+                    <a href="#"
+                        class="d-flex align-items-center text-white text-decoration-none dropdown-toggle text-break"
+                        id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false"
+                        style="white-space: normal;">
                         <strong class="text-break" style="word-break: break-word;">{{ Auth::user()->name }}</strong>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-                        {{-- Información del rol actual --}}
-                        <li class="dropdown-header">
-                            <small class="text-muted">
-                                Rol:
-                                @php
-                                    // Verificar roles contextuales para el dropdown
-                                    $esDirectorCarrera = \App\Models\CarrerasPeriodo::where('director_id', Auth::id())->exists();
-                                    $esDocenteApoyo = \App\Models\CarrerasPeriodo::where('docente_apoyo_id', Auth::id())->exists();
-                                    $esMiembroTribunal = \App\Models\MiembrosTribunal::where('user_id', Auth::id())->exists();
-                                @endphp
-
-                                @if (Auth::user()->hasRole('Super Admin'))
-                                    <span class="badge bg-danger">Super Admin</span>
-                                @elseif(Auth::user()->hasRole('Administrador'))
-                                    <span class="badge bg-warning text-dark">Administrador</span>
-                                @elseif($esDirectorCarrera && Auth::user()->hasRole('Director de Carrera'))
-                                    <span class="badge bg-success">Director de Carrera</span>
-                                @elseif($esDocenteApoyo && Auth::user()->hasRole('Docente de Apoyo'))
-                                    <span class="badge bg-info">Docente de Apoyo</span>
-                                @elseif($esMiembroTribunal && Auth::user()->hasRole('Docente'))
-                                    <span class="badge bg-primary">Docente (Miembro Tribunal)</span>
-                                @elseif(Auth::user()->hasRole('Docente'))
-                                    <span class="badge bg-secondary">Docente</span>
-                                @else
-                                    <span class="badge bg-light text-dark">Sin Rol Activo</span>
-                                @endif
-                            </small>
-                        </li>
-
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-
                         <li>
                             <a class="dropdown-item"
                                 href="{{ route('users.profile', encrypt(Auth::id())) }}">Perfil</a>

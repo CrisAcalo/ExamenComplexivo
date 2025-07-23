@@ -1,5 +1,5 @@
 <!-- Add Modal -->
-@can('gestionar estudiantes')
+@if($this->puedeGestionarEstudiantes())
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="createDataModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -46,10 +46,10 @@
         </div>
     </div>
 </div>
-@endcan
+@endif
 
 <!-- Edit Modal -->
-@can('editar estudiantes')
+@if($this->puedeGestionarEstudiantes())
 <div wire:ignore.self class="modal fade" id="updateDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
        <div class="modal-content">
@@ -96,10 +96,10 @@
         </div>
     </div>
 </div>
-@endcan
+@endif
 
 <!-- Delete Modal -->
-@can('eliminar estudiantes')
+@if($this->puedeGestionarEstudiantes())
 <div wire:ignore.self class="modal fade deleteModal" id="deleteDataModal" data-bs-backdrop="static"
     data-bs-keyboard="false" aria-labelledby="staticBackdropLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -127,10 +127,10 @@
         @endif
     </div>
 </div>
-@endcan
+@endif
 
 <!-- Import Modal -->
-@can('importar estudiantes')
+@if($this->puedeImportarEstudiantes())
 <div wire:ignore.self class="modal fade" id="importModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -191,4 +191,4 @@
         </div>
     </div>
 </div>
-@endcan
+@endif

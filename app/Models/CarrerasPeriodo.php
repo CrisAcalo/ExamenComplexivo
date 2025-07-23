@@ -83,4 +83,10 @@ class CarrerasPeriodo extends Model
         // Devuelve directamente los usuarios (docentes) que son calificadores generales
         return $this->belongsToMany(User::class, 'calificador_general_carrera_periodos', 'carrera_periodo_id', 'user_id');
     }
+
+    public function planEvaluacion()
+    {
+        // Devuelve el plan de evaluación asociado a este período de carrera
+        return $this->hasOne(PlanEvaluacion::class, 'carrera_periodo_id', 'id');
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire;
 
+use App\Helpers\ContextualAuth;
 use App\Models\Tribunale;
 use App\Models\PlanEvaluacion;
 use App\Models\ItemPlanEvaluacion;
@@ -11,11 +12,12 @@ use App\Models\TribunalLog;
 use App\Models\User;
 use App\Models\AsignacionCalificadorComponentePlan;
 use App\Models\CalificadorGeneralCarreraPeriodo;
-use App\Models\MiembrosTribunale; // Cambiado de MiembrosTribunal
+use App\Models\MiembrosTribunal;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 
@@ -34,6 +36,7 @@ class TribunalesCalificar extends Component
 
     // Estado del usuario actual en relación con el tribunal
     public ?User $usuarioActual = null;
+    public $tipoAsignacionUsuario = []; // Información del tipo de asignación
     public $usuarioEsMiembroFisicoDelTribunal = false; // Si está en la tabla miembros_tribunales
     public $rolUsuarioActualEnTribunal = null; // PRESIDENTE, INTEGRANTE1, INTEGRANTE2, o null
 
@@ -43,8 +46,6 @@ class TribunalesCalificar extends Component
     // Almacena qué ítems y componentes puede calificar el usuario actual
     public $itemsACalificarPorUsuario = [];       // [itemPlanId => true/false]
     public $componentesACalificarPorUsuario = []; // [itemPlanId => [componenteRId => true/false]]
-
-    public $puedeVerBotonActa = false;
 
     public $esCalificadorGeneral = false;
 
@@ -145,6 +146,28 @@ class TribunalesCalificar extends Component
             return; // La vista mostrará el mensaje
         }
 
+        // Verificar acceso usando ContextualAuth
+        $puedeCalificar = ContextualAuth::canCalifyInTribunal($this->usuarioActual, $this->tribunal);
+
+        // Debug temporal para usuarios que no pueden acceder
+        if (!$puedeCalificar) {
+            Log::info('DEBUG ACCESO DENEGADO - Usuario: ' . $this->usuarioActual->id . ' (' . $this->usuarioActual->name . ')');
+            Log::info('DEBUG ACCESO DENEGADO - Tribunal: ' . $this->tribunal->id . ', CarreraPeriodo: ' . $this->tribunal->carrera_periodo_id);
+            Log::info('DEBUG ACCESO DENEGADO - Es Director: ' . (ContextualAuth::isDirectorOf($this->usuarioActual, $this->tribunal->carrera_periodo_id) ? 'SÍ' : 'NO'));
+            Log::info('DEBUG ACCESO DENEGADO - Es Apoyo: ' . (ContextualAuth::isApoyoOf($this->usuarioActual, $this->tribunal->carrera_periodo_id) ? 'SÍ' : 'NO'));
+            Log::info('DEBUG ACCESO DENEGADO - Es Calificador General: ' . (ContextualAuth::isCalificadorGeneralOf($this->usuarioActual, $this->tribunal->carrera_periodo_id) ? 'SÍ' : 'NO'));
+            Log::info('DEBUG ACCESO DENEGADO - Es Miembro Físico: ' . (ContextualAuth::isMemberOfTribunal($this->usuarioActual, $this->tribunal->id) ? 'SÍ' : 'NO'));
+            Log::info('DEBUG ACCESO DENEGADO - Es Super Admin: ' . (ContextualAuth::isSuperAdminOrAdmin($this->usuarioActual) ? 'SÍ' : 'NO'));
+        }
+
+        if (!$puedeCalificar) {
+            session()->flash('danger', 'No tienes permisos para calificar en este tribunal.');
+            return;
+        }
+
+        // Obtener información del tipo de asignación
+        $this->tipoAsignacionUsuario = ContextualAuth::getTipoAsignacionEnTribunal($this->usuarioActual, $this->tribunal);
+
         // Verificar si el tribunal está cerrado
         if ($this->tribunal->estado === 'CERRADO') {
             session()->flash('danger', 'Este tribunal está cerrado. No se pueden realizar calificaciones.');
@@ -152,8 +175,7 @@ class TribunalesCalificar extends Component
         }
 
         if ($this->tribunal && $this->usuarioActual && $this->tribunal->carrerasPeriodo) {
-            $this->esCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $this->tribunal->carrera_periodo_id)
-                ->where('user_id', $this->usuarioActual->id)->exists();
+            $this->esCalificadorGeneral = ContextualAuth::isCalificadorGeneralOf($this->usuarioActual, $this->tribunal->carrera_periodo_id);
         }
 
         $this->carreraPeriodoIdDelTribunal = $this->tribunal->carrera_periodo_id;
@@ -164,9 +186,6 @@ class TribunalesCalificar extends Component
         $miembroActualEnTribunal = $this->tribunal->miembrosTribunales->firstWhere('user_id', $this->usuarioActual->id);
         $this->usuarioEsMiembroFisicoDelTribunal = (bool) $miembroActualEnTribunal;
         $this->rolUsuarioActualEnTribunal = $miembroActualEnTribunal?->status;
-
-        $this->puedeVerBotonActa = Gate::allows('puede-exportar-acta-de-este-tribunal', $this->tribunal);
-
 
         if ($this->tribunal->carrerasPeriodo) {
             $this->planEvaluacionActivo = PlanEvaluacion::with([
@@ -201,17 +220,35 @@ class TribunalesCalificar extends Component
 
         if (!$this->planEvaluacionActivo || !$this->usuarioActual || !$this->tribunal->carrerasPeriodo) return;
 
-        $esDirectorActual = $this->usuarioActual->id == $this->tribunal->carrerasPeriodo->director_id;
-        $esApoyoActual = $this->usuarioActual->id == $this->tribunal->carrerasPeriodo->docente_apoyo_id;
-        $esCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $this->carreraPeriodoIdDelTribunal)
-            ->where('user_id', $this->usuarioActual->id)->exists();
+        $esDirectorActual = ContextualAuth::isDirectorOf($this->usuarioActual, $this->carreraPeriodoIdDelTribunal);
+        $esApoyoActual = ContextualAuth::isApoyoOf($this->usuarioActual, $this->carreraPeriodoIdDelTribunal);
+        $esCalificadorGeneral = ContextualAuth::isCalificadorGeneralOf($this->usuarioActual, $this->carreraPeriodoIdDelTribunal);
+
+        // Debug específico para Calificadores Generales
+        if ($esCalificadorGeneral) {
+            Log::info('DEBUG CALIFICADOR GENERAL - Usuario: ' . $this->usuarioActual->id . ' (' . $this->usuarioActual->name . ')');
+            Log::info('DEBUG CALIFICADOR GENERAL - CarreraPeriodo: ' . $this->carreraPeriodoIdDelTribunal);
+            Log::info('DEBUG CALIFICADOR GENERAL - Total items en plan: ' . $this->planEvaluacionActivo->itemsPlanEvaluacion->count());
+
+            // Debug de todas las asignaciones disponibles
+            foreach ($this->planEvaluacionActivo->itemsPlanEvaluacion as $item) {
+                if ($item->tipo_item === 'RUBRICA_TABULAR' && $item->asignacionesCalificadorComponentes) {
+                    Log::info('DEBUG CALIFICADOR GENERAL - Item ' . $item->id . ' tiene ' . $item->asignacionesCalificadorComponentes->count() . ' asignaciones');
+                    foreach ($item->asignacionesCalificadorComponentes as $asig) {
+                        Log::info('DEBUG CALIFICADOR GENERAL - Asignación: ComponenteR=' . $asig->componente_rubrica_id . ', CalificadoPor=' . $asig->calificado_por);
+                    }
+                }
+            }
+        }
 
         foreach ($this->planEvaluacionActivo->itemsPlanEvaluacion as $itemPlan) {
             $puedeCalificarEsteItemGlobal = false;
 
             if ($itemPlan->tipo_item === 'NOTA_DIRECTA') {
-                if (($itemPlan->calificado_por_nota_directa === 'DIRECTOR_CARRERA' && $esDirectorActual) ||
-                    ($itemPlan->calificado_por_nota_directa === 'DOCENTE_APOYO' && $esApoyoActual)
+                // Lógica de negocio: Tanto Director como Docente de Apoyo pueden calificar items de NOTA_DIRECTA
+                // independientemente de la configuración específica
+                if (($itemPlan->calificado_por_nota_directa === 'DIRECTOR_CARRERA' && ($esDirectorActual || $esApoyoActual)) ||
+                    ($itemPlan->calificado_por_nota_directa === 'DOCENTE_APOYO' && ($esDirectorActual || $esApoyoActual))
                 ) {
                     $puedeCalificarEsteItemGlobal = true;
                 }
@@ -221,12 +258,25 @@ class TribunalesCalificar extends Component
                     foreach ($itemPlan->rubricaPlantilla->componentesRubrica as $componenteR) {
                         $asignacion = $itemPlan->asignacionesCalificadorComponentes
                             ->firstWhere('componente_rubrica_id', $componenteR->id);
+
                         $puedeCalificarEsteComponenteIndividual = false;
                         if ($asignacion) {
-                            if ($asignacion->calificado_por === 'MIEMBROS_TRIBUNAL' && $this->usuarioEsMiembroFisicoDelTribunal) $puedeCalificarEsteComponenteIndividual = true;
-                            if ($asignacion->calificado_por === 'CALIFICADORES_GENERALES' && $esCalificadorGeneral) $puedeCalificarEsteComponenteIndividual = true;
-                            if ($asignacion->calificado_por === 'DIRECTOR_CARRERA' && $esDirectorActual) $puedeCalificarEsteComponenteIndividual = true;
-                            if ($asignacion->calificado_por === 'DOCENTE_APOYO' && $esApoyoActual) $puedeCalificarEsteComponenteIndividual = true;
+                            if ($asignacion->calificado_por === 'MIEMBROS_TRIBUNAL' && $this->usuarioEsMiembroFisicoDelTribunal) {
+                                $puedeCalificarEsteComponenteIndividual = true;
+                            }
+                            if ($asignacion->calificado_por === 'CALIFICADORES_GENERALES' && $esCalificadorGeneral) {
+                                $puedeCalificarEsteComponenteIndividual = true;
+                                if ($esCalificadorGeneral) {
+                                    Log::info('DEBUG CALIFICADOR GENERAL - ✓ Puede calificar componente: ' . $componenteR->id . ' del item: ' . $itemPlan->id);
+                                }
+                            }
+                            // Lógica de negocio: Tanto Director como Docente de Apoyo pueden calificar los mismos componentes
+                            if (($asignacion->calificado_por === 'DIRECTOR_CARRERA' || $asignacion->calificado_por === 'DOCENTE_APOYO') &&
+                                ($esDirectorActual || $esApoyoActual)) {
+                                $puedeCalificarEsteComponenteIndividual = true;
+                            }
+                        } else if ($esCalificadorGeneral) {
+                            Log::info('DEBUG CALIFICADOR GENERAL - ✗ NO encontrada asignación para componente: ' . $componenteR->id . ' del item: ' . $itemPlan->id);
                         }
                         $this->componentesACalificarPorUsuario[$itemPlan->id][$componenteR->id] = $puedeCalificarEsteComponenteIndividual;
                         if ($puedeCalificarEsteComponenteIndividual) {
@@ -238,7 +288,16 @@ class TribunalesCalificar extends Component
             $this->itemsACalificarPorUsuario[$itemPlan->id] = $puedeCalificarEsteItemGlobal;
             if ($puedeCalificarEsteItemGlobal) {
                 $this->tieneAlgoQueCalificar = true;
+                if ($esCalificadorGeneral) {
+                    Log::info('DEBUG CALIFICADOR GENERAL - ✓ Tiene algo que calificar en item: ' . $itemPlan->id);
+                }
+            } else if ($esCalificadorGeneral) {
+                Log::info('DEBUG CALIFICADOR GENERAL - ✗ NO tiene nada que calificar en item: ' . $itemPlan->id);
             }
+        }
+
+        if ($esCalificadorGeneral) {
+            Log::info('DEBUG CALIFICADOR GENERAL - RESULTADO FINAL - tieneAlgoQueCalificar: ' . ($this->tieneAlgoQueCalificar ? 'SÍ' : 'NO'));
         }
     }
 
@@ -398,16 +457,6 @@ class TribunalesCalificar extends Component
 
         session()->flash('success', 'Calificaciones guardadas exitosamente.');
         $this->loadCalificacionesExistentes(); // Recargar para reflejar el estado actual
-        $this->dispatchBrowserEvent('showFlashMessage');
-    }
-
-    public function exportarActa()
-    {
-        if ($this->puedeVerBotonActa) {
-            session()->flash('info', 'La generación del acta en PDF se implementará próximamente.');
-        } else {
-            session()->flash('danger', 'No tiene permisos para generar el acta de este tribunal.');
-        }
         $this->dispatchBrowserEvent('showFlashMessage');
     }
 

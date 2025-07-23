@@ -19,17 +19,22 @@
                                 id="search" placeholder="Buscar Estudiantes">
                         </div>
                         <div class="btn-group">
-                            @can('importar estudiantes')
+                            @if($this->puedeImportarEstudiantes())
                                 <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#importModal">
                                     <i class="bi bi-file-earmark-excel"></i> Importar Estudiantes
                                 </div>
-                            @endcan
-                            @can('gestionar estudiantes')
+                            @endif
+                            @if($this->puedeGestionarEstudiantes())
                                 <div class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#createDataModal">
                                     <i class="bi bi-plus-lg"></i> Agregar Estudiante
                                 </div>
-                            @endcan
-                            @if(!auth()->user()->can('gestionar estudiantes') && !auth()->user()->can('importar estudiantes'))
+                            @endif
+                            @if($this->puedeExportarEstudiantes() && !$this->puedeGestionarEstudiantes() && !$this->puedeImportarEstudiantes())
+                                <div class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-download"></i> Exportar Estudiantes
+                                </div>
+                            @endif
+                            @if(!$this->puedeGestionarEstudiantes() && !$this->puedeImportarEstudiantes() && !$this->puedeExportarEstudiantes())
                                 <span class="text-muted small">Solo lectura</span>
                             @endif
                         </div>
@@ -77,19 +82,19 @@
                                         <td>{{ $row->ID_estudiante }}</td>
                                         <td width="90">
                                             <div class="dropdown">
-                                                @can('editar estudiantes')
+                                                @if($this->puedeGestionarEstudiantes())
                                                     <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
                                                         class="btn btn-sm btn-primary"
                                                         wire:click="edit({{ $row->id }})"><i class="fa fa-edit"></i>
                                                         Edit </a>
-                                                @endcan
-                                                @can('eliminar estudiantes')
+                                                @endif
+                                                @if($this->puedeGestionarEstudiantes())
                                                     <a class="btn btn-sm btn-danger"
                                                         wire:click="eliminar({{ $row->id }})">
                                                         <i class="bi bi-trash3-fill"></i>
                                                     </a>
-                                                @endcan
-                                                @if(!auth()->user()->can('editar estudiantes') && !auth()->user()->can('eliminar estudiantes'))
+                                                @endif
+                                                @if(!$this->puedeGestionarEstudiantes())
                                                     <span class="text-muted small">Sin permisos</span>
                                                 @endif
                                             </div>

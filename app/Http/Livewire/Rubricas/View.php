@@ -2,9 +2,10 @@
 
 namespace App\Http\Livewire\Rubricas;
 
+use Illuminate\Support\Facades\Gate;
+use App\Helpers\ContextualAuth;
 use App\Models\Rubrica;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -25,17 +26,29 @@ class View extends Component
 
     public function mount()
     {
-        $this->verificarAccesoRubricas();
+        // No se requiere verificación específica aquí ya que se manejará por ruta/middleware
+        // La verificación de permisos se hace en cada método específico
     }
 
     /**
-     * Verificar acceso a las rúbricas
+     * Verificar acceso a las rúbricas usando ContextualAuth
      */
     private function verificarAccesoRubricas()
     {
-        if (!Gate::allows('ver rubricas') && !Gate::allows('gestionar rubricas') && !Gate::allows('gestionar plantillas rubricas')) {
-            abort(403, 'No tienes permisos para acceder a las rúbricas.');
+        $user = auth()->user();
+
+        // Verificar si tiene permisos globales
+        if (Gate::allows('ver rubricas') || Gate::allows('gestionar rubricas') || Gate::allows('gestionar plantillas rubricas')) {
+            return true;
         }
+
+        // Verificar si tiene asignaciones contextuales (Director o Docente de Apoyo)
+        $userContext = ContextualAuth::getUserContextInfo($user);
+        if ($userContext['carreras_director']->isNotEmpty() || $userContext['carreras_apoyo']->isNotEmpty()) {
+            return true;
+        }
+
+        abort(403, 'No tienes permisos para acceder a las rúbricas.');
     }
 
     /**
@@ -43,7 +56,21 @@ class View extends Component
      */
     private function puedeGestionarRubricas()
     {
-        return Gate::allows('gestionar rubricas');
+        $user = auth()->user();
+
+        // Super Admin y Administrador pueden gestionar
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('gestionar rubricas');
+        }
+
+        // Director y Docente de Apoyo también pueden gestionar si tienen el permiso
+        $userContext = ContextualAuth::getUserContextInfo($user);
+        if (($userContext['carreras_director']->isNotEmpty() || $userContext['carreras_apoyo']->isNotEmpty()) &&
+            Gate::allows('gestionar rubricas')) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -51,7 +78,14 @@ class View extends Component
      */
     private function puedeGestionarPlantillasRubricas()
     {
-        return Gate::allows('gestionar plantillas rubricas');
+        $user = auth()->user();
+
+        // Principalmente para Super Admin y Administrador
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('gestionar plantillas rubricas');
+        }
+
+        return false;
     }
 
     /**

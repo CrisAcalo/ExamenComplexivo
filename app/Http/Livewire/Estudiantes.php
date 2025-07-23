@@ -2,9 +2,11 @@
 
 namespace App\Http\Livewire;
 
+use App\Helpers\ContextualAuth;
 use App\Imports\EstudiantesImport;
 use App\Models\CarrerasPeriodo;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -25,7 +27,7 @@ class Estudiantes extends Component
 
     public function mount()
     {
-        // Verificar autorización básica
+        // Verificar autorización básica usando ContextualAuth
         if (!$this->verificarAccesoEstudiantes()) {
             abort(403, 'No tienes permisos para gestionar estudiantes.');
         }
@@ -35,35 +37,39 @@ class Estudiantes extends Component
     }
 
     /**
-     * Verificar si el usuario puede acceder al módulo de estudiantes
+     * Verificar si el usuario puede acceder al módulo de estudiantes usando ContextualAuth
      */
     private function verificarAccesoEstudiantes()
     {
         $user = auth()->user();
 
-        return $user->hasPermissionTo('gestionar estudiantes') ||
-               $user->hasPermissionTo('ver listado estudiantes') ||
-               $user->hasPermissionTo('importar estudiantes') ||
-               $user->hasPermissionTo('exportar estudiantes');
+        // Super Admin y Administrador con permisos específicos
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('gestionar estudiantes') ||
+                   Gate::allows('ver listado estudiantes') ||
+                   Gate::allows('importar estudiantes') ||
+                   Gate::allows('exportar estudiantes');
+        }
+
+        // Director y Docente de Apoyo tienen acceso automático si tienen asignaciones
+        if (ContextualAuth::hasActiveAssignments($user)) {
+            return true;
+        }
+
+        // Otros roles requieren permisos específicos
+        return Gate::allows('gestionar estudiantes') ||
+               Gate::allows('ver listado estudiantes') ||
+               Gate::allows('importar estudiantes') ||
+               Gate::allows('exportar estudiantes');
     }
 
     /**
-     * Cargar las carreras-períodos a las que el usuario tiene acceso
+     * Cargar las carreras-períodos a las que el usuario tiene acceso usando ContextualAuth
      */
     private function cargarCarrerasPeriodosAccesibles()
     {
-        $user = auth()->user();
-
-        if ($user->hasRole(['Super Admin', 'Administrador'])) {
-            // Super Admin y Administrador pueden ver todos
-            $this->carrerasPeriodosAccesibles = CarrerasPeriodo::all()->pluck('id')->toArray();
-        } else {
-            // Director y Docente de Apoyo solo ven sus carreras-períodos asignados
-            $this->carrerasPeriodosAccesibles = CarrerasPeriodo::where(function($query) use ($user) {
-                $query->where('director_id', $user->id)
-                      ->orWhere('docente_apoyo_id', $user->id);
-            })->pluck('id')->toArray();
-        }
+        $carrerasPeriodos = ContextualAuth::getAccessibleCarrerasPeriodos(auth()->user());
+        $this->carrerasPeriodosAccesibles = $carrerasPeriodos->pluck('id')->toArray();
     }
 
     public function render()
@@ -88,7 +94,7 @@ class Estudiantes extends Component
             });
 
         // Si no es Super Admin o Administrador, filtrar por carreras-períodos accesibles
-        if (!auth()->user()->hasRole(['Super Admin', 'Administrador'])) {
+        if (!ContextualAuth::isSuperAdminOrAdmin(auth()->user())) {
             if (empty($this->carrerasPeriodosAccesibles)) {
                 // Si no tiene carreras-períodos asignados, no ve ningún estudiante
                 $query->whereRaw('1 = 0');
@@ -137,8 +143,8 @@ class Estudiantes extends Component
 
     public function store()
     {
-        // Verificar autorización para crear estudiantes
-        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+        // Verificar autorización para crear estudiantes usando ContextualAuth
+        if (!$this->puedeGestionarEstudiantes()) {
             session()->flash('error', 'No tienes permisos para crear estudiantes.');
             return;
         }
@@ -170,8 +176,8 @@ class Estudiantes extends Component
 
     public function edit($id)
     {
-        // Verificar autorización para editar estudiantes
-        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+        // Verificar autorización para editar estudiantes usando ContextualAuth
+        if (!$this->puedeGestionarEstudiantes()) {
             session()->flash('error', 'No tienes permisos para editar estudiantes.');
             return;
         }
@@ -189,8 +195,8 @@ class Estudiantes extends Component
 
     public function update()
     {
-        // Verificar autorización para actualizar estudiantes
-        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+        // Verificar autorización para actualizar estudiantes usando ContextualAuth
+        if (!$this->puedeGestionarEstudiantes()) {
             session()->flash('error', 'No tienes permisos para actualizar estudiantes.');
             return;
         }
@@ -225,8 +231,8 @@ class Estudiantes extends Component
 
     public function eliminar($id)
     {
-        // Verificar autorización para eliminar estudiantes
-        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+        // Verificar autorización para eliminar estudiantes usando ContextualAuth
+        if (!$this->puedeGestionarEstudiantes()) {
             session()->flash('error', 'No tienes permisos para eliminar estudiantes.');
             return;
         }
@@ -243,8 +249,8 @@ class Estudiantes extends Component
 
     public function destroy($id)
     {
-        // Verificar autorización para eliminar estudiantes
-        if (!auth()->user()->hasPermissionTo('gestionar estudiantes')) {
+        // Verificar autorización para eliminar estudiantes usando ContextualAuth
+        if (!$this->puedeGestionarEstudiantes()) {
             session()->flash('error', 'No tienes permisos para eliminar estudiantes.');
             return;
         }
@@ -267,8 +273,8 @@ class Estudiantes extends Component
 
     public function importarEstudiantes()
     {
-        // Verificar autorización para importar estudiantes
-        if (!auth()->user()->hasPermissionTo('importar estudiantes')) {
+        // Verificar autorización para importar estudiantes usando ContextualAuth
+        if (!$this->puedeImportarEstudiantes()) {
             session()->flash('error', 'No tienes permisos para importar estudiantes.');
             return;
         }
@@ -313,26 +319,85 @@ class Estudiantes extends Component
     }
 
     /**
-     * Verificar si el usuario puede realizar operaciones de gestión completa
+     * Verificar si el usuario puede realizar operaciones de gestión completa (CRUD) usando ContextualAuth
+     * Nota: Director y Docente de Apoyo NO pueden gestionar, solo visualizar e importar
      */
     public function puedeGestionarEstudiantes()
     {
-        return auth()->user()->hasPermissionTo('gestionar estudiantes');
+        $user = auth()->user();
+
+        // Super Admin y Administrador con permiso específico
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('gestionar estudiantes');
+        }
+
+        // Director y Docente de Apoyo NO pueden gestionar (crear/editar/eliminar)
+        // Solo pueden visualizar e importar
+
+        // Otros roles requieren el permiso específico
+        return Gate::allows('gestionar estudiantes');
     }
 
     /**
-     * Verificar si el usuario puede importar estudiantes
+     * Verificar si el usuario puede visualizar estudiantes usando ContextualAuth
+     */
+    public function puedeVisualizarEstudiantes()
+    {
+        $user = auth()->user();
+
+        // Super Admin y Administrador con permisos específicos
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('gestionar estudiantes') || Gate::allows('ver listado estudiantes');
+        }
+
+        // Director y Docente de Apoyo pueden visualizar si tienen asignaciones activas
+        if (ContextualAuth::hasActiveAssignments($user)) {
+            return true;
+        }
+
+        // Otros roles requieren permisos específicos
+        return Gate::allows('gestionar estudiantes') || Gate::allows('ver listado estudiantes');
+    }
+
+    /**
+     * Verificar si el usuario puede importar estudiantes usando ContextualAuth
      */
     public function puedeImportarEstudiantes()
     {
-        return auth()->user()->hasPermissionTo('importar estudiantes');
+        $user = auth()->user();
+
+        // Super Admin y Administrador con permiso específico
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('importar estudiantes');
+        }
+
+        // Director y Docente de Apoyo pueden importar si tienen asignaciones activas
+        if (ContextualAuth::hasActiveAssignments($user)) {
+            return true;
+        }
+
+        // Otros roles requieren el permiso específico
+        return Gate::allows('importar estudiantes');
     }
 
     /**
-     * Verificar si el usuario puede exportar estudiantes
+     * Verificar si el usuario puede exportar estudiantes usando ContextualAuth
      */
     public function puedeExportarEstudiantes()
     {
-        return auth()->user()->hasPermissionTo('exportar estudiantes');
+        $user = auth()->user();
+
+        // Super Admin y Administrador con permiso específico
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            return Gate::allows('exportar estudiantes');
+        }
+
+        // Director y Docente de Apoyo pueden exportar si tienen asignaciones activas
+        if (ContextualAuth::hasActiveAssignments($user)) {
+            return true;
+        }
+
+        // Otros roles requieren el permiso específico
+        return Gate::allows('exportar estudiantes');
     }
 }

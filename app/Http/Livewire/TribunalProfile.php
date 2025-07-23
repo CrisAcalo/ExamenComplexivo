@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire;
 
+use App\Helpers\ContextualAuth;
 use App\Models\ComponenteRubrica;
 use App\Models\Tribunale; // Asumiendo que tu modelo se llama Tribunale
 use App\Models\User;
@@ -85,6 +86,9 @@ class TribunalProfile extends Component
             return;
         }
 
+        // Verificar acceso contextual al tribunal
+        $this->verificarAccesoTribunal();
+
         // Profesores disponibles para la edición de miembros (excluir Super Admin y Admin)
         $rolesExcluidosEdicion = ['Super Admin', 'Administrador'];
         $this->profesoresDisponibles = User::whereDoesntHave('roles', function ($query) use ($rolesExcluidosEdicion) {
@@ -96,6 +100,33 @@ class TribunalProfile extends Component
 
         if ($this->usuarioPuedeVerTodasLasCalificaciones && $this->planEvaluacionActivo) {
             $this->calculateAndLoadAllCalificaciones();
+        }
+    }
+
+    /**
+     * Verifica el acceso contextual al tribunal específico
+     */
+    protected function verificarAccesoTribunal()
+    {
+        $user = auth()->user();
+        $carreraPeriodoId = $this->tribunal->carrera_periodo_id;
+
+        // Super Admin tiene acceso total
+        if ($user->hasRole('Super Admin')) {
+            return;
+        }
+
+        // Administrador puede ver cualquier tribunal
+        if ($user->hasRole('Administrador')) {
+            return;
+        }
+
+        // Director y Docente de Apoyo de la carrera-período específica
+        $puedeAcceder = ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodoId) ||
+            ContextualAuth::isMemberOfTribunal($user, $this->tribunalId);
+
+        if (!$puedeAcceder) {
+            abort(403, 'No tienes permisos para acceder a este tribunal.');
         }
     }
 
@@ -142,18 +173,46 @@ class TribunalProfile extends Component
         $user = Auth::user();
         if (!$user || !$this->tribunal || !$this->tribunal->carrerasPeriodo) return;
 
-        // Un Administrador tiene permisos globales que se manejan con Gate::before o su rol.
-        // Director y Docente de Apoyo del carrera_periodo específico pueden editar.
-        $esDirectorOApoyoDelCarreraPeriodo = (
-            ($user->hasRole('Director de Carrera') && $this->tribunal->carrerasPeriodo->director_id === $user->id) ||
-            ($user->hasRole('Docente de Apoyo') && $this->tribunal->carrerasPeriodo->docente_apoyo_id === $user->id)
-        );
+        $carreraPeriodoId = $this->tribunal->carrera_periodo_id;
 
-        $this->usuarioPuedeEditarDatosTribunal = $user->hasRole('Administrador') || $esDirectorOApoyoDelCarreraPeriodo;
-        // $this->usuarioPuedeEditarDatosTribunal = Gate::allows('editar-datos-basicos-este-tribunal-como-presidente', $this->tribunal) || $user->hasRole('Administrador'); // Lógica anterior
+        // Super Admin tiene acceso total
+        if ($user->hasRole('Super Admin')) {
+            $this->usuarioPuedeEditarDatosTribunal = true;
+            $this->usuarioPuedeVerTodasLasCalificaciones = true;
+            $this->usuarioPuedeExportarActa = true;
+            return;
+        }
 
-        $this->usuarioPuedeVerTodasLasCalificaciones = Gate::allows('ver-todas-calificaciones-de-este-tribunal', $this->tribunal);
-        $this->usuarioPuedeExportarActa = Gate::allows('exportar-acta-este-tribunal-como-presidente', $this->tribunal) || $user->hasRole('Administrador');
+        // Administrador solo puede visualizar (no editar, pero puede ver calificaciones y exportar)
+        if ($user->hasRole('Administrador')) {
+            $this->usuarioPuedeEditarDatosTribunal = false;
+            $this->usuarioPuedeVerTodasLasCalificaciones = true;
+            $this->usuarioPuedeExportarActa = true; // Administradores pueden exportar actas para revisión
+            return;
+        }
+
+        // Director y Docente de Apoyo de esta carrera-período específica
+        $esDirectorOApoyo = ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodoId);
+
+        // Verificar si es miembro del tribunal
+        $esMiembroTribunal = ContextualAuth::isMemberOfTribunal($user, $this->tribunalId);
+
+        if ($esDirectorOApoyo) {
+            // Director/Apoyo pueden editar datos, ver calificaciones y exportar actas
+            $this->usuarioPuedeEditarDatosTribunal = true;
+            $this->usuarioPuedeVerTodasLasCalificaciones = true;
+            $this->usuarioPuedeExportarActa = true;
+        } elseif ($esMiembroTribunal) {
+            // Miembros del tribunal no pueden editar datos básicos, pero pueden ver calificaciones y exportar acta
+            $this->usuarioPuedeEditarDatosTribunal = false;
+            $this->usuarioPuedeVerTodasLasCalificaciones = true;
+            $this->usuarioPuedeExportarActa = true;
+        } else {
+            // Sin acceso
+            $this->usuarioPuedeEditarDatosTribunal = false;
+            $this->usuarioPuedeVerTodasLasCalificaciones = false;
+            $this->usuarioPuedeExportarActa = false;
+        }
     }
 
 
@@ -194,7 +253,7 @@ class TribunalProfile extends Component
     public function toggleModoEdicionTribunal()
     {
         if (!$this->usuarioPuedeEditarDatosTribunal) {
-            session()->flash('danger', 'No tiene permisos para editar los datos de este tribunal.');
+            session()->flash('danger', 'No tienes permisos para editar los datos de este tribunal.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -223,7 +282,7 @@ class TribunalProfile extends Component
     public function actualizarDatosTribunal()
     {
         if (!$this->usuarioPuedeEditarDatosTribunal) {
-            session()->flash('danger', 'No tiene permisos para actualizar este tribunal.');
+            session()->flash('danger', 'No tienes permisos para actualizar este tribunal.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -304,7 +363,7 @@ class TribunalProfile extends Component
     public function cerrarTribunal()
     {
         if (!$this->usuarioPuedeEditarDatosTribunal) {
-            session()->flash('danger', 'No tiene permisos para cerrar este tribunal.');
+            session()->flash('danger', 'No tienes permisos para cerrar este tribunal.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -336,7 +395,7 @@ class TribunalProfile extends Component
     public function abrirTribunal()
     {
         if (!$this->usuarioPuedeEditarDatosTribunal) {
-            session()->flash('danger', 'No tiene permisos para abrir este tribunal.');
+            session()->flash('danger', 'No tienes permisos para abrir este tribunal.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -694,7 +753,7 @@ class TribunalProfile extends Component
         try {
             // Verificar permisos
             if (!$this->usuarioPuedeExportarActa) {
-                session()->flash('danger', 'No tiene permisos para exportar el acta.');
+                session()->flash('danger', 'No tienes permisos para exportar el acta.');
                 $this->dispatchBrowserEvent('showFlashMessage');
                 return;
             }
@@ -706,14 +765,22 @@ class TribunalProfile extends Component
             $todasLasCalificacionesDelTribunal = $this->todasLasCalificacionesDelTribunal;
             $notaFinalCalculadaDelTribunal = $this->notaFinalCalculadaDelTribunal;
 
+            // Convertir logo a base64 para que funcione en PDF
+            $logoPath = public_path('storage/logos/LOGO-ESPE_500.png');
+            $logoBase64 = null;
+            if (file_exists($logoPath)) {
+                $logoData = file_get_contents($logoPath);
+                $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            }
+
             // Validar que tenemos los datos necesarios
             if (!$tribunal) {
                 throw new \Exception('Datos del tribunal no disponibles');
             }
 
-            // Generar el PDF usando DomPDF directamente
             $options = new Options();
             $options->set('defaultFont', 'Arial');
+            //tamaño de fuente
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isPhpEnabled', true);
             $options->set('debugPng', false);
@@ -729,7 +796,8 @@ class TribunalProfile extends Component
                     'planEvaluacionActivo',
                     'resumenNotasCalculadas',
                     'todasLasCalificacionesDelTribunal',
-                    'notaFinalCalculadaDelTribunal'
+                    'notaFinalCalculadaDelTribunal',
+                    'logoBase64'
                 ))->render();
 
                 // Limpiar el HTML de caracteres problemáticos
@@ -738,7 +806,6 @@ class TribunalProfile extends Component
                 $dompdf->loadHtml($html);
                 $dompdf->setPaper('A4', 'portrait');
                 $dompdf->render();
-
             } catch (\Exception $renderError) {
                 throw new \Exception('Error al renderizar el PDF: ' . $renderError->getMessage());
             }
@@ -764,7 +831,6 @@ class TribunalProfile extends Component
             session()->flash('info', 'Acta generada exitosamente. Descargando...');
             $this->dispatchBrowserEvent('showFlashMessage');
             $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivo]);
-
         } catch (\Exception $e) {
             session()->flash('danger', 'Error al generar el acta: ' . $e->getMessage());
             $this->dispatchBrowserEvent('showFlashMessage');
@@ -822,7 +888,6 @@ class TribunalProfile extends Component
             session()->flash('info', 'PDF de prueba generado exitosamente.');
             $this->dispatchBrowserEvent('showFlashMessage');
             $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivo]);
-
         } catch (\Exception $e) {
             session()->flash('danger', 'Error en PDF de prueba: ' . $e->getMessage());
             $this->dispatchBrowserEvent('showFlashMessage');

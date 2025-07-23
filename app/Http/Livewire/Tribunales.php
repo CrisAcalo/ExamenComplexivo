@@ -2,6 +2,7 @@
 
 namespace App\Http\Livewire;
 
+use App\Helpers\ContextualAuth;
 use App\Models\Carrera;
 use App\Models\CarrerasPeriodo;
 use App\Models\Estudiante;
@@ -29,6 +30,10 @@ class Tribunales extends Component
     // Propiedades para el listado de tribunales
     public $keyWord = '';
 
+    // Propiedades para control de acceso contextual
+    public $puedeGestionar = false; // Director/Apoyo pueden gestionar
+    public $puedeVisualizar = false; // Administradores pueden solo ver
+    
     // Propiedades para el modal de creación/edición de tribunal
     public $selected_id; // Para edición (aunque tu modal actual es solo para creación)
     public $estudiante_id;
@@ -159,6 +164,9 @@ class Tribunales extends Component
             abort(404, 'Contexto Carrera-Periodo no encontrado.');
         }
 
+        // Verificar acceso contextual al módulo
+        $this->verificarAccesoContextual();
+
         $this->carrera = $this->carreraPeriodo->carrera;
         $this->periodo = $this->carreraPeriodo->periodo;
 
@@ -175,6 +183,38 @@ class Tribunales extends Component
 
         // Ahora filtramos las listas de profesores disponibles
         $this->actualizarProfesoresDisponibles();
+    }
+
+    /**
+     * Verifica el acceso contextual al módulo de tribunales
+     */
+    protected function verificarAccesoContextual()
+    {
+        $user = auth()->user();
+
+        // Super Admin tiene acceso total
+        if ($user->hasRole('Super Admin')) {
+            $this->puedeGestionar = true;
+            $this->puedeVisualizar = true;
+            return;
+        }
+
+        // Administrador solo puede visualizar
+        if ($user->hasRole('Administrador')) {
+            $this->puedeGestionar = false;
+            $this->puedeVisualizar = true;
+            return;
+        }
+
+        // Director y Docente de Apoyo de esta carrera-período específica
+        if (ContextualAuth::canAccessCarreraPeriodo($user, $this->carreraPeriodoId)) {
+            $this->puedeGestionar = true;
+            $this->puedeVisualizar = true;
+            return;
+        }
+
+        // Si no tiene acceso, abortar
+        abort(403, 'No tienes permisos para acceder a este módulo de tribunales.');
     }
 
     protected function loadEstudiantesDisponibles()
@@ -244,6 +284,13 @@ class Tribunales extends Component
 
     public function store() // Crear Tribunal
     {
+        // Verificar permisos contextuales antes de proceder
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para crear tribunales en esta carrera-período.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
         // Definir explícitamente las reglas SOLO para la creación del tribunal
         $tribunalRules = [
             'estudiante_id' => 'required|exists:estudiantes,id|unique:tribunales,estudiante_id,NULL,id,carrera_periodo_id,' . $this->carreraPeriodoId,
@@ -310,8 +357,9 @@ class Tribunales extends Component
     // --- MÉTODOS PARA CALIFICADORES GENERALES ---
     public function guardarCalificadoresGenerales()
     {
-        if (!Gate::allows('gestionar-calificadores-generales', $this->carreraPeriodo)) {
-            session()->flash('danger', 'No tiene permisos para gestionar los calificadores generales.');
+        // Verificar permisos contextuales para gestionar calificadores
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para gestionar los calificadores generales.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -369,6 +417,13 @@ class Tribunales extends Component
     // --- MÉTODOS PARA ELIMINAR TRIBUNAL ---
     public function confirmDelete($tribunalId)
     {
+        // Verificar permisos contextuales antes de proceder
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para eliminar tribunales en esta carrera-período.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
         $tribunal = Tribunale::with('miembrosTribunales')->find($tribunalId);
 
         if (!$tribunal) {
@@ -431,6 +486,13 @@ class Tribunales extends Component
 
     public function cerrarTribunal($tribunalId)
     {
+        // Verificar permisos contextuales antes de proceder
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para cambiar el estado de tribunales.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
         $tribunal = Tribunale::find($tribunalId);
 
         if (!$tribunal) {
@@ -465,6 +527,13 @@ class Tribunales extends Component
 
     public function abrirTribunal($tribunalId)
     {
+        // Verificar permisos contextuales antes de proceder
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para cambiar el estado de tribunales.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
         $tribunal = Tribunale::find($tribunalId);
 
         if (!$tribunal) {

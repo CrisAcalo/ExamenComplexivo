@@ -5,6 +5,7 @@ namespace App\Http\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Periodo;
+use App\Helpers\ContextualAuth;
 use Illuminate\Support\Facades\Gate;
 
 class Periodos extends Component
@@ -23,46 +24,119 @@ class Periodos extends Component
 
     private function verificarAccesoPeriodos()
     {
-        if (!auth()->user()->can('gestionar periodos')) {
-            session()->flash('error', 'No tienes permisos para acceder a la gestión de períodos.');
-            return redirect()->route('dashboard');
+        $user = auth()->user();
+        
+        // Super Admin y Administrador tienen acceso global
+        if ($user->hasRole(['Super Admin', 'Administrador'])) {
+            return;
         }
+
+        // Director de Carrera: verificar con ContextualAuth si tiene asignaciones
+        $hasDirectorAssignments = ContextualAuth::getCarrerasAsDirector($user)->isNotEmpty();
+        
+        // Docente de Apoyo: verificar con ContextualAuth si tiene asignaciones
+        $hasApoyoAssignments = ContextualAuth::getCarrerasAsApoyo($user)->isNotEmpty();
+        
+        if (!$hasDirectorAssignments && !$hasApoyoAssignments) {
+            session()->flash('error', 'No tienes asignaciones como director o docente de apoyo en ningún período.');
+            abort(403);
+        }
+    }    public function puedeGestionarPeriodos()
+    {
+        $user = auth()->user();
+        // Solo Super Admin y Administrador pueden gestionar (crear/editar/eliminar)
+        return $user->hasRole(['Super Admin', 'Administrador']) &&
+               $user->hasPermissionTo('gestionar periodos');
     }
 
-    public function puedeGestionarPeriodos()
+    public function puedeVerPeriodos()
     {
-        return auth()->user()->can('gestionar periodos');
+        $user = auth()->user();
+
+        // Super Admin y Administrador pueden ver todos
+        if ($user->hasRole(['Super Admin', 'Administrador'])) {
+            return true;
+        }
+
+        // Director o Docente de Apoyo: verificar asignaciones con ContextualAuth
+        $hasDirectorAssignments = ContextualAuth::getCarrerasAsDirector($user)->isNotEmpty();
+        $hasApoyoAssignments = ContextualAuth::getCarrerasAsApoyo($user)->isNotEmpty();
+        
+        return $hasDirectorAssignments || $hasApoyoAssignments;
     }
 
     public function render()
     {
-        if (!$this->puedeGestionarPeriodos()) {
+        if (!$this->puedeVerPeriodos()) {
             session()->flash('error', 'No tienes permisos para ver los períodos.');
-            return redirect()->route('dashboard');
+            abort(403);
         }
 
+        $user = auth()->user();
         $keyWord = '%' . $this->keyWord . '%';
-        return view('livewire.periodos.view', [
-            'periodos' => Periodo::latest()
+
+        // Super Admin y Administrador ven todos los períodos
+        if ($user->hasRole(['Super Admin', 'Administrador'])) {
+            $periodos = Periodo::latest()
                 ->where('codigo_periodo', 'LIKE', $keyWord)
                 ->orWhere('descripcion', 'LIKE', $keyWord)
                 ->orWhere('fecha_inicio', 'LIKE', $keyWord)
                 ->orWhere('fecha_fin', 'LIKE', $keyWord)
-                ->paginate(10),
+                ->paginate(10);
+        } 
+        // Director o Docente de Apoyo: solo ven períodos donde tienen asignaciones
+        else {
+            // Obtener períodos como Director
+            $periodosDirector = ContextualAuth::getCarrerasAsDirector($user)
+                ->pluck('periodo_id')
+                ->unique();
+                
+            // Obtener períodos como Docente de Apoyo
+            $periodosApoyo = ContextualAuth::getCarrerasAsApoyo($user)
+                ->pluck('periodo_id')
+                ->unique();
+            
+            // Combinar ambos conjuntos
+            $periodosIds = $periodosDirector->merge($periodosApoyo)->unique();
+
+            $periodos = Periodo::whereIn('id', $periodosIds)
+                ->latest()
+                ->where(function($query) use ($keyWord) {
+                    $query->where('codigo_periodo', 'LIKE', $keyWord)
+                        ->orWhere('descripcion', 'LIKE', $keyWord)
+                        ->orWhere('fecha_inicio', 'LIKE', $keyWord)
+                        ->orWhere('fecha_fin', 'LIKE', $keyWord);
+                })
+                ->paginate(10);
+        }        return view('livewire.periodos.view', [
+            'periodos' => $periodos,
         ]);
     }
 
     public function open($periodoID)
     {
-        if (!$this->puedeGestionarPeriodos()) {
-            session()->flash('error', 'No tienes permisos para ver los detalles del período.');
-            return redirect()->route('dashboard');
+        $user = auth()->user();
+        
+        // Verificar si puede acceder al período específico
+        if ($user->hasRole(['Super Admin', 'Administrador'])) {
+            return redirect()->route('periodos.profile', $periodoID);
+        }
+        
+        // Director o Docente de Apoyo: verificar acceso contextual
+        $canAccessAsDirector = ContextualAuth::getCarrerasAsDirector($user)
+            ->where('periodo_id', $periodoID)
+            ->isNotEmpty();
+            
+        $canAccessAsApoyo = ContextualAuth::getCarrerasAsApoyo($user)
+            ->where('periodo_id', $periodoID)
+            ->isNotEmpty();
+        
+        if ($canAccessAsDirector || $canAccessAsApoyo) {
+            return redirect()->route('periodos.profile', $periodoID);
         }
 
-        return redirect()->route('periodos.profile', $periodoID);
-    }
-
-    public function cancel()
+        session()->flash('error', 'No tienes acceso a este período.');
+    }    public function cancel()
     {
         $this->resetInput();
     }

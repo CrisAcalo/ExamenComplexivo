@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Helpers\ContextualAuth;
 use App\Models\CalificadorGeneralCarreraPeriodo;
 use App\Models\PlanEvaluacion;
 use App\Models\User;
@@ -31,31 +32,18 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true; // Admin puede para cualquiera
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
 
         // Gate para CRUD de tribunales (contextual)
-        // Podrías necesitar Gates más granulares: 'crear-tribunal-en-carrera-periodo', 'eliminar-tribunal-de-carrera-periodo'
         Gate::define('gestionar-tribunales-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
-            // Usaremos permisos más granulares como 'crear tribunales', 'eliminar tribunales'
-            // Este Gate podría ser para ver el listado o acceder a la sección
             if ($user->hasPermissionTo('ver listado tribunales')) { // O un permiso más genérico
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -63,7 +51,7 @@ class AuthServiceProvider extends ServiceProvider
         // Gate para ver los detalles de un tribunal específico donde el usuario es miembro
         Gate::define('ver-detalles-este-tribunal', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('ver detalles mi tribunal')) {
-                return $tribunal->miembrosTribunales()->where('user_id', $user->id)->exists();
+                return ContextualAuth::isMemberOfTribunal($user, $tribunal->id);
             }
             return false;
         });
@@ -73,20 +61,22 @@ class AuthServiceProvider extends ServiceProvider
             // Verificar permisos base de calificación
             if ($user->hasPermissionTo('calificar mi tribunal') || $user->hasPermissionTo('calificar en tribunal')) {
                 // Verificar si es miembro de ESTE tribunal
-                $esMiembroTribunal = $tribunal->miembrosTribunales()->where('user_id', $user->id)->exists();
-                if ($esMiembroTribunal) {
+                if (ContextualAuth::isMemberOfTribunal($user, $tribunal->id)) {
                     return true;
                 }
 
                 // Verificar si tiene asignaciones de calificación en el plan de evaluación de este tribunal
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
-                    $esDirector = $carreraPeriodo->director_id === $user->id;
-                    $esApoyo = $carreraPeriodo->docente_apoyo_id === $user->id;
+                    if (ContextualAuth::isDirectorOf($user, $carreraPeriodo->id) ||
+                        ContextualAuth::isApoyoOf($user, $carreraPeriodo->id)) {
+                        return true;
+                    }
+
                     $esCalificadorGeneral = CalificadorGeneralCarreraPeriodo::where('carrera_periodo_id', $tribunal->carrera_periodo_id)
                         ->where('user_id', $user->id)->exists();
 
-                    if ($esDirector || $esApoyo || $esCalificadorGeneral) {
+                    if ($esCalificadorGeneral) {
                         return true;
                     }
                 }
@@ -97,11 +87,7 @@ class AuthServiceProvider extends ServiceProvider
         // Gate para que el Presidente edite datos básicos de SU tribunal
         Gate::define('editar-datos-basicos-este-tribunal-como-presidente', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('editar datos basicos mi tribunal (presidente)')) {
-                return $tribunal->miembrosTribunales()
-                    ->where('user_id', $user->id)
-                    ->where('status', 'PRESIDENTE')
-                    ->exists();
-                // Aquí podrías añadir lógica de si el tribunal está "abierto para edición"
+                return ContextualAuth::isPresidentOfTribunal($user, $tribunal->id);
             }
             return false;
         });
@@ -109,10 +95,7 @@ class AuthServiceProvider extends ServiceProvider
         // Gate para que el Presidente exporte el acta de SU tribunal
         Gate::define('exportar-acta-este-tribunal-como-presidente', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('exportar acta mi tribunal (presidente)')) {
-                return $tribunal->miembrosTribunales()
-                    ->where('user_id', $user->id)
-                    ->where('status', 'PRESIDENTE')
-                    ->exists();
+                return ContextualAuth::isPresidentOfTribunal($user, $tribunal->id);
             }
             return false;
         });
@@ -185,24 +168,18 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                $carreraPeriodo = $tribunal->carreraPeriodo; // Asegúrate que la relación exista y se cargue
+                $carreraPeriodo = $tribunal->carreraPeriodo;
                 if ($carreraPeriodo) {
-                    if (($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) ||
-                        ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id)
-                    ) {
-                        return true;
-                    }
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
                 }
             }
             return false;
         });
 
         Gate::define('gestionar-calificadores-generales', function (User $user, CarrerasPeriodo $carreraPeriodo) {
-            if ($user->hasPermissionTo('configurar plan evaluacion')) { // O un permiso más específico
+            if ($user->hasPermissionTo('configurar plan evaluacion')) {
                 if ($user->hasRole('Administrador')) return true;
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) return true;
-                // Docente de Apoyo también puede gestionar calificadores generales
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) return true;
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -213,12 +190,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -228,12 +200,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -244,12 +211,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -259,10 +221,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                // Docente de Apoyo NO puede asignar rúbricas según el seeder
+                return ContextualAuth::isDirectorOf($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -273,12 +232,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -290,12 +244,7 @@ class AuthServiceProvider extends ServiceProvider
                 }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
-                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                        return true;
-                    }
-                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                        return true;
-                    }
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
                 }
             }
             return false;
@@ -308,12 +257,7 @@ class AuthServiceProvider extends ServiceProvider
                 }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
-                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                        return true;
-                    }
-                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                        return true;
-                    }
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
                 }
             }
             return false;
@@ -326,12 +270,7 @@ class AuthServiceProvider extends ServiceProvider
                 }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
-                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                        return true;
-                    }
-                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                        return true;
-                    }
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
                 }
             }
             return false;
@@ -344,12 +283,7 @@ class AuthServiceProvider extends ServiceProvider
                 }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
-                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                        return true;
-                    }
-                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                        return true;
-                    }
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
                 }
             }
             return false;
@@ -361,12 +295,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -376,12 +305,7 @@ class AuthServiceProvider extends ServiceProvider
                 if ($user->hasRole('Administrador')) {
                     return true;
                 }
-                if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                    return true;
-                }
-                if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                    return true;
-                }
+                return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
         });
@@ -394,12 +318,7 @@ class AuthServiceProvider extends ServiceProvider
                 }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
-                    if ($user->hasRole('Director de Carrera') && $carreraPeriodo->director_id === $user->id) {
-                        return true;
-                    }
-                    if ($user->hasRole('Docente de Apoyo') && $carreraPeriodo->docente_apoyo_id === $user->id) {
-                        return true;
-                    }
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
                 }
             }
             return false;

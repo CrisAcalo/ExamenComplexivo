@@ -76,8 +76,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/edit/{id}', [RubricaController::class, 'edit'])->name('edit');
     });
 
-    // === PERÍODOS (Super Admin y Administrador) ===
-    Route::middleware(['permission:gestionar periodos'])->prefix('periodos')->namespace('Periodos')->name('periodos.')->group(function () {
+    // === PERÍODOS (Verificación contextual en componentes) ===
+    Route::prefix('periodos')->namespace('Periodos')->name('periodos.')->group(function () {
+        // Lista de períodos - verificación contextual en el componente (Super Admin, Administrador, Director, Apoyo)
         Route::view('/', 'livewire.periodos.index');
         // Profile de período - verificación contextual en el controlador
         Route::get('/{id}', [PeriodoController::class, 'show'])->name('profile');

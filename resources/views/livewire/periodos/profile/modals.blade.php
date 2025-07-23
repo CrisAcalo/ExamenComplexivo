@@ -1,3 +1,8 @@
+@php
+    $user = auth()->user();
+    $canManageCarrerasPeriodos = $user->hasRole(['Super Admin', 'Administrador']) && $user->hasPermissionTo('asignar carrera a periodo');
+@endphp
+@if($canManageCarrerasPeriodos)
 <div wire:ignore.self class="modal fade" id="createDataModal" data-bs-backdrop="static" tabindex="-1" role="dialog"
     aria-labelledby="createDataModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -152,3 +157,4 @@
         @endif
     </div>
 </div>
+@endif

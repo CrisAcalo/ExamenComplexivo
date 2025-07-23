@@ -8,6 +8,8 @@ use App\Models\ComponenteRubrica;
 use App\Models\CriterioComponente;
 use App\Models\CalificacionCriterio;
 use Illuminate\Support\Facades\DB; // Importar DB para transacciones
+use Illuminate\Support\Facades\Gate;
+use App\Helpers\ContextualAuth;
 
 class Create extends Component
 {
@@ -55,6 +57,9 @@ class Create extends Component
 
     public function mount($rubricaId = null)
     {
+        // Verificar permisos para gestionar rúbricas
+        $this->verificarAccesoCreacionRubricas();
+
         $this->rubricaId = $rubricaId;
 
         if ($this->rubricaId) {
@@ -412,6 +417,28 @@ class Create extends Component
 
         session()->flash('success', $this->modoEdicion ? 'Rúbrica actualizada exitosamente.' : 'Rúbrica creada exitosamente.');
         return redirect()->route('rubricas.');
+    }
+
+    /**
+     * Verificar acceso para crear/editar rúbricas usando ContextualAuth
+     */
+    private function verificarAccesoCreacionRubricas()
+    {
+        $user = auth()->user();
+
+        // Verificar si tiene permisos globales para gestionar rúbricas
+        if (Gate::allows('gestionar rubricas')) {
+            return true;
+        }
+
+        // Verificar si es Director o Docente de Apoyo con permisos contextuales
+        $userContext = ContextualAuth::getUserContextInfo($user);
+        if (($userContext['carreras_director']->isNotEmpty() || $userContext['carreras_apoyo']->isNotEmpty()) &&
+            Gate::allows('ver rubricas')) {
+            return true;
+        }
+
+        abort(403, 'No tienes permisos para crear o editar rúbricas.');
     }
 
     public function render()

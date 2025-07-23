@@ -175,21 +175,22 @@
                         <span class="text-muted">Calificar Tribunal</span>
                     @endif
                 </div>
-                @if ($tribunal && $puedeVerBotonActa)
-                    {{-- Usar la propiedad del componente --}}
-                    <div>
-                        <button wire:click="exportarActa" class="btn btn-danger" wire:loading.attr="disabled"
-                            wire:target="exportarActa">
-                            <span wire:loading wire:target="exportarActa" class="spinner-border spinner-border-sm"
-                                role="status" aria-hidden="true"></span>
-                            <i class="bi bi-file-earmark-pdf-fill" wire:loading.remove wire:target="exportarActa"></i>
-                            Generar Acta
-                        </button>
-                    </div>
-                @endif
             </div>
 
             @include('partials.alerts')
+
+            {{-- Mostrar información del tipo de asignación del usuario --}}
+            @if ($tribunal && $tipoAsignacionUsuario && $tipoAsignacionUsuario['puede_calificar'])
+                <div class="alert alert-info d-flex align-items-center mb-4">
+                    <i class="bi bi-person-check-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Tu rol en este tribunal:</strong> {{ $tipoAsignacionUsuario['descripcion'] }}
+                        @if(!empty($tipoAsignacionUsuario['detalle']))
+                            <br><small class="text-muted">{{ $tipoAsignacionUsuario['detalle'] }}</small>
+                        @endif
+                    </div>
+                </div>
+            @endif
 
             {{-- Mostrar estado del tribunal --}}
             @if ($tribunal && $tribunal->estado === 'CERRADO')

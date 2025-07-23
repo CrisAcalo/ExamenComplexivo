@@ -134,13 +134,10 @@
                                 {{-- Modales para el detalle de cada rúbrica por calificador --}}
                                 @foreach ($resumenNotasCalculadas as $itemPlanId => $itemResumen)
                                     @if ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR' && isset($detalleRubricasParaModal[$itemPlanId]))
-                                        @include(
-                                            'livewire.tribunales.profile.modal-detalle-rubrica',
-                                            [
-                                                'itemPlanId' => $itemPlanId,
-                                                'detalleItemRubrica' => $detalleRubricasParaModal[$itemPlanId], // Pasar el nuevo dato
-                                            ]
-                                        )
+                                        @include('livewire.tribunales.profile.modal-detalle-rubrica', [
+                                            'itemPlanId' => $itemPlanId,
+                                            'detalleItemRubrica' => $detalleRubricasParaModal[$itemPlanId], // Pasar el nuevo dato
+                                        ])
                                     @endif
                                 @endforeach
                             @endif
@@ -253,4 +250,5 @@
                 });
             </script>
         @endpush
+
     </div>

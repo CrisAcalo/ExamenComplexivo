@@ -115,6 +115,7 @@ class RoleSeeder extends Seeder
         $superAdminRole->givePermissionTo(Permission::all());
 
         // === ADMINISTRADOR (Operativo) ===
+        // Tiene permisos globales para gestionar todo el sistema
         $adminRole->givePermissionTo([
             // Sistema y administración
             'gestionar usuarios',
@@ -124,10 +125,16 @@ class RoleSeeder extends Seeder
 
             // Estructura académica
             'gestionar periodos',
+            'gestionar periodos:crear',
+            'gestionar periodos:editar',
+            'gestionar periodos:eliminar',
+            'gestionar periodos:ver',
             'gestionar carreras',
             'gestionar departamentos',
             'asignar carrera a periodo',
+            'ingresar asignacion carrera-periodo',
             'editar asignacion carrera-periodo',
+            'eliminar asignacion carrera-periodo',
 
             // Estudiantes
             'gestionar estudiantes',
@@ -144,6 +151,7 @@ class RoleSeeder extends Seeder
             // Plan de evaluación
             'configurar plan evaluacion',
             'ver plan evaluacion',
+            'asignar docentes calificadores generales',
 
             // Tribunales
             'crear tribunales',
@@ -155,6 +163,7 @@ class RoleSeeder extends Seeder
 
             // Calificaciones y reportes
             'ver todas las calificaciones de un tribunal',
+            'calificar en tribunal',
             'exportar calificaciones',
             'ver resumenes y reportes academicos',
             'exportar reportes',
@@ -167,91 +176,73 @@ class RoleSeeder extends Seeder
         ]);
 
         // === DIRECTOR DE CARRERA ===
-        // Permisos contextuales - solo para SUS carreras-períodos asignados
+        // Permisos básicos + contextuales (manejados por ContextualAuth)
+        // Los permisos contextuales (gestionar estudiantes, rúbricas, etc.)
+        // se verifican dinámicamente según la asignación en carreras_periodos
         $directorRole->givePermissionTo([
-            // Estudiantes (de sus carreras-períodos)
-            'ver listado estudiantes',
-            'importar estudiantes',
-            'exportar estudiantes',
+            // Permisos base para ver/gestionar contenido (contextuales)
+            'ver listado estudiantes',      // ContextualAuth verifica si es director de esa carrera-período
+            'gestionar estudiantes',        // ContextualAuth verifica acceso
+            'importar estudiantes',         // ContextualAuth verifica acceso
+            'ver rubricas',                 // ContextualAuth verifica acceso
+            'gestionar rubricas',           // ContextualAuth verifica acceso
+            'asignar rubricas a carrera-periodo', // ContextualAuth verifica acceso
+            'configurar plan evaluacion',   // ContextualAuth verifica acceso
+            'ver plan evaluacion',          // ContextualAuth verifica acceso
+            'asignar docentes calificadores generales', // ContextualAuth verifica acceso
+            'crear tribunales',             // ContextualAuth verifica acceso
+            'editar tribunales',            // ContextualAuth verifica acceso
+            'eliminar tribunales',          // ContextualAuth verifica acceso
+            'ver listado tribunales',       // ContextualAuth verifica acceso
+            'gestionar estado tribunales',  // ContextualAuth verifica acceso
+            'asignar miembros tribunales',  // ContextualAuth verifica acceso
+            'ver todas las calificaciones de un tribunal', // ContextualAuth verifica acceso
+            'exportar calificaciones',     // ContextualAuth verifica acceso
+            'ver resumenes y reportes academicos', // ContextualAuth verifica acceso
+            'exportar reportes',           // ContextualAuth verifica acceso
+            'ver estadisticas carrera-periodo', // ContextualAuth verifica acceso
 
-            // Rúbricas (de sus carreras-períodos)
-            'ver rubricas',
-            'asignar rubricas a carrera-periodo',
-
-            // Plan de evaluación (de sus carreras-períodos)
-            'configurar plan evaluacion',
-            'ver plan evaluacion',
-
-            'gestionar periodos:ver',
-            'gestionar departamentos',
-
-            'gestionar plantillas rubricas',        // CRUD de plantillas de rúbricas
-            'gestionar rubricas',                   // CRUD de rúbricas específicas
-            'asignar rubricas a carrera-periodo',   // Asignar rúbricas a una carrera-periodo
-            'ver rubricas',
-
-            // Tribunales (de sus carreras-períodos)
-            'crear tribunales',
-            'editar tribunales',
-            'eliminar tribunales',
-            'ver listado tribunales',
-            'gestionar estado tribunales',
-            'asignar miembros tribunales',
-
-            // Calificaciones y reportes (de sus carreras-períodos)
-            'ver todas las calificaciones de un tribunal',
-            'exportar calificaciones',
-            'ver resumenes y reportes academicos',
-            'exportar reportes',
-            'ver estadisticas carrera-periodo',
-            'gestionar actas tribunales',
-
-            // También puede ser miembro/presidente de tribunal
+            // Permisos básicos de tribunal (cuando es miembro)
             'ver detalles mi tribunal',
             'calificar mi tribunal',
             'subir evidencia mi tribunal',
+            'calificar en tribunal',
             'editar datos basicos mi tribunal (presidente)',
             'exportar acta mi tribunal (presidente)',
-            'calificar en tribunal',
         ]);
 
         // === DOCENTE DE APOYO ===
-        // Permisos similares al Director pero contextuales a SUS carreras-períodos
+        // Similar al Director pero con menos permisos administrativos
+        // Los permisos contextuales se verifican dinámicamente
         $apoyoRole->givePermissionTo([
-            // Estudiantes (de sus carreras-períodos)
-            'ver listado estudiantes',
-            'importar estudiantes',
-            'exportar estudiantes',
+            // Permisos base para ver/gestionar contenido (contextuales)
+            'ver listado estudiantes',      // ContextualAuth verifica acceso
+            'gestionar estudiantes',        // ContextualAuth verifica acceso
+            'importar estudiantes',         // ContextualAuth verifica acceso
+            'ver rubricas',                 // ContextualAuth verifica acceso
+            'gestionar rubricas',           // ContextualAuth verifica acceso
+            'configurar plan evaluacion',   // ContextualAuth verifica acceso
+            'ver plan evaluacion',          // ContextualAuth verifica acceso
+            'asignar docentes calificadores generales', // ContextualAuth verifica acceso
+            'crear tribunales',             // ContextualAuth verifica acceso
+            'editar tribunales',            // ContextualAuth verifica acceso
+            'eliminar tribunales',          // ContextualAuth verifica acceso
+            'ver listado tribunales',       // ContextualAuth verifica acceso
+            'gestionar estado tribunales',  // ContextualAuth verifica acceso
+            'asignar miembros tribunales',  // ContextualAuth verifica acceso
+            'ver todas las calificaciones de un tribunal', // ContextualAuth verifica acceso
+            'exportar calificaciones',     // ContextualAuth verifica acceso
+            'ver resumenes y reportes academicos', // ContextualAuth verifica acceso
+            'exportar reportes',           // ContextualAuth verifica acceso
+            'ver estadisticas carrera-periodo', // ContextualAuth verifica acceso
 
-            // Rúbricas (de sus carreras-períodos)
-            'ver rubricas',
-
-            // Plan de evaluación (de sus carreras-períodos)
-            'configurar plan evaluacion',
-            'ver plan evaluacion',
-
-            // Tribunales (de sus carreras-períodos)
-            'crear tribunales',
-            'editar tribunales',
-            'eliminar tribunales',
-            'ver listado tribunales',
-            'gestionar estado tribunales',
-            'asignar miembros tribunales',
-
-            // Calificaciones y reportes (de sus carreras-períodos)
-            'ver todas las calificaciones de un tribunal',
-            'exportar calificaciones',
-            'ver resumenes y reportes academicos',
-            'exportar reportes',
-            'ver estadisticas carrera-periodo',
-
-            // También puede ser miembro/presidente de tribunal
+            // Permisos básicos de tribunal (cuando es miembro)
             'ver detalles mi tribunal',
             'calificar mi tribunal',
             'subir evidencia mi tribunal',
+            'calificar en tribunal',
             'editar datos basicos mi tribunal (presidente)',
             'exportar acta mi tribunal (presidente)',
-            'calificar en tribunal',
         ]);
 
         // === DOCENTE ===
