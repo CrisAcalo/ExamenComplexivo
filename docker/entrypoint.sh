@@ -14,6 +14,8 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan migrate --force
+php artisan db:seed
+php artisan storage:link
 
 echo "✅ Laravel listo. Iniciando PHP-FPM..."
 exec php-fpm
