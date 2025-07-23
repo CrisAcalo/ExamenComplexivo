@@ -31,7 +31,9 @@ Route::get('/', function () {
 })->middleware('auth');
 
 
-Auth::routes();
+//inhabilitar registro
+Auth::routes(['register' => false]);
+// Auth::routes();
 
 Route::impersonate();
 

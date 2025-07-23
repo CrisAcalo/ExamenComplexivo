@@ -75,7 +75,65 @@
         --hospital-green: #0d6efd;
         --sm: 14px;
         --md: 16px;
-        --lg: 18px:
+        --lg: 18px;
+
+        /* Variables de Bootstrap personalizadas */
+        /* Color info original: #0dcaf0 - Nuevo color más oscuro */
+        --bs-info: #0ea5e9;
+        --bs-info-rgb: 14, 165, 233;
+
+        /* Variables completas para todos los elementos info */
+        --bs-info-bg-subtle: rgba(14, 165, 233, 0.125);
+        --bs-info-border-subtle: rgba(14, 165, 233, 0.375);
+        --bs-info-text-emphasis: #0369a1;
+
+        /* Variables para botones y badges */
+        --bs-btn-color: #fff;
+        --bs-btn-bg: #0ea5e9;
+        --bs-btn-border-color: #0ea5e9;
+        --bs-btn-hover-color: #fff;
+        --bs-btn-hover-bg: #0284c7;
+        --bs-btn-hover-border-color: #0284c7;
+        --bs-btn-focus-shadow-rgb: 14, 165, 233;
+        --bs-btn-active-color: #fff;
+        --bs-btn-active-bg: #0369a1;
+        --bs-btn-active-border-color: #0369a1;
+        --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+        --bs-btn-disabled-color: #fff;
+        --bs-btn-disabled-bg: #0ea5e9;
+        --bs-btn-disabled-border-color: #0ea5e9;
+    }
+
+    /* Sobrescribir clases específicas de Bootstrap para color info */
+    .bg-info {
+        background-color: #0ea5e9 !important;
+    }
+
+    .badge.bg-info {
+        background-color: #0ea5e9 !important;
+        color: #fff !important;
+    }
+
+    .btn-info {
+        background-color: #0ea5e9 !important;
+        border-color: #0ea5e9 !important;
+        color: #fff !important;
+    }
+
+    .btn-info:hover {
+        background-color: #0284c7 !important;
+        border-color: #0284c7 !important;
+        color: #fff !important;
+    }
+
+    .text-info {
+        color: #0ea5e9 !important;
+    }
+
+    .alert-info {
+        background-color: rgba(14, 165, 233, 0.125) !important;
+        border-color: rgba(14, 165, 233, 0.375) !important;
+        color: #0369a1 !important;
     }
 
     * {

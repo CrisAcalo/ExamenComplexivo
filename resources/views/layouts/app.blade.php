@@ -27,13 +27,19 @@
     {{-- @vite(['resources/js/app.js']) --}}
     @livewireStyles
     <style>
+        /* Estilos globales para el sistema */
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #f8f9fa;
+        }
+
         .contentImagePrincipalContainer {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            max-height: 100vh;
+            /* max-height: calc(100vh - 70px); */
             z-index: 0;
         }
 
@@ -41,119 +47,169 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: opacity(1);
+            filter: brightness(0.85) contrast(1.1);
         }
 
-        /* Mejoras para Choices.js */
-        .choices {
-            margin-bottom: 0;
+        /* Estilos mejorados para la navegación */
+        .navbar {
+            background: linear-gradient(135deg, rgba(68, 68, 68, 0.356) 0%, rgba(255, 255, 255, 0.534) 100%) !important;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            height: 70px;
         }
 
-        .choices__inner {
-            min-height: 38px;
-            padding: 7px 7.5px 3.75px;
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            background-color: #fff;
-            font-size: 1rem;
+        .navbar-brand {
+            font-weight: 700;
+            color: #fff !important;
         }
 
-        .choices__inner:focus {
+        .nav-link {
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 0.5rem;
+            margin: 0 0.25rem;
+            padding: 0.5rem 1rem !important;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 0.75rem;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .dropdown-item {
+            border-radius: 0.5rem;
+            margin: 0.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+
+        /* Mejoras generales para formularios */
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
             border-color: #86b7fe;
-            outline: 0;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
 
-        .choices__list--dropdown {
-            z-index: 1050; /* Para que aparezca sobre modales */
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
+        .btn {
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
 
-        .choices__item--selectable {
-            padding: 12px;
+        .btn:hover {
+            transform: translateY(-2px);
         }
 
-        .choices__item--selectable:hover {
-            background-color: #0d6efd;
-            color: white;
+        .btn:active {
+            transform: translateY(0);
         }
 
-        .choices__placeholder {
-            color: #6c757d;
+        /* Cards mejorados */
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+            border: none;
+            transition: all 0.3s ease;
         }
 
-        .choices.is-invalid .choices__inner {
-            border-color: #dc3545;
+        .card:hover {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.12);
         }
 
-        .choices.is-invalid .choices__inner:focus {
-            border-color: #dc3545;
-            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+        /* Animaciones sutiles */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
         }
 
-        /* Asegurar que los floating labels funcionen con Choices.js */
-        .form-floating > .choices {
-            height: calc(3.5rem + 2px);
-            padding: 0;
-        }
-
-        .form-floating > .choices .choices__inner {
-            height: calc(3.5rem + 2px);
-            padding: 1rem 0.75rem;
-            border-radius: 0.375rem;
-        }
-
-        .form-floating > label {
-            z-index: 2;
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 
 <body>
     <div id="app" style="background:#ffffff;">
-        <nav class="navbar fixed-top navbar-expand-md navbar-light shadow-sm text-light"
-            style="background:#444444d8;backdrop-filter:blur(5px);">
-            <div class="container" style="height:60px;">
-                <div class="col-md-4 text-center" style='width:15%'>
-                    <img src="{{ Storage::url('iconos/logo.png') }}" alt="Image"
-                        style="width:100%;height:100px;object-fit:contain">
+        <nav class="navbar fixed-top navbar-expand-md navbar-light shadow-sm">
+            <div class="container" style="height:70px;">
+                <!-- Logo y Brand -->
+                <div class="navbar-brand d-flex align-items-center">
+                    {{-- <img src="{{ Storage::url('logos/LOGO-ESPE_500.png') }}" alt="ESPE Logo"
+                        style="width:150px;object-fit:contain;margin-right:12px;"> --}}
+                    <div class="d-none d-md-block">
+                        <div class="fw-bold text-white" style="font-size: 1.1rem;">Sistema Examen Complexivo</div>
+                        <small class="text-light opacity-75">Universidad de las Fuerzas Armadas ESPE</small>
+                    </div>
                 </div>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                     aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
-                    <span class="navbar-toggler-icon"></span>
+                    <i class="bi bi-list text-white fs-4"></i>
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
-
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
                         <!-- Authentication Links -->
                         @guest
                             @if (Route::has('login'))
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="{{ route('login') }}">{{ __('Login') }}</a>
+                                    <a class="nav-link text-light d-flex align-items-center" href="{{ route('login') }}">
+                                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                                        {{ __('Iniciar Sesión') }}
+                                    </a>
                                 </li>
                             @endif
 
                             @if (Route::has('register'))
                                 <li class="nav-item">
-                                    <a class="nav-link text-light" href="{{ route('register') }}">{{ __('Register') }}</a>
+                                    <a class="nav-link text-light d-flex align-items-center" href="{{ route('register') }}">
+                                        <i class="bi bi-person-plus me-2"></i>
+                                        {{ __('Registrarse') }}
+                                    </a>
                                 </li>
                             @endif
                         @else
                             <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button"
-                                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                    {{ Auth::user()->name }}
+                                <a id="navbarDropdown" class="nav-link dropdown-toggle text-light d-flex align-items-center"
+                                   href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                    <i class="bi bi-person-circle me-2 fs-5"></i>
+                                    <span class="fw-semibold">{{ Auth::user()->name }}</span>
                                 </a>
 
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
-                                        onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                        {{ __('Logout') }}
+                                <div class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="navbarDropdown">
+                                    <div class="dropdown-header px-3 py-2">
+                                        <small class="text-muted">Sesión activa</small>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item d-flex align-items-center" href="{{ route('logout') }}"
+                                        onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                        <i class="bi bi-box-arrow-right me-2 text-danger"></i>
+                                        {{ __('Cerrar Sesión') }}
                                     </a>
 
                                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -167,9 +223,9 @@
             </div>
         </nav>
         <div class="contentImagePrincipalContainer">
-            <img class="" src="{{ Storage::url('fondos/002-Cotopaxi.jpg') }}" alt="">
+            <img class="" src="{{ Storage::url('fondos/002-Cotopaxi.jpg') }}" alt="Fondo Ecuador">
         </div>
-        <main class="p-0 principalContentLogin m-0">
+        <main class="p-0 m-0 fade-in">
             @yield('content')
         </main>
     </div>

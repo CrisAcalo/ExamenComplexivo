@@ -179,7 +179,7 @@ class TribunalProfile extends Component
         if ($user->hasRole('Super Admin')) {
             $this->usuarioPuedeEditarDatosTribunal = true;
             $this->usuarioPuedeVerTodasLasCalificaciones = true;
-            $this->usuarioPuedeExportarActa = true;
+            $this->usuarioPuedeExportarActa = $this->tribunal->estado === 'CERRADO'; // Solo si está cerrado
             return;
         }
 
@@ -187,7 +187,7 @@ class TribunalProfile extends Component
         if ($user->hasRole('Administrador')) {
             $this->usuarioPuedeEditarDatosTribunal = false;
             $this->usuarioPuedeVerTodasLasCalificaciones = true;
-            $this->usuarioPuedeExportarActa = true; // Administradores pueden exportar actas para revisión
+            $this->usuarioPuedeExportarActa = $this->tribunal->estado === 'CERRADO'; // Solo si está cerrado
             return;
         }
 
@@ -201,12 +201,12 @@ class TribunalProfile extends Component
             // Director/Apoyo pueden editar datos, ver calificaciones y exportar actas
             $this->usuarioPuedeEditarDatosTribunal = true;
             $this->usuarioPuedeVerTodasLasCalificaciones = true;
-            $this->usuarioPuedeExportarActa = true;
+            $this->usuarioPuedeExportarActa = $this->tribunal->estado === 'CERRADO'; // Solo si está cerrado
         } elseif ($esMiembroTribunal) {
             // Miembros del tribunal no pueden editar datos básicos, pero pueden ver calificaciones y exportar acta
             $this->usuarioPuedeEditarDatosTribunal = false;
             $this->usuarioPuedeVerTodasLasCalificaciones = true;
-            $this->usuarioPuedeExportarActa = true;
+            $this->usuarioPuedeExportarActa = $this->tribunal->estado === 'CERRADO'; // Solo si está cerrado
         } else {
             // Sin acceso
             $this->usuarioPuedeEditarDatosTribunal = false;
@@ -389,6 +389,7 @@ class TribunalProfile extends Component
 
         session()->flash('success', 'Tribunal cerrado exitosamente. No se permitirán más modificaciones ni evaluaciones.');
         $this->loadAndPrepareTribunalData();
+        $this->checkUserPermissions(); // Recalcular permisos después del cambio de estado
         $this->dispatchBrowserEvent('showFlashMessage');
     }
 
@@ -422,6 +423,7 @@ class TribunalProfile extends Component
 
         session()->flash('success', 'Tribunal abierto exitosamente. Se permiten modificaciones y evaluaciones.');
         $this->loadAndPrepareTribunalData(); // Recargar datos
+        $this->checkUserPermissions(); // Recalcular permisos después del cambio de estado
         $this->dispatchBrowserEvent('showFlashMessage');
     }
 
@@ -758,6 +760,13 @@ class TribunalProfile extends Component
                 return;
             }
 
+            // Verificar que el tribunal esté cerrado
+            if ($this->tribunal->estado !== 'CERRADO') {
+                session()->flash('danger', 'El acta solo puede exportarse cuando el tribunal esté cerrado.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
             // Obtener datos necesarios para el PDF
             $tribunal = $this->tribunal;
             $planEvaluacionActivo = $this->planEvaluacionActivo;
@@ -839,58 +848,6 @@ class TribunalProfile extends Component
                 'usuario_id' => auth()->id(),
                 'trace' => $e->getTraceAsString()
             ]);
-        }
-    }
-
-    // Función de debugging para probar PDF básico
-    public function exportarActaSimple()
-    {
-        try {
-            $options = new Options();
-            $options->set('defaultFont', 'Arial');
-
-            $dompdf = new Dompdf($options);
-
-            $html = '
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Acta de Prueba</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    h1 { text-align: center; color: #333; }
-                    p { line-height: 1.5; }
-                </style>
-            </head>
-            <body>
-                <h1>ACTA DE CALIFICACIÓN - PRUEBA</h1>
-                <p><strong>Estudiante:</strong> ' . ($this->tribunal->estudiante->nombres_completos_id ?? 'N/A') . '</p>
-                <p><strong>Carrera:</strong> ' . ($this->tribunal->carrerasPeriodo->carrera->nombre ?? 'N/A') . '</p>
-                <p><strong>Fecha:</strong> ' . date('d/m/Y') . '</p>
-                <p>Esta es una prueba básica del generador de PDF.</p>
-            </body>
-            </html>';
-
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-
-            $nombreArchivo = "acta_prueba_" . date('Y-m-d_H-i-s') . ".pdf";
-            $pdfContent = $dompdf->output();
-            $tempPath = storage_path('app/temp/' . $nombreArchivo);
-
-            if (!file_exists(dirname($tempPath))) {
-                mkdir(dirname($tempPath), 0755, true);
-            }
-
-            file_put_contents($tempPath, $pdfContent);
-
-            session()->flash('info', 'PDF de prueba generado exitosamente.');
-            $this->dispatchBrowserEvent('showFlashMessage');
-            $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivo]);
-        } catch (\Exception $e) {
-            session()->flash('danger', 'Error en PDF de prueba: ' . $e->getMessage());
-            $this->dispatchBrowserEvent('showFlashMessage');
         }
     }
 

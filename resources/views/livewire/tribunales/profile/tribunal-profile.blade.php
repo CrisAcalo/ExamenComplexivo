@@ -186,29 +186,35 @@
                 {{-- SECCIÓN 4: ACTA --}}
                 @if ($usuarioPuedeExportarActa)
                     <div class="card mb-4 shadow-sm">
-                        {{-- ... (código del acta como lo tenías, sin cambios) ... --}}
                         <div class="card-header bg-light">
                             <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill text-danger"></i> Acta del Tribunal
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p>Aquí se podrá generar y exportar el acta oficial del tribunal una vez que todas las
-                                calificaciones estén completas y el proceso haya finalizado.</p>
+                            <p>El acta oficial del tribunal está disponible para exportación.</p>
                             <button class="btn btn-danger" wire:click="exportarActa" wire:loading.attr="disabled">
                                 <span wire:loading wire:target="exportarActa" class="spinner-border spinner-border-sm"
                                     role="status" aria-hidden="true"></span>
                                 <i class="bi bi-file-pdf-fill" wire:loading.remove wire:target="exportarActa"></i>
                                 Exportar Acta (PDF)
                             </button>
-
-                            {{-- Botón de prueba para debugging --}}
-                            {{-- <button class="btn btn-outline-secondary ms-2" wire:click="exportarActaSimple" wire:loading.attr="disabled">
-                                <span wire:loading wire:target="exportarActaSimple" class="spinner-border spinner-border-sm"
-                                    role="status" aria-hidden="true"></span>
-                                <i class="bi bi-file-pdf" wire:loading.remove wire:target="exportarActaSimple"></i>
-                                Prueba PDF Simple
-                            </button> --}}
-                            {{-- Futuro: Botón para "Cerrar/Finalizar Tribunal" --}}
+                        </div>
+                    </div>
+                @elseif($tribunal && $tribunal->estado !== 'CERRADO')
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill text-muted"></i> Acta del Tribunal
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info d-flex align-items-center" role="alert">
+                                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                                <div>
+                                    <strong>Acta no disponible</strong><br>
+                                    El acta oficial del tribunal estará disponible para exportación una vez que el tribunal sea cerrado oficialmente.
+                                    <br><small class="text-muted">Estado actual: <span class="badge bg-warning">{{ $tribunal->estado }}</span></small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 @endif
