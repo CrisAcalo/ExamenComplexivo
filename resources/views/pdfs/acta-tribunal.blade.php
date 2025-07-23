@@ -366,7 +366,7 @@
 
         {{-- Códigos de pie de página --}}
         <div class="footer-codes">
-            Código de documento: UDED-FOR-V3-2024-004<br>
+            Código de documento: {{ $tribunal->generarCodigoDocumento() }}<br>
             Código de proceso: GDOC-ATAD-5-3
         </div>
 
@@ -419,38 +419,31 @@
                         $notaEnLetras = 'INSUFICIENTE';
                     }
 
-                    $numeroEnLetras = '';
-                    $parteEntera = floor($notaFinalTotal);
-                    $parteDecimal = round(($notaFinalTotal - $parteEntera) * 100);
+                    // Función para convertir números a letras con formato PUNTO
+                    function numeroALetrasConPunto($numero) {
+                        $numeros = [
+                            0 => 'CERO', 1 => 'UNO', 2 => 'DOS', 3 => 'TRES', 4 => 'CUATRO',
+                            5 => 'CINCO', 6 => 'SEIS', 7 => 'SIETE', 8 => 'OCHO', 9 => 'NUEVE',
+                            10 => 'DIEZ', 11 => 'ONCE', 12 => 'DOCE', 13 => 'TRECE', 14 => 'CATORCE',
+                            15 => 'QUINCE', 16 => 'DIECISÉIS', 17 => 'DIECISIETE', 18 => 'DIECIOCHO',
+                            19 => 'DIECINUEVE', 20 => 'VEINTE'
+                        ];
 
-                    $numeros = [
-                        0 => 'CERO',
-                        1 => 'UNO',
-                        2 => 'DOS',
-                        3 => 'TRES',
-                        4 => 'CUATRO',
-                        5 => 'CINCO',
-                        6 => 'SEIS',
-                        7 => 'SIETE',
-                        8 => 'OCHO',
-                        9 => 'NUEVE',
-                        10 => 'DIEZ',
-                        11 => 'ONCE',
-                        12 => 'DOCE',
-                        13 => 'TRECE',
-                        14 => 'CATORCE',
-                        15 => 'QUINCE',
-                        16 => 'DIECISÉIS',
-                        17 => 'DIECISIETE',
-                        18 => 'DIECIOCHO',
-                        19 => 'DIECINUEVE',
-                        20 => 'VEINTE',
-                    ];
+                        $parteEntera = floor($numero);
+                        $parteDecimal = round(($numero - $parteEntera) * 100);
 
-                    $numeroEnLetras = $numeros[$parteEntera] ?? 'ERROR';
-                    if ($parteDecimal > 0) {
-                        $numeroEnLetras .= ' CON ' . str_pad($parteDecimal, 2, '0', STR_PAD_LEFT) . '/100';
+                        $textoEntera = $numeros[$parteEntera] ?? 'ERROR';
+
+                        // Siempre mostrar dos dígitos decimales
+                        $digitoDecenas = floor($parteDecimal / 10);
+                        $digitoUnidades = $parteDecimal % 10;
+
+                        $textoDecimal = $numeros[$digitoDecenas] . ' ' . $numeros[$digitoUnidades];
+
+                        return $textoEntera . ' PUNTO ' . $textoDecimal . ' (' . number_format($numero, 2) . ')';
                     }
+
+                    $numeroEnLetras = numeroALetrasConPunto($notaFinalTotal);
                 @endphp
 
                 <table class="final-table" style="margin-top: 40px; width: 75%; margin: 0 auto;">
@@ -481,7 +474,7 @@
                 <div class="approval-section" style="margin-top: 30px;">
                     <strong>NOTA FINAL (NÚMEROS Y LETRAS):</strong>
                     <span class="underline-field" style="min-width: 400px;">
-                        {{ $numeroEnLetras }} ({{ $notaEnLetras }})
+                        {{ $numeroEnLetras }}
                     </span>
                 </div>
 
@@ -550,7 +543,7 @@
                 </div>
             @endif
             <div class="footer-codes">
-                Código de documento: UDED-FOR-V3-2024-004<br>
+                Código de documento: {{ $tribunal->generarCodigoDocumento() }}<br>
                 Código de proceso: GDOC-ATAD-5-3
             </div>
 

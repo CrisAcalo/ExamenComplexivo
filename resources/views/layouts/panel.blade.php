@@ -636,6 +636,13 @@
         outline: none;
         box-shadow: none;
     }
+
+    .sidebar-logo{
+        width: 40%;
+        height: auto;
+        margin: 15px auto 15px;
+        border-radius: 5px;
+    }
 </style>
 
 <body>
@@ -647,6 +654,8 @@
                     class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none text-center">
                     <span class="fs-4">Sistema Examen Complexivo</span>
                 </a>
+
+                <img class="sidebar-logo" src="{{Storage::url('logos/LOGO-ITIN.png')}}"  alt="">
 
                 {{-- Mostrar rol del usuario --}}
                 <div class="text-center mb-2">
