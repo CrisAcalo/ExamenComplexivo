@@ -150,7 +150,7 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
 
             foreach ($carreras as $nombreCarrera) {
                 // Determinamos la modalidad
-                $modalidad = in_array($nombreCarrera, $carrerasVirtuales) ? 'En Línea' : 'Presencial';
+                $modalidad = in_array($nombreCarrera, $carrerasVirtuales) ? 'En línea' : 'Presencial';
 
                 Carrera::firstOrCreate(
                     ['codigo_carrera' => (string)$codigoCounter],

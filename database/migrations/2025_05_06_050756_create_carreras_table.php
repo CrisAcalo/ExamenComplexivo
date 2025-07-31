@@ -22,7 +22,7 @@ return new class extends Migration
             ->on('departamentos')
             ->onDelete('cascade');
             //modalidad
-            $table->enum('modalidad', ['Presencial', 'Virtual']);
+            $table->enum('modalidad', ['Presencial', 'En línea'])->default('Presencial');
             $table->string('sede', 100);
             $table->timestamps();
         });
