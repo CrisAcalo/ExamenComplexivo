@@ -75,7 +75,7 @@
     {{-- Fin Sección Plan de Evaluación --}}
 
 
-    {{-- NUEVA SECCIÓN: ASIGNACIÓN DE CALIFICADORES GENERALES --}}
+    {{-- SECCIÓN: ASIGNACIÓN DE CALIFICADORES GENERALES --}}
     @if ($puedeGestionar)
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-light">

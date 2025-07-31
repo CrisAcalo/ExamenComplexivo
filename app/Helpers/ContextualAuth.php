@@ -316,10 +316,7 @@ class ContextualAuth
             'has_assignments' => false
         ];
 
-        if (self::isSuperAdminOrAdmin($user)) {
-            $info['has_assignments'] = true;
-            return $info;
-        }
+        // SIEMPRE obtener asignaciones contextuales, independientemente del rol global
 
         // Asignaciones como Director
         $info['carreras_director'] = self::getCarrerasAsDirector($user);
@@ -337,7 +334,11 @@ class ContextualAuth
             ->with(['carreraPeriodo.carrera', 'carreraPeriodo.periodo'])
             ->get();
 
-        $info['has_assignments'] = $info['carreras_director']->isNotEmpty() ||
+        // Un usuario tiene asignaciones cuando:
+        // 1. Es Super Admin/Admin (acceso global) O
+        // 2. Tiene asignaciones contextuales específicas
+        $info['has_assignments'] = self::isSuperAdminOrAdmin($user) ||
+                                  $info['carreras_director']->isNotEmpty() ||
                                   $info['carreras_apoyo']->isNotEmpty() ||
                                   $info['tribunales']->isNotEmpty() ||
                                   $info['calificador_general']->isNotEmpty();

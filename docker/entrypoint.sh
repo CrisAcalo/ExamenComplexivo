@@ -14,7 +14,10 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan migrate --force
-php artisan db:seed
+# php artisan db:seed
+docker-compose exec app php artisan db:seed --class=RoleSeeder
+docker-compose exec app php artisan db:seed --class=InitialSeeder
+docker-compose exec app php artisan db:seed --class=RubricaSeeder
 php artisan storage:link
 
 echo "✅ Laravel listo. Iniciando PHP-FPM..."

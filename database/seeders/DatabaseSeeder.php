@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        // Ejecutar las seeds RoleSeeder,  InitialSeeder, RubricaSeeder
+        // Ejecutar las seeds RoleSeeder, InitialSeeder, RubricaSeeder
         $this->call([
             RoleSeeder::class,
             InitialSeeder::class,

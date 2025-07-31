@@ -23,6 +23,7 @@ class Profile extends Component
 
     public function mount($periodoId)
     {
+        $rolesExcluidosEdicion = ['Super Admin', 'Administrador'];
         $this->periodoId = $periodoId;
         $this->periodo = Periodo::find($this->periodoId);
 
@@ -30,7 +31,11 @@ class Profile extends Component
 
         $this->refreshCarrerasPeriodos();
         $this->carreras = Carrera::orderBy('nombre')->get();
-        $this->users = User::orderBy('name')->get();
+        // $this->users = User::orderBy('name')->get();
+        $this->users = User::whereDoesntHave('roles', function ($query) use ($rolesExcluidosEdicion) {
+            $query->whereIn('name', $rolesExcluidosEdicion);
+        })
+            ->orderBy('name')->get();
     }
 
     private function verificarAccesoAlPeriodo()

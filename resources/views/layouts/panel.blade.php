@@ -716,44 +716,88 @@
                 <img class="sidebar-logo" src="{{Storage::url('logos/LOGO-ITIN.png')}}"  alt="">
 
                 {{-- Mostrar rol del usuario --}}
+                @php
+                    use App\Helpers\ContextualAuth;
+
+                    // Obtener información contextual del usuario UNA SOLA VEZ
+                    $userContextInfo = ContextualAuth::getUserContextInfo(auth()->user());
+
+                    // Variables para roles contextuales
+                    $esDirectorCarrera = $userContextInfo['carreras_director']->isNotEmpty();
+                    $esDocenteApoyo = $userContextInfo['carreras_apoyo']->isNotEmpty();
+                    $esMiembroTribunal = $userContextInfo['tribunales']->isNotEmpty();
+                    $esCalificadorGeneral = $userContextInfo['calificador_general']->isNotEmpty();
+
+                    // Construir información de carreras asignadas
+                    $carrerasAsignadas = collect();
+
+                    // Agregar asignaciones como Director
+                    foreach ($userContextInfo['carreras_director'] as $carreraDirector) {
+                        $carrerasAsignadas->push([
+                            'texto' => $carreraDirector->carrera->nombre . ' - ' . $carreraDirector->periodo->codigo_periodo,
+                            'tipo' => 'Director',
+                        ]);
+                    }
+
+                    // Agregar asignaciones como Docente de Apoyo
+                    foreach ($userContextInfo['carreras_apoyo'] as $carreraApoyo) {
+                        $carrerasAsignadas->push([
+                            'texto' => $carreraApoyo->carrera->nombre . ' - ' . $carreraApoyo->periodo->codigo_periodo,
+                            'tipo' => 'Apoyo',
+                        ]);
+                    }
+
+                    // Asignaciones en tribunales
+                    $tribunalesAsignados = $userContextInfo['tribunales'];
+
+                    // Asignaciones como Calificador General
+                    $calificadorGeneralAsignaciones = $userContextInfo['calificador_general'];
+                @endphp
+
                 <div class="text-center mb-2">
                     <small class="text-muted">
-                        @php
-                            use App\Helpers\ContextualAuth;
+                        {{-- DEBUG: Mostrar información para verificar --}}
+                        @if(config('app.debug'))
+                            {{-- <div style="font-size: 10px; background: #333; padding: 5px; margin: 5px 0;">
+                                DEBUG: Dir=<?= $esDirectorCarrera ? 'Sí' : 'No' ?> |
+                                Apoyo=<?= $esDocenteApoyo ? 'Sí' : 'No' ?> |
+                                Calif=<?= $esCalificadorGeneral ? 'Sí' : 'No' ?> |
+                                Trib=<?= $esMiembroTribunal ? 'Sí' : 'No' ?>
+                            </div> --}}
+                        @endif
 
-                            // Obtener información contextual del usuario
-                            $userContext = ContextualAuth::getUserContextInfo(auth()->user());
-                            $esDirectorCarrera = $userContext['carreras_director']->isNotEmpty();
-                            $esDocenteApoyo = $userContext['carreras_apoyo']->isNotEmpty();
-                            $esMiembroTribunal = $userContext['tribunales']->isNotEmpty();
-                            $esCalificadorGeneral = $userContext['calificador_general']->isNotEmpty();
-                        @endphp
-
+                        {{-- SIEMPRE mostrar roles globales si los tiene --}}
                         @if (ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
                             @if (Auth::user()->roles->where('name', 'Super Admin')->isNotEmpty())
                                 <span class="badge bg-danger">Super Admin</span>
                             @else
                                 <span class="badge bg-warning text-dark">Administrador</span>
                             @endif
-                        @else
-                            {{-- Mostrar todas las asignaciones contextuales que apliquen --}}
-                            @if ($esDirectorCarrera)
-                                <span class="badge bg-success">Director de Carrera</span>
-                            @endif
-                            @if ($esDocenteApoyo)
-                                <span class="badge bg-info">Docente de Apoyo</span>
-                            @endif
-                            @if ($esCalificadorGeneral)
-                                <span class="badge bg-warning text-dark">Calificador General</span>
-                            @endif
-                            @if ($esMiembroTribunal)
-                                <span class="badge bg-primary">Miembro Tribunal</span>
-                            @endif
 
-                            {{-- Si no tiene asignaciones contextuales, mostrar rol base --}}
-                            @if (!$esDirectorCarrera && !$esDocenteApoyo && !$esCalificadorGeneral && !$esMiembroTribunal)
-                                <span class="badge bg-secondary">Docente</span>
+                            {{-- Si también tiene asignaciones contextuales, mostrar separador --}}
+                            @if ($esDirectorCarrera || $esDocenteApoyo || $esCalificadorGeneral || $esMiembroTribunal)
+                                <br><small class="text-light fw-bold">También:</small><br>
                             @endif
+                        @endif
+
+                        {{-- SIEMPRE mostrar asignaciones contextuales si las tiene --}}
+                        @if ($esDirectorCarrera)
+                            <span class="badge bg-success">Director de Carrera</span>
+                        @endif
+                        @if ($esDocenteApoyo)
+                            <span class="badge bg-info">Docente de Apoyo</span>
+                        @endif
+                        @if ($esCalificadorGeneral)
+                            <span class="badge bg-warning text-dark">Calificador General</span>
+                        @endif
+                        @if ($esMiembroTribunal)
+                            <span class="badge bg-primary">Miembro Tribunal</span>
+                        @endif
+
+                        {{-- Solo mostrar "Docente" si NO tiene roles globales NI asignaciones contextuales --}}
+                        @if (!ContextualAuth::isSuperAdminOrAdmin(Auth::user()) &&
+                             !$esDirectorCarrera && !$esDocenteApoyo && !$esCalificadorGeneral && !$esMiembroTribunal)
+                            <span class="badge bg-secondary">Docente</span>
                         @endif
                     </small>
                 </div>
@@ -762,14 +806,7 @@
 
                 <ul class="list-group nav nav-pills flex-column mb-auto list-unstyled ps-0">
                     @php
-                        // Verificar roles contextuales para el menú usando ContextualAuth
-                        $userContext = ContextualAuth::getUserContextInfo(auth()->user());
-                        $esDirectorCarrera = $userContext['carreras_director']->isNotEmpty();
-                        $esDocenteApoyo = $userContext['carreras_apoyo']->isNotEmpty();
-                        $esMiembroTribunal = $userContext['tribunales']->isNotEmpty();
-                        $esCalificadorGeneral = $userContext['calificador_general']->isNotEmpty();
-
-                        // Verificar permisos específicos
+                        // Verificar permisos específicos usando las variables ya definidas
                         $puedeGestionarPeriodos = Auth::user()->can('gestionar periodos');
                         $puedeVerPeriodos = $puedeGestionarPeriodos || $esDirectorCarrera || $esDocenteApoyo;
                         $puedeGestionarCarreras = Auth::user()->can('gestionar carreras');
@@ -911,36 +948,6 @@
                 </ul>
 
                 {{-- Información contextual del usuario --}}
-                @php
-                    // Usar ContextualAuth para obtener información contextual del usuario
-                    $userContextInfo = ContextualAuth::getUserContextInfo(Auth::user());
-                    $carrerasAsignadas = collect();
-
-                    // Agregar asignaciones como Director
-                    foreach ($userContextInfo['carreras_director'] as $carreraDirector) {
-                        $carrerasAsignadas->push([
-                            'texto' =>
-                                $carreraDirector->carrera->nombre . ' - ' . $carreraDirector->periodo->codigo_periodo,
-                            'tipo' => 'Director',
-                        ]);
-                    }
-
-                    // Agregar asignaciones como Docente de Apoyo
-                    foreach ($userContextInfo['carreras_apoyo'] as $carreraApoyo) {
-                        $carrerasAsignadas->push([
-                            'texto' => $carreraApoyo->carrera->nombre . ' - ' . $carreraApoyo->periodo->codigo_periodo,
-                            'tipo' => 'Apoyo',
-                        ]);
-                    }
-
-                    // Asignaciones en tribunales
-                    $tribunalesAsignados = $userContextInfo['tribunales'];
-                    $esMiembroTribunal = $tribunalesAsignados->isNotEmpty();
-
-                    // Asignaciones como Calificador General
-                    $calificadorGeneralAsignaciones = $userContextInfo['calificador_general'];
-                @endphp
-
                 @if ($carrerasAsignadas->isNotEmpty() || $esMiembroTribunal || $calificadorGeneralAsignaciones->isNotEmpty())
                     <div class="text-center mb-3">
                         <small class="text-muted">
@@ -979,7 +986,7 @@
                             {{-- Mostrar asignaciones como Miembro de Tribunal --}}
                             @if ($esMiembroTribunal)
                                 @if ($carrerasAsignadas->isNotEmpty() || $calificadorGeneralAsignaciones->isNotEmpty())
-                                    <br><small class="text-muted">También:</small><br>
+                                    <br><small class="text-light fw-bold">También:</small><br>
                                 @endif
                                 <span class="badge bg-primary mb-1 d-block">
                                     Miembro en {{ $tribunalesAsignados->count() }} tribunal(es)
@@ -988,6 +995,7 @@
                         </small>
                     </div>
                 @elseif(!ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
+                    {{-- Solo mostrar "Sin asignaciones" si NO es Admin/SuperAdmin Y no tiene asignaciones --}}
                     <div class="text-center mb-3">
                         <small class="text-muted">
                             <strong>Contexto:</strong><br>

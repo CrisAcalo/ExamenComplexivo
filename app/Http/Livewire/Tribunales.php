@@ -33,7 +33,7 @@ class Tribunales extends Component
     // Propiedades para control de acceso contextual
     public $puedeGestionar = false; // Director/Apoyo pueden gestionar
     public $puedeVisualizar = false; // Administradores pueden solo ver
-    
+
     // Propiedades para el modal de creación/edición de tribunal
     public $selected_id; // Para edición (aunque tu modal actual es solo para creación)
     public $estudiante_id;
@@ -196,25 +196,26 @@ class Tribunales extends Component
         if ($user->hasRole('Super Admin')) {
             $this->puedeGestionar = true;
             $this->puedeVisualizar = true;
-            return;
         }
 
         // Administrador solo puede visualizar
         if ($user->hasRole('Administrador')) {
             $this->puedeGestionar = false;
             $this->puedeVisualizar = true;
-            return;
         }
 
         // Director y Docente de Apoyo de esta carrera-período específica
         if (ContextualAuth::canAccessCarreraPeriodo($user, $this->carreraPeriodoId)) {
             $this->puedeGestionar = true;
             $this->puedeVisualizar = true;
-            return;
         }
 
-        // Si no tiene acceso, abortar
-        abort(403, 'No tienes permisos para acceder a este módulo de tribunales.');
+        if($this->puedeGestionar || $this->puedeVisualizar) {
+            return;
+        }else{
+            // Si no tiene acceso, abortar
+            abort(403, 'No tienes permisos para acceder a este módulo de tribunales.');
+        }
     }
 
     protected function loadEstudiantesDisponibles()

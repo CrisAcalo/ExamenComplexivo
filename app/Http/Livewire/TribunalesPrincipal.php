@@ -384,17 +384,26 @@ class TribunalesPrincipal extends Component
     public function render()
     {
         $user = Auth::user();
-        if (!$user || ContextualAuth::isSuperAdminOrAdmin($user)) {
-            // Administradores no deberían ver esta lista, tienen otras vistas
+        if (!$user) {
             return view('livewire.tribunales.principal.view', [
-                'tribunalesAsignados' => collect(), // Colección vacía
-                'mensajeNoAutorizado' => 'Esta vista es para docentes y calificadores asignados.'
+                'tribunalesAsignados' => collect(),
+                'mensajeNoAutorizado' => 'Usuario no autenticado.'
             ]);
         }
 
         // Obtener todos los tribunales que el usuario debe calificar
+        // Esto incluye tanto usuarios regulares como híbridos (Admin + Director/Apoyo/etc.)
         $tribunalesParaCalificar = $this->obtenerTodosLosTribunalesDelUsuario($user);
 
+        // Si es Admin/SuperAdmin puro (sin asignaciones contextuales), mostrar mensaje informativo
+        if (ContextualAuth::isSuperAdminOrAdmin($user) && $tribunalesParaCalificar->isEmpty()) {
+            return view('livewire.tribunales.principal.view', [
+                'tribunalesAsignados' => collect(),
+                'mensajeNoAutorizado' => 'Como administrador, no tienes tribunales asignados específicos. Usa las vistas administrativas para gestionar todos los tribunales.'
+            ]);
+        }
+
+        // Si no hay tribunales para calificar (usuario regular sin asignaciones)
         if ($tribunalesParaCalificar->isEmpty()) {
             return view('livewire.tribunales.principal.view', [
                 'tribunalesAsignados' => collect(),

@@ -78,12 +78,6 @@
                                                 </button>
                                             @endcan
                                             @can('gestionar usuarios')
-                                                <button class="btn btn-success btn-sm"
-                                                    wire:click="impersonate({{ $row->id }})">
-                                                    <i class="bi bi-eye"></i>
-                                                </button>
-                                            @endcan
-                                            @can('gestionar usuarios')
                                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
                                                     data-bs-target="#deleteDataModal"
                                                     wire:click="eliminar({{ $row->id }})">
