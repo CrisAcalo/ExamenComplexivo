@@ -132,33 +132,26 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
 
         // Lista de carreras que son explícitamente virtuales
         $carrerasVirtuales = [
-            'Educación Básica',
-            'Educación Inicial',
-            'Economía',
-            'Turismo',
-            'Tecnologías de la Información',
-            'Pedagogía de los Idiomas Nacionales y Extranjeros'
+            'Educación Básica en línea',
+            'Educación Inicial en línea',
+            'Economía en línea',
+            'Turismo en línea',
+            'Tecnologías de la Información en línea',
+            'Pedagogía de los Idiomas Nacionales y Extranjeros',
+            'Software en línea'
         ];
 
         // Contador para generar códigos de carrera únicos
         $codigoCounter = 20251001;
 
         foreach ($carrerasPorDepartamento as $nombreDepto => $carreras) {
-            // Verificamos si el departamento existe en nuestra colección obtenida de la BD
-            if (!isset($departamentosDB[$nombreDepto])) {
-                // Opcional: registrar un warning si un departamento no se encuentra
-                // $this->command->warn("Departamento no encontrado: {$nombreDepto}. Saltando sus carreras.");
-                continue;
-            }
 
             $departamento = $departamentosDB[$nombreDepto];
 
             foreach ($carreras as $nombreCarrera) {
                 // Determinamos la modalidad
-                $modalidad = in_array($nombreCarrera, $carrerasVirtuales) ? 'Virtual' : 'Presencial';
+                $modalidad = in_array($nombreCarrera, $carrerasVirtuales) ? 'En Línea' : 'Presencial';
 
-                // Usamos firstOrCreate para evitar duplicados si el seeder se ejecuta múltiples veces.
-                // La clave única para la búsqueda es 'codigo_carrera'.
                 Carrera::firstOrCreate(
                     ['codigo_carrera' => (string)$codigoCounter],
                     [
