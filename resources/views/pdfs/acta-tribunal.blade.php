@@ -256,7 +256,8 @@
             <div class="subtitle" style="margin-top: 15px;margin-bottom: 15px">VICERRECTORADO DE DOCENCIA</div>
             <div class="subtitle" style="margin-bottom: 40px">UNIDAD DE REGISTRO</div>
             <div><strong>CARRERA:</strong> {{ $tribunal->carrerasPeriodo->carrera->nombre ?? 'N/A' }}</div>
-            <div style="margin-top: 15px;margin-bottom:40px;"><strong>MODALIDAD:</strong> En línea</div>
+            <div style="margin-top: 15px;margin-bottom:40px;"><strong>MODALIDAD:
+                </strong>{{ $tribunal->carrerasPeriodo->carrera->modalidad ?? 'N/A' }}</div>
         </div>
 
         <div class="section-title">
@@ -265,8 +266,8 @@
 
         <div class="student-info">
             Nombre del estudiante:
-            <span class="">{{ $tribunal->estudiante->nombres ?? 'N/A' }}
-                {{ $tribunal->estudiante->apellidos ?? 'N/A' }}</span>
+            <span class="">{{ $tribunal->estudiante->apellidos ?? 'N/A' }}
+                {{ $tribunal->estudiante->nombres ?? 'N/A' }}</span>
             &nbsp;&nbsp;&nbsp;&nbsp;
             ID:
             <span class="">{{ $tribunal->estudiante->ID_estudiante ?? 'N/A' }}</span>
@@ -366,12 +367,12 @@
 
         {{-- Códigos de pie de página --}}
         <div class="footer-codes">
-            Código de documento: {{ $tribunal->generarCodigoDocumento() }}<br>
+            Código de documento: UDED-FOR-V3-2024-004<br>
             Código de proceso: GDOC-ATAD-5-3
         </div>
 
         <div class="footer-ref">
-            Rev: UPDI: {{ \Carbon\Carbon::now()->format('Y-M-d') }}
+            Rev: UPDI: 2024-ago-01
         </div>
 
         <div class="page-number">1</div>
@@ -420,13 +421,30 @@
                     }
 
                     // Función para convertir números a letras con formato PUNTO
-                    function numeroALetrasConPunto($numero) {
+                    function numeroALetrasConPunto($numero)
+                    {
                         $numeros = [
-                            0 => 'CERO', 1 => 'UNO', 2 => 'DOS', 3 => 'TRES', 4 => 'CUATRO',
-                            5 => 'CINCO', 6 => 'SEIS', 7 => 'SIETE', 8 => 'OCHO', 9 => 'NUEVE',
-                            10 => 'DIEZ', 11 => 'ONCE', 12 => 'DOCE', 13 => 'TRECE', 14 => 'CATORCE',
-                            15 => 'QUINCE', 16 => 'DIECISÉIS', 17 => 'DIECISIETE', 18 => 'DIECIOCHO',
-                            19 => 'DIECINUEVE', 20 => 'VEINTE'
+                            0 => 'CERO',
+                            1 => 'UNO',
+                            2 => 'DOS',
+                            3 => 'TRES',
+                            4 => 'CUATRO',
+                            5 => 'CINCO',
+                            6 => 'SEIS',
+                            7 => 'SIETE',
+                            8 => 'OCHO',
+                            9 => 'NUEVE',
+                            10 => 'DIEZ',
+                            11 => 'ONCE',
+                            12 => 'DOCE',
+                            13 => 'TRECE',
+                            14 => 'CATORCE',
+                            15 => 'QUINCE',
+                            16 => 'DIECISÉIS',
+                            17 => 'DIECISIETE',
+                            18 => 'DIECIOCHO',
+                            19 => 'DIECINUEVE',
+                            20 => 'VEINTE',
                         ];
 
                         $parteEntera = floor($numero);
@@ -434,13 +452,26 @@
 
                         $textoEntera = $numeros[$parteEntera] ?? 'ERROR';
 
-                        // Siempre mostrar dos dígitos decimales
-                        $digitoDecenas = floor($parteDecimal / 10);
-                        $digitoUnidades = $parteDecimal % 10;
+                        // Optimizar la representación de decimales
+                        if ($parteDecimal == 0) {
+                            // Caso especial: cuando es .00, solo mostrar CERO
+                            $textoDecimal = 'CERO';
+                        } else {
+                            // Para otros casos, mostrar normalmente
+                            $digitoDecenas = floor($parteDecimal / 10);
+                            $digitoUnidades = $parteDecimal % 10;
 
-                        $textoDecimal = $numeros[$digitoDecenas] . ' ' . $numeros[$digitoUnidades];
+                            if ($digitoDecenas == 0) {
+                                // Si es .0X, solo mostrar el dígito de unidades
+                                $textoDecimal = $numeros[$digitoUnidades];
+                            } else {
+                                // Para casos como .XY
+                                $textoDecimal = $numeros[$digitoDecenas] . ' ' . $numeros[$digitoUnidades];
+                            }
+                        }
 
-                        return $textoEntera . ' PUNTO ' . $textoDecimal . ' (' . number_format($numero, 2) . ')';
+                        // Formato: (número) LETRAS
+                        return '(' . number_format($numero, 2) . ') ' . $textoEntera . ' PUNTO ' . $textoDecimal;
                     }
 
                     $numeroEnLetras = numeroALetrasConPunto($notaFinalTotal);
@@ -502,6 +533,21 @@
                     $presidente = $tribunal->miembrosTribunales->where('status', 'PRESIDENTE')->first();
                     $integrante1 = $tribunal->miembrosTribunales->where('status', 'INTEGRANTE1')->first();
                     $integrante2 = $tribunal->miembrosTribunales->where('status', 'INTEGRANTE2')->first();
+
+                    $nombreIntegrante1 = ucfirst(
+                        strtolower(
+                            mb_substr($integrante1->status, 0, mb_strlen($integrante1->status) - 1) .
+                                ' ' .
+                                mb_substr($integrante1->status, -1, 1),
+                        ),
+                    );
+                    $nombreIntegrante2 = ucfirst(
+                        strtolower(
+                            mb_substr($integrante2->status, 0, mb_strlen($integrante2->status) - 1) .
+                                ' ' .
+                                mb_substr($integrante2->status, -1, 1),
+                        ),
+                    );
                 @endphp
 
                 <div class="signature-row">
@@ -509,23 +555,27 @@
                         <div class="signature-line">
                             CI. {{ $presidente->user->cedula ?? '........................' }}<br>
                             {{ $presidente->user->name ?? 'Presidente del Tribunal' }}<br>
-                            <strong>Presidente del Tribunal</strong>
+                            <strong>{{ ucfirst(strtolower($presidente->status)) }}</strong>
                         </div>
                     </div>
 
                     <div class="signature-cell">
                         <div class="signature-line">
                             CI. {{ $integrante1->user->cedula ?? '........................' }}<br>
-                            {{ $integrante1->user->name ?? 'Miembro 2' }}<br>
-                            <strong>Miembro 2</strong>
+                            {{ $integrante1->user->name ?? 'Integrante 2' }}<br>
+                            <strong>
+                                {{ $nombreIntegrante1 }}
+                            </strong>
                         </div>
                     </div>
 
                     <div class="signature-cell">
                         <div class="signature-line">
                             CI. {{ $integrante2->user->cedula ?? '........................' }}<br>
-                            {{ $integrante2->user->name ?? 'Miembro 3' }}<br>
-                            <strong>Miembro 3</strong>
+                            {{ $integrante2->user->name ?? 'Integrante 3' }}<br>
+                            <strong>
+                                {{ $nombreIntegrante2 }}
+                            </strong>
                         </div>
                     </div>
                 </div>
@@ -533,6 +583,7 @@
                 {{-- Firma del Director de Carrera --}}
                 <div class="director-signature">
                     <div class="director-line">
+                        CI. {{ $tribunal->carrerasPeriodo->director->cedula ?? '........................' }}<br>
                         {{ $tribunal->carrerasPeriodo->director->name ?? 'Director de Carrera' }}<br>
                         <strong>Director de Carrera</strong>
                     </div>
@@ -543,13 +594,13 @@
                 </div>
             @endif
             <div class="footer-codes">
-                Código de documento: {{ $tribunal->generarCodigoDocumento() }}<br>
+                Código de documento: UDED-FOR-V3-2024-004<br>
                 Código de proceso: GDOC-ATAD-5-3
             </div>
 
             <div class="page-number">2</div>
             <div class="footer-ref">
-                Rev: UPDI: {{ \Carbon\Carbon::now()->format('Y-M-d') }}
+                Rev: UPDI: 2024-ago-01
             </div>
         </div>
     </div>

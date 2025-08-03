@@ -59,27 +59,4 @@ class Tribunale extends Model
     {
         return $this->hasMany(TribunalLog::class, 'tribunal_id')->latest(); // Mostrar los más recientes primero
     }
-
-    /**
-     * Genera el código de documento automáticamente basado en el año y orden de creación
-     * Formato: UDED-FOR-V3-YYYY-NNN
-     *
-     * @return string
-     */
-    public function generarCodigoDocumento()
-    {
-        // Obtener el año de creación del tribunal (usar año actual si no existe created_at)
-        $año = $this->created_at ? $this->created_at->year : date('Y');
-
-        // Contar todos los tribunales creados en el mismo año antes que este (incluyendo este)
-        $secuencia = self::whereYear('created_at', $año)
-            ->where('id', '<=', $this->id)
-            ->count();
-
-        // Formatear el número de secuencia con 3 dígitos
-        $numeroSecuencia = str_pad($secuencia, 3, '0', STR_PAD_LEFT);
-
-        // Generar el código completo
-        return "UDED-FOR-V3-{$año}-{$numeroSecuencia}";
-    }
 }

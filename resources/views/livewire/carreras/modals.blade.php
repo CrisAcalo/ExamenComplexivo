@@ -46,7 +46,7 @@
                             class="form-select @error('modalidad') is-invalid @enderror">
                             <option value="">--Elija Modalidad--</option>
                             <option value="Presencial">Presencial</option>
-                            <option value="Virtual">Virtual</option>
+                            <option value="En línea">En línea</option>
                         </select>
                         @error('modalidad')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -125,7 +125,7 @@
                             class="form-select @error('modalidad') is-invalid @enderror">
                             <option value="">--Elija Modalidad--</option>
                             <option value="Presencial">Presencial</option>
-                            <option value="Virtual">Virtual</option>
+                            <option value="En línea">En línea</option>
                         </select>
                         @error('modalidad')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -163,16 +163,15 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="staticBackdropLabel">Delete Confirm</h5>
+                <h5 class="modal-title" id="staticBackdropLabel">Confirmar Eliminación</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <h4>¿Está seguro de eliminar los datos?</h4>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" wire:click.prevent="destroy()" class="btn btn-danger close-modal">Yes!
-                    Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" wire:click.prevent="destroy()" class="btn btn-danger close-modal">Eliminar</button>
             </div>
         </div>
     </div>

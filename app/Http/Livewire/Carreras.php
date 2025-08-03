@@ -65,11 +65,13 @@ class Carreras extends Component
 
     private function resetInput()
     {
+        $this->selected_id = null;
         $this->codigo_carrera = null;
         $this->nombre = null;
         $this->departamento_id = null;
         $this->modalidad = null;
         $this->sede = null;
+        $this->founded = null;
     }
 
     public function store()
@@ -84,7 +86,7 @@ class Carreras extends Component
             'codigo_carrera' => 'required|unique:carreras,codigo_carrera',
             'nombre' => 'required',
             'departamento_id' => 'required|exists:departamentos,id',
-            'modalidad' => 'required|in:Presencial,Virtual',
+            'modalidad' => 'required|in:Presencial,En línea',
             'sede' => 'required',
         ]);
 
@@ -134,7 +136,7 @@ class Carreras extends Component
             'codigo_carrera' => 'required|unique:carreras,codigo_carrera,' . $this->selected_id,
             'nombre' => 'required',
             'departamento_id' => 'required|exists:departamentos,id',
-            'modalidad' => 'required|in:Presencial,Virtual',
+            'modalidad' => 'required|in:Presencial,En línea',
             'sede' => 'required',
         ]);
 
@@ -167,6 +169,7 @@ class Carreras extends Component
             return;
         }
 
+        $this->selected_id = $id;
         $this->founded = Carrera::find($id);
         if ($this->founded && method_exists($this->founded, 'carrerasPeriodos') && $this->founded->carrerasPeriodos->count() > 0) {
             session()->flash('error', 'No se puede eliminar la carrera porque tiene períodos asociados.');
@@ -174,7 +177,7 @@ class Carreras extends Component
         }
     }
 
-    public function destroy($id)
+    public function destroy()
     {
         // Verificar permisos
         if (!$this->puedeGestionarCarreras()) {
@@ -182,9 +185,9 @@ class Carreras extends Component
             return;
         }
 
-        if ($id) {
+        if ($this->selected_id) {
             try {
-                $carrera = Carrera::find($id);
+                $carrera = Carrera::find($this->selected_id);
 
                 // Verificar si tiene períodos asociados
                 if ($carrera && method_exists($carrera, 'carrerasPeriodos') && $carrera->carrerasPeriodos->count() > 0) {
@@ -192,9 +195,10 @@ class Carreras extends Component
                     return;
                 }
 
-                Carrera::where('id', $id)->delete();
+                Carrera::where('id', $this->selected_id)->delete();
                 session()->flash('success', 'Carrera eliminada exitosamente.');
                 $this->founded = null;
+                $this->selected_id = null;
                 $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'deleteDataModal']);
             } catch (\Exception $e) {
                 session()->flash('error', 'Error al eliminar la carrera: ' . $e->getMessage());

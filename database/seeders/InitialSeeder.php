@@ -132,13 +132,13 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
 
         // Lista de carreras que son explícitamente virtuales
         $carrerasVirtuales = [
-            'Educación Básica en línea',
-            'Educación Inicial en línea',
-            'Economía en línea',
-            'Turismo en línea',
-            'Tecnologías de la Información en línea',
+            'Educación Básica',
+            'Educación Inicial',
+            'Economía',
+            'Turismo',
+            'Tecnologías de la Información',
             'Pedagogía de los Idiomas Nacionales y Extranjeros',
-            'Software en línea'
+            'Ingeniería de Software'
         ];
 
         // Contador para generar códigos de carrera únicos
@@ -149,20 +149,35 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
             $departamento = $departamentosDB[$nombreDepto];
 
             foreach ($carreras as $nombreCarrera) {
-                // Determinamos la modalidad
-                $modalidad = in_array($nombreCarrera, $carrerasVirtuales) ? 'En línea' : 'Presencial';
-
-                Carrera::firstOrCreate(
+                // Crear carrera presencial (siempre)
+                $carreraPresencial = Carrera::firstOrCreate(
                     ['codigo_carrera' => (string)$codigoCounter],
                     [
                         'nombre' => $nombreCarrera,
                         'departamento_id' => $departamento->id,
-                        'modalidad' => $modalidad,
-                        'sede' => 'Sangolquí' // Sede constante como se indica
+                        'modalidad' => 'PRESENCIAL',
+                        'sede' => 'Sangolquí'
                     ]
                 );
 
-                $codigoCounter++; // Incrementamos para la siguiente carrera
+                echo "Creada carrera presencial: {$nombreCarrera} (Código: {$codigoCounter})\n";
+                $codigoCounter++;
+
+                // Si la carrera está en la lista virtual, crear también la versión en línea
+                if (in_array($nombreCarrera, $carrerasVirtuales)) {
+                    $carreraVirtual = Carrera::firstOrCreate(
+                        ['codigo_carrera' => (string)$codigoCounter],
+                        [
+                            'nombre' => $nombreCarrera . ' en línea',
+                            'departamento_id' => $departamento->id,
+                            'modalidad' => 'EN LÍNEA',
+                            'sede' => 'Sangolquí'
+                        ]
+                    );
+
+                    echo "Creada carrera virtual: {$nombreCarrera} en línea (Código: {$codigoCounter})\n";
+                    $codigoCounter++;
+                }
             }
         }
 

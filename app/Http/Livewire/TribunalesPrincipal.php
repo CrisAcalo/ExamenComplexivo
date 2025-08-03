@@ -214,15 +214,15 @@ class TribunalesPrincipal extends Component
         });
 
         foreach ($planEvaluacionActivo->itemsPlanEvaluacion as $itemPlan) {
-            $calificacionesParaEsteItem = $calificacionesAgrupadasPorItemYUsuario->get($itemPlan->id, collect());
+            $calificacionesParaEsteItem = $todasLasMiembroCalificacion->where('item_plan_evaluacion_id', $itemPlan->id);
             $notaFinalItemCalculada = 0;
-            $sumaPonderacionesGlobalesItems += $itemPlan->ponderacion_global_item;
+            $sumaPonderacionesGlobalesItems += $itemPlan->ponderacion_global;
 
             // Inicializar resumen para este item
             $resumenNotasCalculadas[$itemPlan->id] = [
                 'nombre_item_plan' => $itemPlan->nombre_item,
                 'tipo_item' => $itemPlan->tipo_item,
-                'ponderacion_global' => $itemPlan->ponderacion_global_item,
+                'ponderacion_global' => $itemPlan->ponderacion_global,
                 'rubrica_plantilla_nombre' => ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla) ? $itemPlan->rubricaPlantilla->nombre : null,
                 'nota_tribunal_sobre_20' => 0,
                 'puntaje_ponderado_item' => 0,
@@ -230,34 +230,83 @@ class TribunalesPrincipal extends Component
             ];
 
             if ($itemPlan->tipo_item === 'NOTA_DIRECTA') {
-                // Para nota directa, tomar la primera calificación disponible (debería haber solo una)
-                $calificacionDirecta = $calificacionesParaEsteItem->flatten()->first();
-                if ($calificacionDirecta && $calificacionDirecta->nota_obtenida_directa !== null) {
-                    $notaFinalItemCalculada = $calificacionDirecta->nota_obtenida_directa;
+                // Buscar la calificación del Director o Apoyo para este ítem de nota directa
+                $califNotaDirecta = $calificacionesParaEsteItem
+                    ->whereIn('user_id', array_filter([$directorId, $apoyoId])) // Solo de Director o Apoyo
+                    ->whereNull('criterio_id')
+                    ->first();
+
+                if ($califNotaDirecta && is_numeric($califNotaDirecta->nota_obtenida_directa)) {
+                    $notaFinalItemCalculada = (float) $califNotaDirecta->nota_obtenida_directa;
                 }
             } elseif ($itemPlan->tipo_item === 'RUBRICA_TABULAR' && $itemPlan->rubricaPlantilla) {
-                // Para rúbricas, calcular promedio de notas por usuario
-                $notasValidasParaPromedio = [];
+                $notasRubricaPorGrupoCalificador = []; // [calificado_por_value => [componente_id => nota]]
 
-                foreach ($calificacionesParaEsteItem as $userId => $calificacionesDelUsuario) {
-                    $notaComponenteUsuario = $this->calcularNotaRubricaParaUsuario(
-                        $itemPlan->rubricaPlantilla,
-                        $calificacionesDelUsuario
-                    );
+                foreach ($itemPlan->asignacionesCalificadorComponentes as $asignacion) {
+                    $componenteRubrica = $itemPlan->rubricaPlantilla->componentesRubrica->find($asignacion->componente_rubrica_id);
+                    if (!$componenteRubrica) continue;
 
-                    if ($notaComponenteUsuario !== null) {
-                        $notasValidasParaPromedio[] = $notaComponenteUsuario;
+                    $grupoCalificadorResponsable = $asignacion->calificado_por;
+                    $idsUsuariosDeEsteGrupo = [];
+
+                    if ($grupoCalificadorResponsable === 'MIEMBROS_TRIBUNAL') {
+                        $idsUsuariosDeEsteGrupo = $miembrosDelTribunal->pluck('user_id')->all();
+                    } elseif ($grupoCalificadorResponsable === 'CALIFICADORES_GENERALES') {
+                        $idsUsuariosDeEsteGrupo = $idsCalificadoresGenerales;
+                    } elseif ($grupoCalificadorResponsable === 'DIRECTOR_CARRERA') {
+                        $idsUsuariosDeEsteGrupo = [$directorId];
+                    } elseif ($grupoCalificadorResponsable === 'DOCENTE_APOYO') {
+                        $idsUsuariosDeEsteGrupo = [$apoyoId];
+                    }
+
+                    $idsUsuariosDeEsteGrupo = array_filter($idsUsuariosDeEsteGrupo); // Eliminar nulls
+
+                    $sumaNotasComponenteEsteGrupo = 0;
+                    $conteoNotasComponenteEsteGrupo = 0;
+
+                    foreach ($idsUsuariosDeEsteGrupo as $userIdCalificador) {
+                        $calificacionesDelUsuarioParaItem = $calificacionesParaEsteItem->where('user_id', $userIdCalificador);
+
+                        $notaComponenteParaUsuario = $this->calcularNotaComponenteParaUsuario($componenteRubrica, $calificacionesDelUsuarioParaItem);
+                        if (is_numeric($notaComponenteParaUsuario)) {
+                            $sumaNotasComponenteEsteGrupo += $notaComponenteParaUsuario; // Ya viene ponderado por el componente
+                            $conteoNotasComponenteEsteGrupo++;
+                        }
+                    }
+
+                    if ($conteoNotasComponenteEsteGrupo > 0) {
+                        $promedioNotaComponenteEsteGrupo = $sumaNotasComponenteEsteGrupo / $conteoNotasComponenteEsteGrupo;
+                        if (!isset($notasRubricaPorGrupoCalificador[$grupoCalificadorResponsable])) {
+                            $notasRubricaPorGrupoCalificador[$grupoCalificadorResponsable] = [];
+                        }
+                        $notasRubricaPorGrupoCalificador[$grupoCalificadorResponsable][$componenteRubrica->id] = $promedioNotaComponenteEsteGrupo;
                     }
                 }
 
-                if (!empty($notasValidasParaPromedio)) {
-                    $notaFinalItemCalculada = array_sum($notasValidasParaPromedio) / count($notasValidasParaPromedio);
+                // Calcular la nota final de la rúbrica (sobre 20)
+                $sumaPuntajesPonderadosComponentes = 0;
+                $sumaPonderacionesDeComponentesUsados = 0;
+
+                if ($itemPlan->rubricaPlantilla && $itemPlan->rubricaPlantilla->componentesRubrica) {
+                    foreach ($itemPlan->rubricaPlantilla->componentesRubrica as $compR) {
+                        $asignacionComp = $itemPlan->asignacionesCalificadorComponentes->firstWhere('componente_rubrica_id', $compR->id);
+                        if ($asignacionComp && isset($notasRubricaPorGrupoCalificador[$asignacionComp->calificado_por][$compR->id])) {
+                            $sumaPuntajesPonderadosComponentes += $notasRubricaPorGrupoCalificador[$asignacionComp->calificado_por][$compR->id];
+                            $sumaPonderacionesDeComponentesUsados += $compR->ponderacion;
+                        }
+                    }
+                }
+
+                if ($sumaPonderacionesDeComponentesUsados > 0) {
+                    // Normalizar a escala 0-100 y luego a 0-20
+                    $notaRubricaBase100 = ($sumaPuntajesPonderadosComponentes / $sumaPonderacionesDeComponentesUsados) * 100;
+                    $notaFinalItemCalculada = ($notaRubricaBase100 / 100) * 20;
                 }
             }
 
             $resumenNotasCalculadas[$itemPlan->id]['nota_tribunal_sobre_20'] = $notaFinalItemCalculada;
             $resumenNotasCalculadas[$itemPlan->id]['puntaje_ponderado_item'] =
-                ($notaFinalItemCalculada * $itemPlan->ponderacion_global_item) / 100;
+                ($notaFinalItemCalculada * $itemPlan->ponderacion_global) / 100;
 
             $notaFinalCalculadaDelTribunal += $resumenNotasCalculadas[$itemPlan->id]['puntaje_ponderado_item'];
         }
@@ -317,41 +366,6 @@ class TribunalesPrincipal extends Component
     }
 
     /**
-     * Calcula la nota de una rúbrica para un usuario específico
-     */
-    private function calcularNotaRubricaParaUsuario($rubricaPlantilla, $calificacionesDelUsuario)
-    {
-        if (!$calificacionesDelUsuario || $calificacionesDelUsuario->isEmpty() || !$rubricaPlantilla) {
-            return null;
-        }
-
-        $puntajeObtenidoTotal = 0;
-        $maxPuntajePosibleTotal = 0;
-        $componentesCalificados = 0;
-        $totalComponentes = $rubricaPlantilla->componentesRubrica->count();
-
-        foreach ($rubricaPlantilla->componentesRubrica as $componenteR) {
-            $notaComponente = $this->calcularNotaComponenteParaUsuario(
-                $componenteR,
-                $calificacionesDelUsuario
-            );
-
-            if ($notaComponente !== null) {
-                $puntajeObtenidoTotal += $notaComponente * ($componenteR->ponderacion_componente / 100);
-                $maxPuntajePosibleTotal += 20 * ($componenteR->ponderacion_componente / 100);
-                $componentesCalificados++;
-            }
-        }
-
-        // Solo calcular si se calificaron todos los componentes
-        if ($componentesCalificados === $totalComponentes && $maxPuntajePosibleTotal > 0) {
-            return ($puntajeObtenidoTotal / $maxPuntajePosibleTotal) * 20;
-        }
-
-        return null;
-    }
-
-    /**
      * Calcula la nota de un componente específico para un usuario
      */
     private function calcularNotaComponenteParaUsuario(ComponenteRubrica $componenteR, $calificacionesDelUsuario)
@@ -361,21 +375,31 @@ class TribunalesPrincipal extends Component
         $criteriosCalificadosCount = 0;
 
         foreach ($componenteR->criteriosComponente as $criterioR) {
-            // Buscar la calificación para este criterio específico
-            $calificacionCriterio = $calificacionesDelUsuario->first(function ($calificacion) use ($criterioR) {
-                return $calificacion->criterioCalificado &&
-                    $calificacion->criterioCalificado->id === $criterioR->id;
-            });
+            // Calcular el puntaje máximo posible para este criterio
+            if ($criterioR->calificacionesCriterio->isNotEmpty()) {
+                $maxValorCriterio = $criterioR->calificacionesCriterio->max('valor');
+                if (is_numeric($maxValorCriterio)) {
+                    $maxPuntajePosibleCriterios += (float) $maxValorCriterio;
+                }
+            }
+
+            // Buscar la calificación para este criterio específico usando criterio_id
+            $calificacionCriterio = $calificacionesDelUsuario
+                ->where('criterio_id', $criterioR->id)
+                ->first();
 
             if ($calificacionCriterio && $calificacionCriterio->opcionCalificacionElegida) {
-                $puntajeObtenidoCriterios += $calificacionCriterio->opcionCalificacionElegida->puntos_calificacion;
-                $maxPuntajePosibleCriterios += $criterioR->calificacionesCriterio->max('puntos_calificacion');
-                $criteriosCalificadosCount++;
+                $opcionElegida = $calificacionCriterio->opcionCalificacionElegida;
+                if (is_numeric($opcionElegida->valor)) {
+                    $puntajeObtenidoCriterios += (float) $opcionElegida->valor;
+                    $criteriosCalificadosCount++;
+                }
             }
         }
 
         if ($maxPuntajePosibleCriterios > 0 && $criteriosCalificadosCount === $componenteR->criteriosComponente->count()) {
-            return ($puntajeObtenidoCriterios / $maxPuntajePosibleCriterios) * 20;
+            // Normalizar el puntaje del componente a una escala de 0 a ponderacion del componente
+            return ($puntajeObtenidoCriterios / $maxPuntajePosibleCriterios) * $componenteR->ponderacion;
         }
 
         return null;
