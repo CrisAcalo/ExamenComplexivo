@@ -51,6 +51,8 @@
     {{-- importar el resources/css/app.css --}}
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
+    <link rel="icon" href="{{ Storage::url('logos/ITIN_LOGO_SMALL.png') }}" type="image/x-icon">
+
     @stack('styles')
     @livewireStyles
 </head>
@@ -695,7 +697,7 @@
         box-shadow: none;
     }
 
-    .sidebar-logo{
+    .sidebar-logo {
         width: 40%;
         height: auto;
         margin: 15px auto 15px;
@@ -713,7 +715,7 @@
                     <span class="fs-4">Sistema Examen Complexivo</span>
                 </a>
 
-                <img class="sidebar-logo" src="{{Storage::url('logos/LOGO-ITIN.png')}}"  alt="">
+                <img class="sidebar-logo" src="{{ Storage::url('logos/LOGO-ITIN.png') }}" alt="">
 
                 {{-- Mostrar rol del usuario --}}
                 @php
@@ -734,7 +736,8 @@
                     // Agregar asignaciones como Director
                     foreach ($userContextInfo['carreras_director'] as $carreraDirector) {
                         $carrerasAsignadas->push([
-                            'texto' => $carreraDirector->carrera->nombre . ' - ' . $carreraDirector->periodo->codigo_periodo,
+                            'texto' =>
+                                $carreraDirector->carrera->nombre . ' - ' . $carreraDirector->periodo->codigo_periodo,
                             'tipo' => 'Director',
                         ]);
                     }
@@ -757,7 +760,7 @@
                 <div class="text-center mb-2">
                     <small class="text-muted">
                         {{-- DEBUG: Mostrar información para verificar --}}
-                        @if(config('app.debug'))
+                        @if (config('app.debug'))
                             {{-- <div style="font-size: 10px; background: #333; padding: 5px; margin: 5px 0;">
                                 DEBUG: Dir=<?= $esDirectorCarrera ? 'Sí' : 'No' ?> |
                                 Apoyo=<?= $esDocenteApoyo ? 'Sí' : 'No' ?> |
@@ -795,8 +798,12 @@
                         @endif
 
                         {{-- Solo mostrar "Docente" si NO tiene roles globales NI asignaciones contextuales --}}
-                        @if (!ContextualAuth::isSuperAdminOrAdmin(Auth::user()) &&
-                             !$esDirectorCarrera && !$esDocenteApoyo && !$esCalificadorGeneral && !$esMiembroTribunal)
+                        @if (
+                            !ContextualAuth::isSuperAdminOrAdmin(Auth::user()) &&
+                                !$esDirectorCarrera &&
+                                !$esDocenteApoyo &&
+                                !$esCalificadorGeneral &&
+                                !$esMiembroTribunal)
                             <span class="badge bg-secondary">Docente</span>
                         @endif
                     </small>

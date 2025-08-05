@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="container-fluid p-0 m-0">
-        <div class="row justify-content-center align-items-center vh-100 p-0 m-0 w-100">
+        <div class="row justify-content-center align-items-center p-0 m-0 w-100">
             <div class="col-md-4 w-100">
                 <div class="card shadow-lg border-0 m-0 mx-auto text-dark"
                     style="max-width:450px;width:90%;backdrop-filter: blur(10px);background:rgba(255, 255, 255, 0.63);">

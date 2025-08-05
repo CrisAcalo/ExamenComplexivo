@@ -11,12 +11,12 @@
                     $tribunal->carrerasPeriodo->carrera &&
                     $tribunal->estudiante)
                 <div class="fs-2 fw-semibold mb-4">
-                    <a href="{{ route('periodos.') }}" class="text-decoration-none text-dark">Períodos</a> /
+                    <a href="{{ route('periodos.') }}">Períodos</a> /
                     <a href="{{ route('periodos.profile', $tribunal->carrerasPeriodo->periodo->id) }}"
-                        class="text-decoration-none text-dark">{{ $tribunal->carrerasPeriodo->periodo->codigo_periodo }}</a>
+                       >{{ $tribunal->carrerasPeriodo->periodo->codigo_periodo }}</a>
                     /
                     <a href="{{ route('periodos.tribunales.index', $tribunal->carrerasPeriodo->id) }}" {{-- Asegúrate que esta ruta y parámetro sean correctos --}}
-                        class="text-decoration-none text-dark">{{ $tribunal->carrerasPeriodo->carrera->nombre }}</a> /
+                       >{{ $tribunal->carrerasPeriodo->carrera->nombre }}</a> /
                     <span class="text-muted">{{ $tribunal->estudiante->nombres_completos_id }}</span>
                 </div>
             @else

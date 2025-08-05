@@ -25,17 +25,22 @@ class Tribunales extends Component
     use WithPagination;
     public $carreraPeriodoId;
 
-    protected $paginationTheme = 'bootstrap';
-
     // Propiedades para el listado de tribunales
     public $keyWord = '';
+    //estilos bootstrap para la paginacion
+    protected $paginationTheme = 'bootstrap';
+
+    // Propiedades para paginación y ordenamiento
+    public $perPage = 10; // Número de elementos por página
+    public $sortField = 'fecha'; // Campo por defecto para ordenar
+    public $sortDirection = 'desc'; // Dirección por defecto: desc/asc
 
     // Propiedades para control de acceso contextual
     public $puedeGestionar = false; // Director/Apoyo pueden gestionar
     public $puedeVisualizar = false; // Administradores pueden solo ver
 
-    // Propiedades para el modal de creación/edición de tribunal
-    public $selected_id; // Para edición (aunque tu modal actual es solo para creación)
+    // Propiedades para el modal de creación de tribunal
+    public $selected_id;
     public $estudiante_id;
     public $fecha;
     public $hora_inicio;
@@ -43,6 +48,14 @@ class Tribunales extends Component
     public $presidente_id;
     public $integrante1_id;
     public $integrante2_id;
+    public $descripcion_plantilla;
+
+    // Nuevas propiedades para el flujo de tribunales plantilla
+    public $modoPlantilla = false; // true para crear plantilla, false para tribunal individual
+    public ?Tribunale $tribunalPlantilla = null; // Tribunal plantilla seleccionado para asignar estudiantes
+    public $estudiantesSeleccionados = []; // IDs de estudiantes seleccionados para generar tribunales
+    public $showAsignarEstudiantesModal = false;
+    public $buscarEstudiante = ''; // Buscador de estudiantes en modal de asignación
 
     // Datos cargados en mount
     public ?CarrerasPeriodo $carreraPeriodo = null;
@@ -69,34 +82,94 @@ class Tribunales extends Component
 
     public $profesoresParaTribunal;
 
+    /**
+     * Actualizar la página cuando cambie el número de elementos por página
+     */
+    public function updatedPerPage()
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Resetear la página cuando cambie la búsqueda
+     */
+    public function updatedKeyWord()
+    {
+        $this->resetPage();
+    }
+
     protected function rules()
     {
         // Reglas para el modal de CREACIÓN de tribunal
-        $rules = [
-            'estudiante_id' => 'required|exists:estudiantes,id|unique:tribunales,estudiante_id,NULL,id,carrera_periodo_id,' . $this->carreraPeriodoId,
-            'fecha' => 'required|date|after_or_equal:today',
-            'hora_inicio' => [
-                'required',
-                'date_format:H:i',
-                function ($attribute, $value, $fail) {
-                    if (!$this->fecha || !$this->hora_fin) {
-                        return;
+        $rules = [];
+
+        if ($this->modoPlantilla) {
+            // Modo plantilla: no requiere estudiante, pero requiere descripción
+            $rules = [
+                'descripcion_plantilla' => 'required|string|max:255',
+                'fecha' => 'required|date|after_or_equal:today',
+                'hora_inicio' => [
+                    'required',
+                    'date_format:H:i',
+                    function ($attribute, $value, $fail) {
+                        if (!$this->fecha || !$this->hora_fin) {
+                            return;
+                        }
+                        $this->validarHorariosSolapados($fail);
                     }
-                    $this->validarHorariosSolapados($fail);
-                }
-            ],
-            'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
-            'presidente_id' => 'required|exists:users,id|different:integrante1_id|different:integrante2_id',
-            'integrante1_id' => 'required|exists:users,id|different:presidente_id|different:integrante2_id',
-            'integrante2_id' => 'required|exists:users,id|different:presidente_id|different:integrante1_id',
-        ];
+                ],
+                'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+            ];
+        } else {
+            // Modo normal: requiere estudiante
+            $rules = [
+                'estudiante_id' => [
+                    'required',
+                    'exists:estudiantes,id',
+                    function ($attribute, $value, $fail) {
+                        // Validar que el estudiante no tenga un tribunal individual en esta carrera-período
+                        $existeTribunal = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+                            ->where('estudiante_id', $value)
+                            ->where('es_plantilla', false)
+                            ->when($this->selected_id, function ($query) {
+                                // Si estamos editando, excluir el tribunal actual
+                                return $query->where('id', '!=', $this->selected_id);
+                            })
+                            ->exists();
+
+                        if ($existeTribunal) {
+                            $fail('Este estudiante ya tiene un tribunal asignado en este período y carrera.');
+                        }
+                    }
+                ],
+                'fecha' => 'required|date|after_or_equal:today',
+                'hora_inicio' => [
+                    'required',
+                    'date_format:H:i',
+                    function ($attribute, $value, $fail) {
+                        if (!$this->fecha || !$this->hora_fin) {
+                            return;
+                        }
+                        $this->validarHorariosSolapados($fail);
+                    }
+                ],
+                'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+            ];
+        }
 
         // Validar que los miembros del tribunal seleccionados estén en la lista filtrada y no sean excluidos
-        $validProfessorIdsParaTribunal = $this->profesoresParaTribunal->pluck('id')->implode(',');
+        if ($this->profesoresParaTribunal && $this->profesoresParaTribunal->count() > 0) {
+            $validProfessorIdsParaTribunal = $this->profesoresParaTribunal->pluck('id')->implode(',');
 
-        $rules['presidente_id'] = "required|exists:users,id|different:integrante1_id|different:integrante2_id|in:{$validProfessorIdsParaTribunal}";
-        $rules['integrante1_id'] = "required|exists:users,id|different:presidente_id|different:integrante2_id|in:{$validProfessorIdsParaTribunal}";
-        $rules['integrante2_id'] = "required|exists:users,id|different:presidente_id|different:integrante1_id|in:{$validProfessorIdsParaTribunal}";
+            $rules['presidente_id'] = "required|exists:users,id|different:integrante1_id|different:integrante2_id|in:{$validProfessorIdsParaTribunal}";
+            $rules['integrante1_id'] = "required|exists:users,id|different:presidente_id|different:integrante2_id|in:{$validProfessorIdsParaTribunal}";
+            $rules['integrante2_id'] = "required|exists:users,id|different:presidente_id|different:integrante1_id|in:{$validProfessorIdsParaTribunal}";
+        } else {
+            // Si no hay profesores disponibles, simplemente requerir que estén seleccionados
+            $rules['presidente_id'] = "required|exists:users,id|different:integrante1_id|different:integrante2_id";
+            $rules['integrante1_id'] = "required|exists:users,id|different:presidente_id|different:integrante2_id";
+            $rules['integrante2_id'] = "required|exists:users,id|different:presidente_id|different:integrante1_id";
+        }
 
         $rules['calificadoresGeneralesSeleccionados'] = 'array|max:3';
         $rules['calificadoresGeneralesSeleccionados.*'] = ['nullable', 'exists:users,id', function ($attribute, $value, $fail) {
@@ -210,9 +283,9 @@ class Tribunales extends Component
             $this->puedeVisualizar = true;
         }
 
-        if($this->puedeGestionar || $this->puedeVisualizar) {
+        if ($this->puedeGestionar || $this->puedeVisualizar) {
             return;
-        }else{
+        } else {
             // Si no tiene acceso, abortar
             abort(403, 'No tienes permisos para acceder a este módulo de tribunales.');
         }
@@ -220,13 +293,16 @@ class Tribunales extends Component
 
     protected function loadEstudiantesDisponibles()
     {
+        // Obtener estudiantes que ya tienen tribunales individuales en esta carrera-período
         $estudiantesConTribunalIds = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+            ->where('es_plantilla', false) // Solo excluir estudiantes con tribunales individuales, no plantillas
+            ->whereNotNull('estudiante_id') // Asegurar que el estudiante_id no sea null
             ->pluck('estudiante_id')->toArray();
+
+        // Obtener todos los estudiantes que NO están en la lista de excluidos
         $this->estudiantesDisponibles = Estudiante::whereNotIn('id', $estudiantesConTribunalIds)
             ->orderBy('apellidos')->orderBy('nombres')->get();
-    }
-
-    protected function loadPlanEvaluacionActivo()
+    }    protected function loadPlanEvaluacionActivo()
     {
         $this->planEvaluacionActivo = PlanEvaluacion::with('itemsPlanEvaluacion.rubricaPlantilla')
             ->where('carrera_periodo_id', $this->carreraPeriodoId)
@@ -248,22 +324,102 @@ class Tribunales extends Component
     public function render()
     {
         $keyWord = '%' . $this->keyWord . '%';
-        $tribunales = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+
+        // Obtener tribunales individuales (es_plantilla = false o null)
+        $tribunalesIndividuales = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+            ->where(function ($query) {
+                $query->where('es_plantilla', false)
+                    ->orWhereNull('es_plantilla');
+            })
             ->with(['estudiante', 'miembrosTribunales.user'])
             ->where(function ($query) use ($keyWord) {
                 $query->whereHas('estudiante', function ($q) use ($keyWord) {
                     $q->where('nombres', 'LIKE', $keyWord)
                         ->orWhere('apellidos', 'LIKE', $keyWord);
                 })
-                    ->orWhere('fecha', 'LIKE', $keyWord); // Búsqueda por fecha si es un string YYYY-MM-DD
+                    ->orWhere('fecha', 'LIKE', $keyWord);
             })
-            ->orderBy('fecha', 'desc')
-            ->orderBy('hora_inicio', 'asc')
-            ->paginate(10);
+            ->when($this->sortField === 'estudiante', function($query) {
+                // Ordenar por nombre del estudiante
+                return $query->join('estudiantes', 'tribunales.estudiante_id', '=', 'estudiantes.id')
+                             ->orderBy('estudiantes.nombres', $this->sortDirection)
+                             ->orderBy('estudiantes.apellidos', $this->sortDirection)
+                             ->orderBy('tribunales.fecha', 'desc') // Ordenación secundaria
+                             ->select('tribunales.*');
+            }, function($query) {
+                // Ordenar por otros campos con ordenación secundaria
+                $query->orderBy($this->sortField, $this->sortDirection);
+
+                // Añadir ordenación secundaria según el campo principal
+                if ($this->sortField === 'fecha') {
+                    $query->orderBy('hora_inicio', 'asc');
+                } elseif ($this->sortField === 'hora_inicio') {
+                    $query->orderBy('fecha', 'desc');
+                } else {
+                    $query->orderBy('fecha', 'desc')->orderBy('hora_inicio', 'asc');
+                }
+
+                return $query;
+            })
+            ->paginate($this->perPage);
+
+        // Obtener plantillas de tribunal (es_plantilla = true)
+        $plantillasTribunales = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+            ->where('es_plantilla', true)
+            ->with(['miembrosTribunales.user'])
+            ->where(function ($query) use ($keyWord) {
+                $query->where('descripcion_plantilla', 'LIKE', $keyWord)
+                    ->orWhere('fecha', 'LIKE', $keyWord);
+            })
+            ->when($this->sortField === 'descripcion_plantilla', function($query) {
+                return $query->orderBy('descripcion_plantilla', $this->sortDirection);
+            })
+            ->when($this->sortField === 'fecha', function($query) {
+                return $query->orderBy('fecha', $this->sortDirection)
+                             ->orderBy('hora_inicio', 'asc'); // Ordenación secundaria
+            })
+            ->when($this->sortField === 'hora_inicio', function($query) {
+                return $query->orderBy('hora_inicio', $this->sortDirection)
+                             ->orderBy('fecha', 'desc'); // Ordenación secundaria
+            })
+            ->when(!in_array($this->sortField, ['descripcion_plantilla', 'fecha', 'hora_inicio']), function($query) {
+                return $query->orderBy('created_at', 'desc'); // Ordenación por defecto
+            })
+            ->get();
 
         return view('livewire.tribunales.view', [
-            'tribunales' => $tribunales,
+            'tribunales' => $tribunalesIndividuales,
+            'plantillas' => $plantillasTribunales,
         ]);
+    }
+
+    /**
+     * Cambiar el ordenamiento de la tabla
+     */
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            // Si es el mismo campo, cambiar la dirección
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            // Si es un campo diferente, establecer asc por defecto
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+
+        // Resetear la paginación al cambiar el ordenamiento
+        $this->resetPage();
+    }
+
+    /**
+     * Obtener el ícono de ordenamiento para una columna
+     */
+    public function getSortIcon($field)
+    {
+        if ($this->sortField === $field) {
+            return $this->sortDirection === 'asc' ? 'bi-arrow-up text-primary' : 'bi-arrow-down text-primary';
+        }
+        return 'bi-arrow-up-down text-muted';
     }
 
     public function cancel()
@@ -281,6 +437,198 @@ class Tribunales extends Component
         $this->presidente_id = null;
         $this->integrante1_id = null;
         $this->integrante2_id = null;
+        $this->descripcion_plantilla = null;
+        $this->modoPlantilla = false;
+        $this->estudiantesSeleccionados = [];
+        $this->tribunalPlantilla = null;
+        $this->showAsignarEstudiantesModal = false;
+        $this->buscarEstudiante = '';
+    }
+
+    // Nuevos métodos para el flujo de tribunales plantilla
+    public function updatedModoPlantilla()
+    {
+        // Limpiar validaciones anteriores
+        $this->resetValidation();
+
+        // Limpiar campos específicos según el modo
+        if (!$this->modoPlantilla) {
+            // Modo individual: limpiar descripción de plantilla
+            $this->descripcion_plantilla = null;
+        } else {
+            // Modo plantilla: limpiar estudiante seleccionado
+            $this->estudiante_id = null;
+        }
+    }
+
+    public function abrirAsignarEstudiantes($tribunalId)
+    {
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para gestionar tribunales.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        $this->tribunalPlantilla = Tribunale::where('id', $tribunalId)
+            ->where('es_plantilla', true)
+            ->where('carrera_periodo_id', $this->carreraPeriodoId)
+            ->with('miembrosTribunales.user')
+            ->first();
+
+        if (!$this->tribunalPlantilla) {
+            session()->flash('danger', 'Tribunal plantilla no encontrado.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        $this->estudiantesSeleccionados = [];
+        $this->loadEstudiantesDisponibles();
+        $this->showAsignarEstudiantesModal = true;
+        $this->dispatchBrowserEvent('openModalByName', ['modalName' => 'asignarEstudiantesModal']);
+    }
+
+    public function cerrarAsignarEstudiantes()
+    {
+        $this->showAsignarEstudiantesModal = false;
+        $this->estudiantesSeleccionados = [];
+        $this->tribunalPlantilla = null;
+        $this->buscarEstudiante = '';
+        $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'asignarEstudiantesModal']);
+    }
+
+    /**
+     * Propiedad computada para filtrar estudiantes según el buscador
+     */
+    public function getEstudiantesFiltradosProperty()
+    {
+        if (empty($this->buscarEstudiante)) {
+            return $this->estudiantesDisponibles;
+        }
+
+        $busqueda = strtolower($this->buscarEstudiante);
+
+        return $this->estudiantesDisponibles->filter(function ($estudiante) use ($busqueda) {
+            return str_contains(strtolower($estudiante->nombres), $busqueda) ||
+                   str_contains(strtolower($estudiante->apellidos), $busqueda) ||
+                   str_contains(strtolower($estudiante->ID_estudiante), $busqueda);
+        });
+    }
+
+    public function generarTribunalesIndividuales()
+    {
+        if (!$this->puedeGestionar) {
+            session()->flash('danger', 'No tienes permisos para gestionar tribunales.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        if (!$this->tribunalPlantilla || empty($this->estudiantesSeleccionados)) {
+            session()->flash('warning', 'Debe seleccionar al menos un estudiante.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        // Validar que los estudiantes no tengan tribunales asignados
+        $estudiantesConTribunales = Tribunale::whereIn('estudiante_id', $this->estudiantesSeleccionados)
+            ->where('carrera_periodo_id', $this->carreraPeriodoId)
+            ->where('es_plantilla', false)
+            ->pluck('estudiante_id')
+            ->toArray();
+
+        if (!empty($estudiantesConTribunales)) {
+            $estudiantes = Estudiante::whereIn('id', $estudiantesConTribunales)->get();
+            $nombresEstudiantes = $estudiantes->map(fn($e) => $e->nombres . ' ' . $e->apellidos)->implode(', ');
+            session()->flash('warning', "Los siguientes estudiantes ya tienen tribunales asignados: {$nombresEstudiantes}");
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        try {
+            DB::transaction(function () {
+                $cantidadEstudiantes = count($this->estudiantesSeleccionados);
+
+                // Parsear las horas considerando que pueden venir con segundos (H:i:s) o sin segundos (H:i)
+                $horaInicioStr = $this->tribunalPlantilla->hora_inicio;
+                $horaFinStr = $this->tribunalPlantilla->hora_fin;
+
+                // Intentar parsear con H:i:s primero, luego con H:i si falla
+                try {
+                    $horaInicio = \Carbon\Carbon::createFromFormat('H:i:s', $horaInicioStr);
+                } catch (\Exception $e) {
+                    $horaInicio = \Carbon\Carbon::createFromFormat('H:i', $horaInicioStr);
+                }
+
+                try {
+                    $horaFin = \Carbon\Carbon::createFromFormat('H:i:s', $horaFinStr);
+                } catch (\Exception $e) {
+                    $horaFin = \Carbon\Carbon::createFromFormat('H:i', $horaFinStr);
+                }
+
+                // Calcular duración total en minutos
+                $duracionTotalMinutos = $horaFin->diffInMinutes($horaInicio);
+
+                // Calcular duración por tribunal individual (división igualitaria)
+                $duracionPorTribunal = floor($duracionTotalMinutos / $cantidadEstudiantes);
+
+                // Obtener miembros del tribunal plantilla
+                $miembrosPlantilla = $this->tribunalPlantilla->miembrosTribunales;
+
+                foreach ($this->estudiantesSeleccionados as $index => $estudianteId) {
+                    // Calcular hora de inicio para este tribunal (índice * duración)
+                    $horaInicioTribunal = $horaInicio->copy()->addMinutes($index * $duracionPorTribunal);
+
+                    // Calcular hora de fin para este tribunal
+                    if ($index === $cantidadEstudiantes - 1) {
+                        // Para el último tribunal, usar la hora fin original para aprovechar todo el tiempo
+                        $horaFinTribunal = $horaFin->copy();
+                    } else {
+                        // Para los demás, usar la duración calculada
+                        $horaFinTribunal = $horaInicioTribunal->copy()->addMinutes($duracionPorTribunal);
+                    }
+
+                    // Crear tribunal individual
+                    $tribunalIndividual = Tribunale::create([
+                        'carrera_periodo_id' => $this->tribunalPlantilla->carrera_periodo_id,
+                        'estudiante_id' => $estudianteId,
+                        'fecha' => $this->tribunalPlantilla->fecha,
+                        'hora_inicio' => $horaInicioTribunal->format('H:i'),
+                        'hora_fin' => $horaFinTribunal->format('H:i'),
+                        'estado' => 'ABIERTO',
+                        'es_plantilla' => false,
+                        'descripcion_plantilla' => null
+                    ]);
+
+                    // Crear miembros del tribunal individual
+                    foreach ($miembrosPlantilla as $miembro) {
+                        MiembrosTribunal::create([
+                            'tribunal_id' => $tribunalIndividual->id,
+                            'user_id' => $miembro->user_id,
+                            'status' => $miembro->status
+                        ]);
+                    }
+
+                    // Crear log del tribunal
+                    TribunalLog::create([
+                        'tribunal_id' => $tribunalIndividual->id,
+                        'user_id' => auth()->id(),
+                        'accion' => 'TRIBUNAL_CREADO',
+                        'descripcion' => "Tribunal creado desde plantilla: {$this->tribunalPlantilla->descripcion_plantilla}"
+                    ]);
+                }
+
+                // Eliminar tribunal plantilla y sus miembros
+                $this->tribunalPlantilla->miembrosTribunales()->delete();
+                $this->tribunalPlantilla->delete();
+            });
+
+            session()->flash('success', "Se generaron exitosamente " . count($this->estudiantesSeleccionados) . " tribunales individuales.");
+            $this->cerrarAsignarEstudiantes();
+            $this->loadEstudiantesDisponibles();
+            $this->dispatchBrowserEvent('showFlashMessage');
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error al generar tribunales: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+        }
     }
 
     public function store() // Crear Tribunal
@@ -292,67 +640,79 @@ class Tribunales extends Component
             return;
         }
 
-        // Definir explícitamente las reglas SOLO para la creación del tribunal
-        $tribunalRules = [
-            'estudiante_id' => 'required|exists:estudiantes,id|unique:tribunales,estudiante_id,NULL,id,carrera_periodo_id,' . $this->carreraPeriodoId,
-            'fecha' => 'required|date|after_or_equal:today',
-            'hora_inicio' => [
-                'required',
-                'date_format:H:i',
-                function ($attribute, $value, $fail) {
-                    if ($this->fecha && $this->hora_fin) {
-                        $this->validarHorariosSolapados($fail);
-                    }
-                }
-            ],
-            'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
-        ];
+        // Usar las reglas del método rules() que ya soporta ambos modos
+        $validatedData = $this->validate();
 
+        // Verificar que hay profesores válidos
         $validProfessorIdsParaTribunal = $this->profesoresParaTribunal->pluck('id')->implode(',');
-        if (empty($validProfessorIdsParaTribunal)) { // Si no hay profesores válidos, la regla 'in' fallará o será vacía
-            // Podrías añadir un error general o manejarlo de otra forma
+        if (empty($validProfessorIdsParaTribunal)) {
             session()->flash('danger', 'No hay profesores válidos disponibles para formar el tribunal.');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
 
-        $tribunalRules['presidente_id'] = "required|exists:users,id|different:integrante1_id|different:integrante2_id|in:{$validProfessorIdsParaTribunal}";
-        $tribunalRules['integrante1_id'] = "required|exists:users,id|different:presidente_id|different:integrante2_id|in:{$validProfessorIdsParaTribunal}";
-        $tribunalRules['integrante2_id'] = "required|exists:users,id|different:presidente_id|different:integrante1_id|in:{$validProfessorIdsParaTribunal}";
+        try {
+            DB::transaction(function () use ($validatedData) {
+                if ($this->modoPlantilla) {
+                    // Crear tribunal plantilla (sin estudiante)
+                    $newTribunale = Tribunale::create([
+                        'carrera_periodo_id' => $this->carreraPeriodoId,
+                        'estudiante_id' => null,
+                        'fecha' => $validatedData['fecha'],
+                        'hora_inicio' => $validatedData['hora_inicio'],
+                        'hora_fin' => $validatedData['hora_fin'],
+                        'estado' => 'ABIERTO',
+                        'es_plantilla' => true,
+                        'descripcion_plantilla' => $validatedData['descripcion_plantilla']
+                    ]);
 
-        // Validar solo estas reglas
-        $validatedData = $this->validate($tribunalRules); // Usar $this->validate() con las reglas específicas
+                    $logDescripcion = "Tribunal plantilla creado: {$validatedData['descripcion_plantilla']}";
+                } else {
+                    // Crear tribunal individual normal
+                    $newTribunale = Tribunale::create([
+                        'carrera_periodo_id' => $this->carreraPeriodoId,
+                        'estudiante_id' => $validatedData['estudiante_id'],
+                        'fecha' => $validatedData['fecha'],
+                        'hora_inicio' => $validatedData['hora_inicio'],
+                        'hora_fin' => $validatedData['hora_fin'],
+                        'estado' => 'ABIERTO',
+                        'es_plantilla' => false,
+                        'descripcion_plantilla' => null
+                    ]);
 
-        // La validación unique ya maneja esto, pero un doble check no hace daño si la regla unique se quita o cambia.
-        // $existingTribunalForStudent = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
-        //     ->where('estudiante_id', $this->estudiante_id)
-        //     ->exists();
-        // if ($existingTribunalForStudent) {
-        //     $this->addError('estudiante_id', 'Este estudiante ya tiene un tribunal asignado en este periodo y carrera.');
-        //     return;
-        // }
+                    $estudiante = Estudiante::find($validatedData['estudiante_id']);
+                    $logDescripcion = "Tribunal creado para estudiante: {$estudiante->nombres} {$estudiante->apellidos}";
+                }
 
-        DB::transaction(function () use ($validatedData) { // Usar $validatedData
-            $newTribunale = Tribunale::create([
-                'carrera_periodo_id' => $this->carreraPeriodoId,
-                'estudiante_id' => $validatedData['estudiante_id'], // Usar datos validados
-                'fecha' => $validatedData['fecha'],
-                'hora_inicio' => $validatedData['hora_inicio'],
-                'hora_fin' => $validatedData['hora_fin'],
-            ]);
+                // Crear miembros del tribunal
+                $newTribunale->miembrosTribunales()->createMany([
+                    ['user_id' => $validatedData['presidente_id'], 'status' => 'PRESIDENTE'],
+                    ['user_id' => $validatedData['integrante1_id'], 'status' => 'INTEGRANTE1'],
+                    ['user_id' => $validatedData['integrante2_id'], 'status' => 'INTEGRANTE2'],
+                ]);
 
-            $newTribunale->miembrosTribunales()->createMany([
-                ['user_id' => $validatedData['presidente_id'], 'status' => 'PRESIDENTE'],
-                ['user_id' => $validatedData['integrante1_id'], 'status' => 'INTEGRANTE1'],
-                ['user_id' => $validatedData['integrante2_id'], 'status' => 'INTEGRANTE2'],
-            ]);
-        });
+                // Crear log del tribunal
+                TribunalLog::create([
+                    'tribunal_id' => $newTribunale->id,
+                    'user_id' => auth()->id(),
+                    'accion' => $this->modoPlantilla ? 'PLANTILLA_CREADA' : 'TRIBUNAL_CREADO',
+                    'descripcion' => $logDescripcion
+                ]);
+            });
 
-        session()->flash('success', 'Tribunal Creado Exitosamente.');
-        $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
-        $this->resetInput();
-        $this->loadEstudiantesDisponibles();
-        $this->actualizarProfesoresDisponibles();
+            $mensaje = $this->modoPlantilla ?
+                'Tribunal plantilla creado exitosamente. Ahora puede asignar estudiantes.' :
+                'Tribunal creado exitosamente.';
+
+            session()->flash('success', $mensaje);
+            $this->dispatchBrowserEvent('closeModalByName', ['modalName' => 'createDataModal']);
+            $this->resetInput();
+            $this->loadEstudiantesDisponibles();
+            $this->actualizarProfesoresDisponibles();
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error al crear tribunal: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+        }
     }
 
     // --- MÉTODOS PARA CALIFICADORES GENERALES ---
@@ -623,9 +983,18 @@ class Tribunales extends Component
             ->get(['hora_inicio', 'hora_fin']);
 
         foreach ($tribunalesExistentes as $tribunal) {
-            // Usar H:i:s para parsear las horas de la base de datos que incluyen segundos
-            $horaInicioExistente = \Carbon\Carbon::createFromFormat('H:i:s', $tribunal->hora_inicio);
-            $horaFinExistente = \Carbon\Carbon::createFromFormat('H:i:s', $tribunal->hora_fin);
+            // Parsear las horas de la base de datos manejando ambos formatos
+            try {
+                $horaInicioExistente = \Carbon\Carbon::createFromFormat('H:i:s', $tribunal->hora_inicio);
+            } catch (\Exception $e) {
+                $horaInicioExistente = \Carbon\Carbon::createFromFormat('H:i', $tribunal->hora_inicio);
+            }
+
+            try {
+                $horaFinExistente = \Carbon\Carbon::createFromFormat('H:i:s', $tribunal->hora_fin);
+            } catch (\Exception $e) {
+                $horaFinExistente = \Carbon\Carbon::createFromFormat('H:i', $tribunal->hora_fin);
+            }
 
             // Verificar si hay solapamiento
             // Caso 1: El nuevo tribunal inicia antes de que termine el existente Y termina después de que inicia el existente
@@ -634,8 +1003,8 @@ class Tribunales extends Component
                     'El horario seleccionado (%s - %s) se solapa con un tribunal existente (%s - %s) en la fecha %s.',
                     $this->hora_inicio,
                     $this->hora_fin,
-                    substr($tribunal->hora_inicio, 0, 5), // Mostrar solo H:i en el mensaje
-                    substr($tribunal->hora_fin, 0, 5),
+                    $horaInicioExistente->format('H:i'), // Usar formato consistente
+                    $horaFinExistente->format('H:i'),
                     \Carbon\Carbon::parse($this->fecha)->format('d/m/Y')
                 ));
                 return;

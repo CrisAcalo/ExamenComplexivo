@@ -3,26 +3,70 @@
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="createDataModalLabel">Añadir Nuevo Tribunal</h5>
+                <h5 class="modal-title" id="createDataModalLabel">
+                    @if($modoPlantilla)
+                        <i class="bi bi-diagram-2 text-info"></i> Crear Plantilla de Tribunal
+                    @else
+                        <i class="bi bi-diagram-3 text-primary"></i> Añadir Nuevo Tribunal
+                    @endif
+                </h5>
                 <button wire:click.prevent="cancel()" type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form>
-                    {{-- Estudiante --}}
-                    <div class="mb-3">
-                        <label for="estudiante_id_create" class="form-label">Estudiante <span class="text-danger">*</span></label>
-                        <select wire:model.defer="estudiante_id" id="estudiante_id_create" name="estudiante_id"
-                            class="form-select @error('estudiante_id') is-invalid @enderror">
-                            <option value="">-- Elija un Estudiante --</option>
-                            @forelse ($estudiantesDisponibles as $estudiante)
-                                <option value="{{ $estudiante->id }}">{{ $estudiante->apellidos }} {{ $estudiante->nombres }} ({{ $estudiante->ID_estudiante }})</option>
-                            @empty
-                                <option value="" disabled>No hay estudiantes disponibles sin tribunal asignado.</option>
-                            @endforelse
-                        </select>
-                        @error('estudiante_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    {{-- Toggle de Modo Plantilla --}}
+                    <div class="mb-4">
+                        <div class="card">
+                            <div class="card-body p-3">
+                                <div class="form-check form-switch">
+                                    <input wire:model.lazy="modoPlantilla" class="form-check-input" type="checkbox" id="modoPlantillaSwitch">
+                                    <label class="form-check-label fw-bold" for="modoPlantillaSwitch">
+                                        <i class="bi bi-diagram-2 text-info"></i>
+                                        @if($modoPlantilla)
+                                            Modo Plantilla: Crear plantilla para asignar múltiples estudiantes
+                                        @else
+                                            Modo Individual: Crear tribunal para un estudiante específico
+                                        @endif
+                                    </label>
+                                </div>
+                                @if($modoPlantilla)
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="bi bi-info-circle"></i>
+                                        En modo plantilla, podrá crear un tribunal base y luego asignar múltiples estudiantes con horarios automáticos.
+                                    </small>
+                                @endif
+                            </div>
+                        </div>
                     </div>
+
+                    {{-- Descripción de Plantilla (solo en modo plantilla) --}}
+                    @if($modoPlantilla)
+                        <div class="mb-3">
+                            <label for="descripcion_plantilla_create" class="form-label">Descripción de la Plantilla <span class="text-danger">*</span></label>
+                            <input wire:model.defer="descripcion_plantilla" type="text" class="form-control @error('descripcion_plantilla') is-invalid @enderror"
+                                   id="descripcion_plantilla_create" placeholder="Ej: Tribunales de Titulación - Modalidad X">
+                            @error('descripcion_plantilla') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <small class="form-text text-muted">Esta descripción ayudará a identificar la plantilla al asignar estudiantes.</small>
+                        </div>
+                    @endif
+
+                    {{-- Estudiante (solo en modo individual) --}}
+                    @if(!$modoPlantilla)
+                        <div class="mb-3">
+                            <label for="estudiante_id_create" class="form-label">Estudiante <span class="text-danger">*</span></label>
+                            <select wire:model.defer="estudiante_id" id="estudiante_id_create" name="estudiante_id"
+                                class="form-select @error('estudiante_id') is-invalid @enderror">
+                                <option value="">-- Elija un Estudiante --</option>
+                                @forelse ($estudiantesDisponibles as $estudiante)
+                                    <option value="{{ $estudiante->id }}">{{ $estudiante->apellidos }} {{ $estudiante->nombres }} ({{ $estudiante->ID_estudiante }})</option>
+                                @empty
+                                    <option value="" disabled>No hay estudiantes disponibles sin tribunal asignado.</option>
+                                @endforelse
+                            </select>
+                            @error('estudiante_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    @endif
 
                     <div class="row">
                         {{-- Fecha --}}
@@ -103,9 +147,16 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" wire:click.prevent="cancel()" data-bs-dismiss="modal">Cancelar</button>
+                                                        <button type="button" class="btn btn-secondary"
+                            wire:click="$set('showModal', false)">
+                        <span class="fas fa-times"></span> Cancelar
+                    </button>
                 <button type="button" wire:click.prevent="store()" class="btn btn-primary">
-                    <i class="bi bi-save"></i> Guardar Tribunal
+                    @if($modoPlantilla)
+                        <i class="bi bi-diagram-2"></i> Crear Plantilla
+                    @else
+                        <i class="bi bi-save"></i> Guardar Tribunal
+                    @endif
                 </button>
             </div>
         </div>
@@ -137,5 +188,228 @@
                 </div>
             </div>
         @endif
+    </div>
+</div>
+
+
+<!-- Modal para Asignar Estudiantes a Plantilla -->
+<div wire:ignore.self class="modal fade" id="asignarEstudiantesModal" data-bs-backdrop="static" tabindex="-1" aria-labelledby="asignarEstudiantesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl"> <!-- Cambiado de modal-lg a modal-xl para más espacio -->
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="asignarEstudiantesModalLabel">
+                    <i class="bi bi-people-fill"></i> Asignar Estudiantes a Plantilla
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"
+                        wire:click="cerrarAsignarEstudiantes"></button>
+            </div>
+            @if($tribunalPlantilla)
+                <div class="modal-body">
+                    {{-- Información de la plantilla --}}
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-diagram-2"></i>
+                                {{ $tribunalPlantilla->descripcion_plantilla ?? 'Plantilla de Tribunal' }}
+                            </h6>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-calendar3 text-primary me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Fecha</small>
+                                            <strong>{{ \Carbon\Carbon::parse($tribunalPlantilla->fecha)->format('d/m/Y') }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-clock text-success me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Horario Base</small>
+                                            <strong>{{ \Carbon\Carbon::parse($tribunalPlantilla->hora_inicio)->format('H:i') }} - {{ \Carbon\Carbon::parse($tribunalPlantilla->hora_fin)->format('H:i') }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="bi bi-people text-warning me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Miembros</small>
+                                            <div>
+                                                @foreach($tribunalPlantilla->miembrosTribunales as $miembro)
+                                                    <span class="badge bg-secondary me-1 mb-1">{{ $miembro->user->name }}</span>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Layout de dos columnas --}}
+                    <div class="row">
+                        {{-- Columna izquierda: Selección de estudiantes --}}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Seleccionar Estudiantes para Asignar:</label>
+
+                                {{-- Buscador de estudiantes --}}
+                                <div class="mb-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input wire:model.debounce.300ms="buscarEstudiante" type="text" class="form-control"
+                                               placeholder="Buscar por nombre, apellido o ID...">
+                                    </div>
+                                    @if(!empty($buscarEstudiante))
+                                        <small class="text-muted">
+                                            Mostrando resultados para: <strong>"{{ $buscarEstudiante }}"</strong>
+                                            <button wire:click="$set('buscarEstudiante', '')" class="btn btn-link btn-sm p-0 ms-1">
+                                                <i class="bi bi-x-circle"></i> Limpiar
+                                            </button>
+                                        </small>
+                                    @endif
+                                </div>
+
+                                {{-- Lista de estudiantes con scroll --}}
+                                <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                                    @forelse($this->estudiantesFiltrados as $estudiante)
+                                        <div class="form-check mb-2">
+                                            <input wire:model="estudiantesSeleccionados" class="form-check-input" type="checkbox"
+                                                   value="{{ $estudiante->id }}" id="estudiante_{{ $estudiante->id }}">
+                                            <label class="form-check-label" for="estudiante_{{ $estudiante->id }}">
+                                                <strong>{{ $estudiante->apellidos }}, {{ $estudiante->nombres }}</strong>
+                                                <small class="text-muted d-block">ID: {{ $estudiante->ID_estudiante }}</small>
+                                            </label>
+                                        </div>
+                                    @empty
+                                        @if(!empty($buscarEstudiante))
+                                            <div class="text-center text-muted py-3">
+                                                <i class="bi bi-search fs-4"></i>
+                                                <p class="mb-0">No se encontraron estudiantes que coincidan con "{{ $buscarEstudiante }}".</p>
+                                            </div>
+                                        @else
+                                            <div class="text-center text-muted py-3">
+                                                <i class="bi bi-info-circle fs-4"></i>
+                                                <p class="mb-0">No hay estudiantes disponibles para asignar.</p>
+                                            </div>
+                                        @endif
+                                    @endforelse
+                                </div>
+
+                                {{-- Contador de estudiantes seleccionados --}}
+                                @if(count($estudiantesSeleccionados) > 0)
+                                    <div class="mt-2 p-2 bg-light rounded">
+                                        <small class="text-info">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            <strong>{{ count($estudiantesSeleccionados) }} estudiante(s) seleccionado(s)</strong>
+                                        </small>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i>
+                                            Se generarán {{ count($estudiantesSeleccionados) }} tribunales con horarios distribuidos equitativamente.
+                                        </small>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Columna derecha: Vista previa de horarios --}}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Vista Previa de Horarios:</label>
+
+                                @if(count($estudiantesSeleccionados) > 0)
+                                    <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                                        <div class="alert alert-info mb-3">
+                                            <h6 class="mb-2"><i class="bi bi-info-circle"></i> Distribución de Tribunales:</h6>
+                                            <small class="text-muted">
+                                                Los horarios se distribuyen equitativamente entre todos los estudiantes seleccionados.
+                                            </small>
+                                        </div>
+
+                                        <div class="list-group list-group-flush">
+                                            @foreach($estudiantesSeleccionados as $index => $estudianteId)
+                                                @php
+                                                    $estudiante = $estudiantesDisponibles->find($estudianteId);
+                                                    $cantidadEstudiantes = count($estudiantesSeleccionados);
+
+                                                    // Parsear las horas de la plantilla
+                                                    try {
+                                                        $horaInicio = \Carbon\Carbon::createFromFormat('H:i:s', $tribunalPlantilla->hora_inicio);
+                                                    } catch (\Exception $e) {
+                                                        $horaInicio = \Carbon\Carbon::createFromFormat('H:i', $tribunalPlantilla->hora_inicio);
+                                                    }
+
+                                                    try {
+                                                        $horaFin = \Carbon\Carbon::createFromFormat('H:i:s', $tribunalPlantilla->hora_fin);
+                                                    } catch (\Exception $e) {
+                                                        $horaFin = \Carbon\Carbon::createFromFormat('H:i', $tribunalPlantilla->hora_fin);
+                                                    }
+
+                                                    // Calcular duración total y por tribunal
+                                                    $duracionTotalMinutos = $horaFin->diffInMinutes($horaInicio);
+                                                    $duracionPorTribunal = floor($duracionTotalMinutos / $cantidadEstudiantes);
+
+                                                    // Calcular horas para este tribunal específico
+                                                    $horaInicioCalculada = $horaInicio->copy()->addMinutes($index * $duracionPorTribunal);
+
+                                                    if ($index === $cantidadEstudiantes - 1) {
+                                                        // Último tribunal usa la hora fin original
+                                                        $horaFinCalculada = $horaFin->copy();
+                                                    } else {
+                                                        $horaFinCalculada = $horaInicioCalculada->copy()->addMinutes($duracionPorTribunal);
+                                                    }
+                                                @endphp
+                                                <div class="list-group-item d-flex justify-content-between align-items-start">
+                                                    <div class="me-auto">
+                                                        <div class="fw-bold">{{ $estudiante->apellidos }}, {{ $estudiante->nombres }}</div>
+                                                        <small class="text-muted">ID: {{ $estudiante->ID_estudiante }}</small>
+                                                    </div>
+                                                    <span class="badge bg-primary rounded-pill">
+                                                        {{ $horaInicioCalculada->format('H:i') }} - {{ $horaFinCalculada->format('H:i') }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="border rounded p-4 text-center text-muted">
+                                        <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                                        <p class="mb-0">Selecciona estudiantes para ver la vista previa de horarios</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        @if(count($estudiantesSeleccionados) > 0)
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                {{ count($estudiantesSeleccionados) }} estudiante(s) seleccionado(s)
+                            </small>
+                        @endif
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary me-2"
+                                wire:click="cerrarAsignarEstudiantes">
+                            <i class="bi bi-x-lg"></i> Cancelar
+                        </button>
+                        <button type="button" class="btn btn-success" wire:click="generarTribunalesIndividuales"
+                                @if(count($estudiantesSeleccionados) == 0) disabled @endif>
+                            <i class="bi bi-diagram-3"></i>
+                            Generar {{ count($estudiantesSeleccionados) > 0 ? count($estudiantesSeleccionados) : '' }} Tribunal{{ count($estudiantesSeleccionados) != 1 ? 'es' : '' }}
+                        </button>
+                    </div>
+                </div>
+            @endif
+        </div>
     </div>
 </div>

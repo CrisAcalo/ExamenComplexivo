@@ -23,8 +23,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="icon" href="{{ Storage::url('logos/ITIN_LOGO_SMALL.png') }}" type="image/x-icon">
     <!-- Scripts -->
-    {{-- @vite(['resources/js/app.js']) --}}
     @livewireStyles
     <style>
         /* Estilos globales para el sistema */
@@ -153,7 +153,7 @@
 
 <body>
     <div id="app" style="background:#ffffff;">
-        <nav class="navbar fixed-top navbar-expand-md navbar-light shadow-sm">
+        <nav class="navbar sticky-top navbar-expand-md navbar-light shadow-sm mb-4">
             <div class="container" style="height:70px;">
                 <!-- Logo y Brand -->
                 <div class="navbar-brand d-flex align-items-center">
@@ -226,6 +226,7 @@
             <img class="" src="{{ Storage::url('fondos/002-Cotopaxi.jpg') }}" alt="Fondo Ecuador">
         </div>
         <main class="p-0 m-0 fade-in">
+            {{-- Contenido Principal --}}
             @yield('content')
         </main>
     </div>

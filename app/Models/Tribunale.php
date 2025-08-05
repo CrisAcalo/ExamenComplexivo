@@ -19,7 +19,9 @@ class Tribunale extends Model
         'fecha',
         'hora_inicio',
         'hora_fin',
-        'estado'
+        'estado',
+        'es_plantilla',
+        'descripcion_plantilla'
     ];
 
     /**
