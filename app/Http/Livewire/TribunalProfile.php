@@ -550,6 +550,34 @@ class TribunalProfile extends Component
                 // La observación general para una rúbrica podría ser un compendio o la del presidente si la puso.
                 // Por ahora, dejaremos $observacionGeneralItem vacía para rúbricas en el resumen, el detalle está en el modal.
 
+                // Generar componentes individuales de rúbrica como elementos separados
+                if ($itemPlan->rubricaPlantilla && $itemPlan->rubricaPlantilla->componentesRubrica) {
+                    foreach ($itemPlan->rubricaPlantilla->componentesRubrica as $compR) {
+                        $asignacionComp = $itemPlan->asignacionesCalificadorComponentes->firstWhere('componente_rubrica_id', $compR->id);
+                        if ($asignacionComp && isset($notasRubricaPorGrupoCalificador[$asignacionComp->calificado_por][$compR->id])) {
+                            // Calcular la nota del componente sobre 20
+                            $notaComponenteSobre20 = ($notasRubricaPorGrupoCalificador[$asignacionComp->calificado_por][$compR->id] / $compR->ponderacion) * 20;
+
+                            // Calcular la ponderación de este componente dentro del ítem total
+                            $ponderacionComponenteDentroDelItem = ($compR->ponderacion / $sumaPonderacionesDeComponentesUsados) * $itemPlan->ponderacion_global;
+
+                            // Calcular el puntaje ponderado del componente
+                            $puntajePonderadoComponente = $notaComponenteSobre20 * ($ponderacionComponenteDentroDelItem / 100);
+
+                            // Agregar como elemento separado
+                            $this->resumenNotasCalculadas['componente_' . $compR->id . '_item_' . $itemPlan->id] = [
+                                'nombre_item_plan' => $compR->nombre,
+                                'ponderacion_global' => $ponderacionComponenteDentroDelItem,
+                                'tipo_item' => 'RUBRICA_COMPONENTE',
+                                'rubrica_plantilla_nombre' => $itemPlan->rubricaPlantilla->nombre,
+                                'nota_tribunal_sobre_20' => round($notaComponenteSobre20, 2),
+                                'puntaje_ponderado_item' => round($puntajePonderadoComponente, 2),
+                                'observacion_general' => '',
+                            ];
+                        }
+                    }
+                }
+
             } // Fin RUBRICA_TABULAR
 
             if (is_numeric($notaItemParaTribunalSobre20)) {
