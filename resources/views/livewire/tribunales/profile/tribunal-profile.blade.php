@@ -1,31 +1,70 @@
-<div>
-    @section('title', $tribunal && $tribunal->estudiante ? 'Perfil Tribunal: ' .
-        $tribunal->estudiante->nombres_completos_id : 'Perfil del Tribunal')
+@section('title', $tribunal && $tribunal->estudiante ? 'Perfil Tribunal: ' .
+    $tribunal->estudiante->nombres_completos_id : 'Perfil del Tribunal')
+<div class="container-fluid p-0">
+    <!-- Banner Verde ESPE -->
+    <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%);">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    @if (file_exists(public_path('storage/logos/LOGO-ESPE_500.png')))
+                        <img src="{{ asset('storage/logos/LOGO-ESPE_500.png') }}" alt="Logo ESPE"
+                             style="width: 60px; height: 60px; object-fit: contain;" class="me-3">
+                    @else
+                        <div class="bg-white bg-opacity-25 rounded p-2 me-3">
+                            <i class="bi bi-people-fill fs-3 text-white"></i>
+                        </div>
+                    @endif
+                    <div>
+                        <h1 class="h3 mb-1 fw-bold text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                            PERFIL DEL TRIBUNAL
+                        </h1>
+                        <p class="mb-0 text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                            @if ($tribunal && $tribunal->estudiante)
+                                {{ $tribunal->estudiante->nombres_completos_id }}
+                            @else
+                                Gestión de información del tribunal
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <div class="container-fluid p-0">
-            {{-- Breadcrumbs --}}
-            @if (
-                $tribunal &&
-                    $tribunal->carrerasPeriodo &&
-                    $tribunal->carrerasPeriodo->periodo &&
-                    $tribunal->carrerasPeriodo->carrera &&
-                    $tribunal->estudiante)
-                <div class="fs-2 fw-semibold mb-4">
-                    <a href="{{ route('periodos.') }}">Períodos</a> /
+    <!-- Breadcrumbs -->
+    @if (
+        $tribunal &&
+            $tribunal->carrerasPeriodo &&
+            $tribunal->carrerasPeriodo->periodo &&
+            $tribunal->carrerasPeriodo->carrera &&
+            $tribunal->estudiante)
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ route('periodos.') }}" class="text-decoration-none">
+                        <i class="bi bi-calendar-event me-1"></i>Períodos
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
                     <a href="{{ route('periodos.profile', $tribunal->carrerasPeriodo->periodo->id) }}"
-                       >{{ $tribunal->carrerasPeriodo->periodo->codigo_periodo }}</a>
-                    /
-                    <a href="{{ route('periodos.tribunales.index', $tribunal->carrerasPeriodo->id) }}" {{-- Asegúrate que esta ruta y parámetro sean correctos --}}
-                       >{{ $tribunal->carrerasPeriodo->carrera->nombre }}</a> /
-                    <span class="text-muted">{{ $tribunal->estudiante->nombres_completos_id }}</span>
-                </div>
-            @else
-                <div class="fs-2 fw-semibold mb-4">
-                    <span class="text-muted">Perfil del Tribunal</span>
-                </div>
-            @endif
+                       class="text-decoration-none">
+                        {{ $tribunal->carrerasPeriodo->periodo->codigo_periodo }}
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ route('periodos.tribunales.index', $tribunal->carrerasPeriodo->id) }}"
+                       class="text-decoration-none">
+                        {{ $tribunal->carrerasPeriodo->carrera->nombre }}
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    {{ $tribunal->estudiante->nombres_completos_id }}
+                </li>
+            </ol>
+        </nav>
+    @endif
 
-            @include('partials.alerts')
+    @include('partials.alerts')
 
             @if ($tribunal)
                 {{-- SECCIÓN 1: DATOS DEL TRIBUNAL (Con Edición) --}}
@@ -34,10 +73,11 @@
 
                 {{-- SECCIÓN 2: RESUMEN DE CALIFICACIONES Y NOTA FINAL --}}
                 @if ($usuarioPuedeVerTodasLasCalificaciones && $planEvaluacionActivo)
-                    <div class="card mb-4 shadow-sm">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="bi bi-calculator-fill text-info"></i> Resumen de Calificaciones y
-                                Nota del Tribunal</h5>
+                    <div class="card mb-4 shadow-sm border-0">
+                        <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                            <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                                <i class="bi bi-calculator-fill me-2"></i>Resumen de Calificaciones y Nota del Tribunal
+                            </h5>
                         </div>
                         <div class="card-body">
                             @if (empty($resumenNotasCalculadas))
@@ -48,14 +88,14 @@
                                 </p>
                             @else
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-striped table-hover align-middle">
-                                        <thead class="table-light">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                                             <tr>
-                                                <th>Ítem de Evaluación</th>
-                                                <th class="text-center">Ponderación Global</th>
-                                                <th class="text-center">Nota Ítem (sobre 20)</th>
-                                                <th class="text-center">Puntaje Ponderado (sobre 20)</th>
-                                                <th class="text-center" style="width:15%">Detalles / Observaciones</th>
+                                                <th class="fw-semibold"><i class="bi bi-list-ol me-1"></i>Ítem de Evaluación</th>
+                                                <th class="text-center fw-semibold"><i class="bi bi-percent me-1"></i>Ponderación Global</th>
+                                                <th class="text-center fw-semibold"><i class="bi bi-clipboard-check me-1"></i>Nota Ítem (sobre 20)</th>
+                                                <th class="text-center fw-semibold"><i class="bi bi-calculator me-1"></i>Puntaje Ponderado</th>
+                                                <th class="text-center fw-semibold" style="width:15%"><i class="bi bi-info-circle me-1"></i>Detalles</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -82,11 +122,12 @@
                                                         @if ($itemResumen['tipo_item'] === 'NOTA_DIRECTA')
                                                             @if (!empty($itemResumen['observacion_general']))
                                                                 <button type="button"
-                                                                    class="btn btn-sm btn-outline-secondary py-1 px-2"
+                                                                    class="btn btn-sm btn-outline-secondary"
                                                                     data-bs-toggle="tooltip" data-bs-placement="top"
                                                                     data-bs-html="true"
-                                                                    title="{{ htmlspecialchars($itemResumen['observacion_general']) }}">
-                                                                    <i class="bi bi-chat-left-text"></i> Ver Obs.
+                                                                    title="{{ htmlspecialchars($itemResumen['observacion_general']) }}"
+                                                                    style="transition: all 0.3s ease;">
+                                                                    <i class="bi bi-chat-left-text me-1"></i>Ver Obs.
                                                                 </button>
                                                             @else
                                                                 <small class="text-muted"><em>Sin obs.</em></small>
@@ -94,25 +135,28 @@
                                                         @elseif ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR')
                                                             @if (!empty($todasLasCalificacionesDelTribunal))
                                                                 <button type="button"
-                                                                    class="btn btn-sm btn-outline-info py-1 px-2"
+                                                                    class="btn btn-sm text-white"
                                                                     data-bs-toggle="modal"
-                                                                    data-bs-target="#detalleRubricaModal_{{ $itemPlanId }}">
-                                                                    <i class="bi bi-search"></i> Ver Detalle
+                                                                    data-bs-target="#detalleRubricaModal_{{ $itemPlanId }}"
+                                                                    style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%); border: none; transition: all 0.3s ease;"
+                                                                    onmouseover="this.style.transform='scale(1.05)'"
+                                                                    onmouseout="this.style.transform='scale(1)'">
+                                                                    <i class="bi bi-search me-1"></i>Ver Detalle
                                                                 </button>
                                                             @else
-                                                                <small class="text-muted"><em>Detalle no
-                                                                        disponible.</em></small>
+                                                                <small class="text-muted"><em>Detalle no disponible.</em></small>
                                                             @endif
                                                         @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
                                         </tbody>
-                                        <tfoot class="table-group-divider">
-                                            <tr>
-                                                <td colspan="3" class="text-end fw-bold fs-5 align-middle">NOTA FINAL DEL
-                                                    TRIBUNAL (sobre 20):</td>
-                                                <td class="text-center fw-bold fs-4 @if ($notaFinalCalculadaDelTribunal >= 14) text-success @elseif(is_numeric($notaFinalCalculadaDelTribunal)) text-danger @else text-muted @endif"
+                                        <tfoot style="background: linear-gradient(135deg, #f0f8f5 0%, #e7f6f2 100%);">
+                                            <tr style="border-top: 3px solid #3d8e72ff;">
+                                                <td colspan="3" class="text-end fw-bold fs-5 align-middle py-3" style="color: #2d7a5f;">
+                                                    <i class="bi bi-trophy-fill me-2"></i>NOTA FINAL DEL TRIBUNAL (sobre 20):
+                                                </td>
+                                                <td class="text-center fw-bold fs-3 py-3 @if ($notaFinalCalculadaDelTribunal >= 14) text-success @elseif(is_numeric($notaFinalCalculadaDelTribunal)) text-danger @else text-muted @endif"
                                                     colspan="2">
                                                     {{ is_numeric($notaFinalCalculadaDelTribunal) ? number_format($notaFinalCalculadaDelTribunal, 2) : 'N/C' }}
                                                 </td>
@@ -146,10 +190,11 @@
                 @endif
 
                 {{-- SECCIÓN 3: HISTORIAL DE CAMBIOS --}}
-                <div class="card mb-4 shadow-sm">
-                    {{-- ... (código del historial como lo tenías, sin cambios) ... --}}
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0"><i class="bi bi-clock-history text-success"></i> Historial de Cambios</h5>
+                <div class="card mb-4 shadow-sm border-0">
+                    <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                        <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                            <i class="bi bi-clock-history me-2"></i>Historial de Cambios
+                        </h5>
                     </div>
                     <div class="card-body" style="max-height: 400px; overflow-y: auto;">
                         @if ($tribunal->logs && $tribunal->logs->count() > 0)
@@ -165,7 +210,7 @@
                                         <small class="text-muted">
                                             {{ $log->created_at->isoFormat('DD MMM YYYY, hh:mm A') }}
                                             @if ($log->user)
-                                                por <strong>{{ $log->user->name }}</strong>
+                                                por <strong>{{ $log->user->name }} {{ $log->user->lastname }}</strong>
                                             @else
                                                 (Sistema)
                                             @endif
@@ -185,25 +230,95 @@
 
                 {{-- SECCIÓN 4: ACTA --}}
                 @if ($usuarioPuedeExportarActa)
-                    <div class="card mb-4 shadow-sm">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill text-danger"></i> Acta del Tribunal
+                    <div class="card mb-4 shadow-sm border-0">
+                        <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                            <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                                <i class="bi bi-file-earmark-text-fill me-2"></i>Acta del Tribunal
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p>El acta oficial del tribunal está disponible para exportación.</p>
-                            <button class="btn btn-danger" wire:click="exportarActa" wire:loading.attr="disabled">
-                                <span wire:loading wire:target="exportarActa" class="spinner-border spinner-border-sm"
-                                    role="status" aria-hidden="true"></span>
-                                <i class="bi bi-file-pdf-fill" wire:loading.remove wire:target="exportarActa"></i>
-                                Exportar Acta (PDF)
-                            </button>
+                            <!-- <p class="mb-3">El acta oficial del tribunal está disponible para exportación en diferentes formatos.</p> -->
+
+                            <div class="d-flex flex-wrap gap-2">
+                                {{-- Botón PDF Hardcodeado (actual) --}}
+                                <button class="btn text-white px-4 py-2" wire:click="exportarActa" wire:loading.attr="disabled"
+                                        style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); border: none; transition: all 0.3s ease; font-weight: 600;"
+                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(220,53,69,0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                                        title="Exportar PDF">
+                                    <span wire:loading wire:target="exportarActa" class="spinner-border spinner-border-sm me-2"
+                                        role="status" aria-hidden="true"></span>
+                                    <i class="bi bi-file-pdf-fill me-2" wire:loading.remove wire:target="exportarActa"></i>
+                                    PDF 
+                                </button>
+
+                                {{-- Botón Word --}}
+                                <!-- <button class="btn text-white px-4 py-2" wire:click="exportarActaWord" wire:loading.attr="disabled"
+                                        style="background: linear-gradient(135deg, #2b5797 0%, #1e3a5f 100%); border: none; transition: all 0.3s ease; font-weight: 600;"
+                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(43,87,151,0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                                        title="Exportar Word usando plantilla personalizada">
+                                    <span wire:loading wire:target="exportarActaWord" class="spinner-border spinner-border-sm me-2"
+                                        role="status" aria-hidden="true"></span>
+                                    <i class="bi bi-file-word-fill me-2" wire:loading.remove wire:target="exportarActaWord"></i>
+                                    Word (Plantilla)
+                                </button> -->
+
+                                {{-- Botón PDF desde Word --}}
+                                <!-- <button class="btn text-white px-4 py-2" wire:click="exportarActaPdfDesdeWord" wire:loading.attr="disabled"
+                                        style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); border: none; transition: all 0.3s ease; font-weight: 600;"
+                                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(40,167,69,0.4)'"
+                                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                                        title="Exportar PDF convertido desde plantilla Word">
+                                    <span wire:loading wire:target="exportarActaPdfDesdeWord" class="spinner-border spinner-border-sm me-2"
+                                        role="status" aria-hidden="true"></span>
+                                    <i class="bi bi-file-earmark-pdf-fill me-2" wire:loading.remove wire:target="exportarActaPdfDesdeWord"></i>
+                                    PDF (desde Word)
+                                </button> -->
+                            </div>
+
+                            <!-- <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>PDF (Hardcodeado):</strong> Usa plantilla fija del sistema.
+                                    <strong>Word:</strong> Usa plantilla personalizada (.docx).
+                                    <strong>PDF (desde Word):</strong> Convierte plantilla Word a PDF.
+                                </small>
+                            </div> -->
+
+                            {{-- Sección de acta firmada --}}
+                            @if($tribunal->acta_firmada_path)
+                                <hr class="my-4">
+                                <div class="alert alert-success d-flex align-items-start" role="alert">
+                                    <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+                                    <div class="flex-grow-1">
+                                        <strong>Acta Firmada Disponible</strong><br>
+                                        <small class="text-muted">
+                                            Subida el {{ \Carbon\Carbon::parse($tribunal->acta_firmada_fecha)->format('d/m/Y H:i') }}
+                                            por {{ $tribunal->usuarioSubioActa->name ?? 'Usuario desconocido' }}
+                                        </small>
+                                    </div>
+                                </div>
+                                @can('descargar-acta-firmada-de-este-tribunal', $tribunal)
+                                    <button class="btn text-white px-4 py-2" wire:click="descargarActaFirmada" wire:loading.attr="disabled"
+                                            style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); border: none; transition: all 0.3s ease; font-weight: 600;"
+                                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(40,167,69,0.4)'"
+                                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                                            title="Descargar Acta Firmada">
+                                        <span wire:loading wire:target="descargarActaFirmada" class="spinner-border spinner-border-sm me-2"
+                                            role="status" aria-hidden="true"></span>
+                                        <i class="bi bi-download me-2" wire:loading.remove wire:target="descargarActaFirmada"></i>
+                                        Descargar Acta Firmada
+                                    </button>
+                                @endcan
+                            @endif
                         </div>
                     </div>
                 @elseif($tribunal && $tribunal->estado !== 'CERRADO')
-                    <div class="card mb-4 shadow-sm">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="bi bi-file-earmark-text-fill text-muted"></i> Acta del Tribunal
+                    <div class="card mb-4 shadow-sm border-0">
+                        <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                            <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                                <i class="bi bi-file-earmark-text-fill me-2"></i>Acta del Tribunal
                             </h5>
                         </div>
                         <div class="card-body">

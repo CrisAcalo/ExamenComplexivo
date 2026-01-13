@@ -16,7 +16,7 @@ class ContextualAuth
     {
         if (!$user) return false;
 
-        return $user->roles()->whereIn('name', ['Super Admin', 'Administrador'])->exists();
+        return $user->hasRole('Super Admin');
     }
 
     /**

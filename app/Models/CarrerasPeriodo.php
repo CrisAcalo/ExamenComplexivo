@@ -89,4 +89,13 @@ class CarrerasPeriodo extends Model
         // Devuelve el plan de evaluación asociado a este período de carrera
         return $this->hasOne(PlanEvaluacion::class, 'carrera_periodo_id', 'id');
     }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function estudiantes()
+    {
+        // Devuelve los estudiantes asignados a esta carrera en este periodo
+        return $this->hasMany(Estudiante::class, 'carrera_periodo_id', 'id');
+    }
 }

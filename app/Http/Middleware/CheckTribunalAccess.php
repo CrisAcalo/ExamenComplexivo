@@ -46,11 +46,6 @@ class CheckTribunalAccess
                 return $next($request);
             }
 
-            // Administrador siempre puede
-            if ($user->hasRole('Administrador')) {
-                return $next($request);
-            }
-
             // Verificar si es miembro del tribunal
             if ($tribunal->miembrosTribunales()->where('user_id', $user->id)->exists()) {
                 return $next($request);

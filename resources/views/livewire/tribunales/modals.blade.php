@@ -66,34 +66,64 @@
                             </select>
                             @error('estudiante_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+
+                        {{-- Caso --}}
+                        <div class="mb-3">
+                            <label for="caso_create" class="form-label">Caso</label>
+                            <input wire:model.defer="caso" type="text" class="form-control @error('caso') is-invalid @enderror"
+                                   id="caso_create" placeholder="Ej: 6">
+                            @error('caso') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> Número o identificador del caso (opcional).
+                            </small>
+                        </div>
                     @endif
 
                     <div class="row">
                         {{-- Fecha --}}
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="fecha_create" class="form-label">Fecha <span class="text-danger">*</span></label>
                             <input wire:model.lazy="fecha" type="date" class="form-control @error('fecha') is-invalid @enderror" id="fecha_create">
                             @error('fecha') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         {{-- Hora Inicio --}}
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="hora_inicio_create" class="form-label">Hora Inicio <span class="text-danger">*</span></label>
                             <input wire:model.lazy="hora_inicio" type="time" class="form-control @error('hora_inicio') is-invalid @enderror" id="hora_inicio_create">
                             @error('hora_inicio') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         {{-- Hora Fin --}}
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="hora_fin_create" class="form-label">Hora Fin <span class="text-danger">*</span></label>
                             <input wire:model.lazy="hora_fin" type="time" class="form-control @error('hora_fin') is-invalid @enderror" id="hora_fin_create">
                             @error('hora_fin') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        {{-- Laboratorio --}}
+                        <div class="col-md-3 mb-3">
+                            <label for="laboratorio_create" class="form-label">
+                                Laboratorio
+                                @if(!$modoPlantilla)
+                                    <span class="text-danger">*</span>
+                                @endif
+                            </label>
+                            <select wire:model.defer="laboratorio" id="laboratorio_create" class="form-select @error('laboratorio') is-invalid @enderror">
+                                <option value="">-- Seleccione --</option>
+                                @foreach($laboratoriosDisponibles as $lab)
+                                    <option value="{{ $lab }}">{{ $lab }}</option>
+                                @endforeach
+                            </select>
+                            @error('laboratorio') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            @if($modoPlantilla)
+                                <small class="form-text text-muted">Opcional para plantillas</small>
+                            @endif
                         </div>
                     </div>
 
                     {{-- Mensaje informativo sobre horarios --}}
                     <div class="alert alert-info mb-3">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Importante:</strong> Los horarios de tribunales no pueden solaparse en la misma fecha.
-                        Asegúrese de que el horario seleccionado no esté ocupado por otro tribunal.
+                        <strong>Importante:</strong> Los horarios de tribunales no pueden solaparse en el mismo laboratorio y fecha.
+                        Puede haber múltiples tribunales a la misma hora si están en laboratorios diferentes.
                     </div>
 
 
@@ -108,7 +138,7 @@
                                     <option value="">-- Elija Presidente --</option>
                                     @foreach ($profesoresParaTribunal as $profesor)
                                         @if ( (empty($integrante1_id) || $profesor->id != $integrante1_id) && (empty($integrante2_id) || $profesor->id != $integrante2_id) )
-                                            <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
+                                            <option value="{{ $profesor->id }}">{{ $profesor->name }} {{ $profesor->lastname }}</option>
                                         @endif
                                     @endforeach
                                 </select>
@@ -122,7 +152,7 @@
                                     <option value="">-- Elija Integrante 1 --</option>
                                     @foreach ($profesoresParaTribunal as $profesor)
                                     @if ( (empty($presidente_id) || $profesor->id != $presidente_id) && (empty($integrante2_id) || $profesor->id != $integrante2_id) )
-                                            <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
+                                            <option value="{{ $profesor->id }}">{{ $profesor->name }} {{ $profesor->lastname }}</option>
                                         @endif
                                     @endforeach
                                 </select>
@@ -136,7 +166,7 @@
                                     <option value="">-- Elija Integrante 2 --</option>
                                     @foreach ($profesoresParaTribunal as $profesor)
                                     @if ( (empty($presidente_id) || $profesor->id != $presidente_id) && (empty($integrante1_id) || $profesor->id != $integrante1_id) )
-                                            <option value="{{ $profesor->id }}">{{ $profesor->name }}</option>
+                                            <option value="{{ $profesor->id }}">{{ $profesor->name }} {{ $profesor->lastname }}</option>
                                         @endif
                                     @endforeach
                                 </select>
@@ -147,10 +177,9 @@
                 </form>
             </div>
             <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary"
-                            wire:click="$set('showModal', false)">
-                        <span class="fas fa-times"></span> Cancelar
-                    </button>
+                <button type="button" class="btn btn-secondary" wire:click="cancel()" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i> Cancelar
+                </button>
                 <button type="button" wire:click.prevent="store()" class="btn btn-primary">
                     @if($modoPlantilla)
                         <i class="bi bi-diagram-2"></i> Crear Plantilla
@@ -174,10 +203,19 @@
                     <button wire:click="resetDeleteConfirmation" type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>¿Está seguro de que desea eliminar el tribunal para el estudiante
-                        <strong>{{ $tribunalAEliminar->estudiante->nombres }} {{ $tribunalAEliminar->estudiante->apellidos }}</strong>
-                        programado para el <strong>{{ \Carbon\Carbon::parse($tribunalAEliminar->fecha)->format('d/m/Y') }}</strong>?
-                    </p>
+                    @if($tribunalAEliminar->es_plantilla)
+                        {{-- Mensaje para plantilla --}}
+                        <p>¿Está seguro de que desea eliminar la <strong>plantilla "{{ $tribunalAEliminar->descripcion_plantilla }}"</strong>
+                            programada para el <strong>{{ \Carbon\Carbon::parse($tribunalAEliminar->fecha)->format('d/m/Y') }}</strong>?
+                        </p>
+                        <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> Esta plantilla aún no tiene estudiantes asignados.</p>
+                    @else
+                        {{-- Mensaje para tribunal individual --}}
+                        <p>¿Está seguro de que desea eliminar el tribunal para el estudiante
+                            <strong>{{ $tribunalAEliminar->estudiante->nombres }} {{ $tribunalAEliminar->estudiante->apellidos }}</strong>
+                            programado para el <strong>{{ \Carbon\Carbon::parse($tribunalAEliminar->fecha)->format('d/m/Y') }}</strong>?
+                        </p>
+                    @endif
                     <p class="text-danger fw-bold">Esta acción no se puede deshacer y se eliminarán los miembros asociados.</p>
                 </div>
                 <div class="modal-footer">
@@ -410,6 +448,146 @@
                     </div>
                 </div>
             @endif
+        </div>
+    </div>
+</div>
+
+{{-- Modal de Importación desde Excel --}}
+<div wire:ignore.self class="modal fade" id="importarTribunalesModal" data-bs-backdrop="static" tabindex="-1"
+    aria-labelledby="importarTribunalesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="importarTribunalesModalLabel">
+                    <i class="bi bi-file-earmark-excel"></i> Importar Tribunales desde Excel
+                </h5>
+                <button wire:click="cerrarModalImportacion" type="button" class="btn-close btn-close-white"
+                    data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form wire:submit.prevent="importarTribunales">
+                    {{-- Fecha del Tribunal --}}
+                    <div class="mb-3">
+                        <label for="fechaImportacion" class="form-label">
+                            Fecha del Tribunal <span class="text-danger">*</span>
+                        </label>
+                        <input wire:model.defer="fechaImportacion" type="date"
+                               class="form-control @error('fechaImportacion') is-invalid @enderror"
+                               id="fechaImportacion" min="{{ date('Y-m-d') }}">
+                        @error('fechaImportacion')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">
+                            <i class="bi bi-calendar-check"></i>
+                            Todos los tribunales importados se crearán para esta fecha.
+                        </small>
+                    </div>
+
+                    {{-- Archivo Excel --}}
+                    <div class="mb-3">
+                        <label for="archivoImportacion" class="form-label">
+                            Archivo Excel <span class="text-danger">*</span>
+                        </label>
+                        <input wire:model="archivoImportacion" type="file"
+                               class="form-control @error('archivoImportacion') is-invalid @enderror"
+                               id="archivoImportacion" accept=".xlsx,.xls,.csv">
+                        @error('archivoImportacion')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">
+                            <i class="bi bi-file-earmark-excel"></i>
+                            Formatos aceptados: Excel (.xlsx, .xls) o CSV. Tamaño máximo: 10MB
+                        </small>
+                    </div>
+
+                    {{-- Indicador de carga --}}
+                    <div wire:loading wire:target="archivoImportacion" class="alert alert-secondary">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        Cargando archivo...
+                    </div>
+
+                    {{-- Vista previa del archivo cargado --}}
+                    @if ($archivoImportacion && !$errors->has('archivoImportacion'))
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i>
+                            Archivo cargado: <strong>{{ $archivoImportacion->getClientOriginalName() }}</strong>
+                            ({{ number_format($archivoImportacion->getSize() / 1024, 2) }} KB)
+                        </div>
+                    @endif
+
+                    {{-- Mensajes de resultado de importación --}}
+                    @if (!empty($mensajesImportacion))
+                        <div class="card mt-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-clipboard-data"></i> Resultado de la Importación
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {{-- Resumen --}}
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                                            <div class="fs-3 text-success fw-bold">{{ $mensajesImportacion['exitosos'] }}</div>
+                                            <small class="text-muted">Exitosos</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center p-2 bg-danger bg-opacity-10 rounded">
+                                            <div class="fs-3 text-danger fw-bold">{{ count($mensajesImportacion['errores']) }}</div>
+                                            <small class="text-muted">Con Errores</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center p-2 bg-primary bg-opacity-10 rounded">
+                                            <div class="fs-3 text-primary fw-bold">{{ $mensajesImportacion['total'] }}</div>
+                                            <small class="text-muted">Total</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Lista de errores --}}
+                                @if (count($mensajesImportacion['errores']) > 0)
+                                    <div class="alert alert-danger mb-0">
+                                        <h6 class="alert-heading">
+                                            <i class="bi bi-exclamation-triangle"></i> Tribunales con Errores
+                                        </h6>
+                                        <div class="list-group list-group-flush">
+                                            @foreach ($mensajesImportacion['errores'] as $error)
+                                                <div class="list-group-item bg-transparent px-0 border-0 border-bottom py-2">
+                                                    <strong>{{ $error['tribunal'] }}:</strong>
+                                                    <span class="text-danger">{{ $error['mensaje'] }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="modal-footer mt-4">
+                        <button type="button" class="btn btn-secondary" wire:click="cerrarModalImportacion"
+                            data-bs-dismiss="modal">
+                            <i class="bi bi-x-lg"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary"
+                                wire:loading.attr="disabled"
+                                wire:target="importarTribunales"
+                                @if(!$archivoImportacion || !$fechaImportacion) disabled @endif>
+                            <span wire:loading.remove wire:target="importarTribunales">
+                                <i class="bi bi-upload"></i> Importar Tribunales
+                            </span>
+                            <span wire:loading wire:target="importarTribunales">
+                                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Importando...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

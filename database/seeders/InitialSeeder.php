@@ -43,17 +43,6 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
             $superAdminUser->assignRole('Super Admin');
         }
 
-        // Usuario Administrador (Operativo) de Ejemplo
-        $adminUserEmail = 'operativo@admin.com';
-        if (User::where('email', $adminUserEmail)->doesntExist()) {
-            $adminUser = User::factory()->create([
-                'name' => 'Admin Operativo',
-                'email' => $adminUserEmail,
-                'password' => Hash::make('password')
-            ]);
-            $adminUser->assignRole('Administrador');
-        }
-
         $departamentos = [
             ['codigo_departamento' => '20250201', 'nombre' => 'Ciencias de la Computación'],
             ['codigo_departamento' => '20250202', 'nombre' => 'Ciencias de la Tierra y de la Construcción'],
@@ -84,7 +73,7 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
                 'Mecánica'
             ],
             'Ciencias de la Computación' => [
-                'Ingeniería de Software',
+                'Software',
                 'Tecnologías de la Información'
             ],
             'Eléctrica, Electrónica y Telecomunicaciones' => [
@@ -138,7 +127,7 @@ class InitialSeeder extends Seeder // O RolesAndPermissionsSeeder
             'Turismo',
             'Tecnologías de la Información',
             'Pedagogía de los Idiomas Nacionales y Extranjeros',
-            'Ingeniería de Software'
+            'Software'
         ];
 
         // Contador para generar códigos de carrera únicos

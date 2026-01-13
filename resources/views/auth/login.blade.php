@@ -7,12 +7,12 @@
                 <div class="card shadow-lg border-0 m-0 mx-auto text-dark"
                     style="max-width:450px;width:90%;backdrop-filter: blur(10px);background:rgba(255, 255, 255, 0.63);">
                     <!-- Header con logo y título -->
-                    <div class="card-header bg-transparent border-0 text-center py-4">
-                        <div class="mb-3">
+                    <div class="card-header bg-transparent border-0 text-center py-3">
+                        <div class="mb-2">
                             <img src="{{ Storage::url('logos/LOGO-ESPE_500.png') }}" alt="ESPE Logo"
-                                style="width:80%;object-fit:contain;">
+                                style="width:50%;max-width:180px;object-fit:contain;">
                         </div>
-                        <h2 class="fw-bold text-primary mb-0">Sistema Examen Complexivo</h2>
+                        <h2 class="fw-bold mb-0" style="color:#2d7a4f;">Sistema Examen Complexivo</h2>
                         <p class="text-muted mb-0">Ingresa a tu cuenta</p>
                     </div>
 
@@ -95,7 +95,7 @@
     <style>
         /* Estilos específicos para el login */
         .login-button {
-            background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%);
+            background: linear-gradient(135deg, #2d7a4f 0%, #1a4d30 100%);
             border: none;
             font-weight: 600;
             transition: all 0.3s ease;
@@ -103,9 +103,9 @@
         }
 
         .login-button:hover {
-            background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+            background: linear-gradient(135deg, #1a4d30 0%, #0f3520 100%);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+            box-shadow: 0 8px 25px rgba(45, 122, 79, 0.3);
         }
 
         .login-button:active {
@@ -118,8 +118,8 @@
         }
 
         .form-control:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+            border-color: #2d7a4f;
+            box-shadow: 0 0 0 0.25rem rgba(45, 122, 79, 0.15);
         }
 
         .card {
@@ -129,7 +129,7 @@
 
         .form-floating>.form-control:focus~label,
         .form-floating>.form-control:not(:placeholder-shown)~label {
-            color: #0d6efd;
+            color: #2d7a4f;
         }
 
         /* Animación sutil para el card */
@@ -151,8 +151,8 @@
 
         /* Mejorar el input de checkbox */
         .form-check-input:checked {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+            background-color: #2d7a4f;
+            border-color: #2d7a4f;
         }
     </style>
 @endsection

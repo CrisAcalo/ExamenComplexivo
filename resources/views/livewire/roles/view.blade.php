@@ -1,90 +1,161 @@
 @section('title', __('Roles'))
-<div class="container-fluid">
+<div class="container-fluid p-0">
+    <!-- Banner Verde ESPE -->
+    <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%);">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    @if (file_exists(public_path('storage/logos/LOGO-ESPE_500.png')))
+                        <img src="{{ asset('storage/logos/LOGO-ESPE_500.png') }}" alt="Logo ESPE"
+                             style="width: 60px; height: 60px; object-fit: contain;" class="me-3">
+                    @else
+                        <div class="bg-white bg-opacity-25 rounded p-2 me-3">
+                            <i class="bi bi-shield-check fs-3 text-white"></i>
+                        </div>
+                    @endif
+                    <div>
+                        <h1 class="h3 mb-1 fw-bold text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                            GESTIÓN DE ROLES
+                        </h1>
+                        <p class="mb-0 text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                            Administración de roles y asignación de permisos
+                        </p>
+                    </div>
+                </div>
+                @can('gestionar roles y permisos')
+                    <button class="btn btn-lg text-white" data-bs-toggle="modal" data-bs-target="#createDataModal"
+                            style="border: 2px solid white; background: transparent; transition: all 0.3s ease;"
+                            onmouseover="this.style.background='rgba(255,255,255,0.2)'"
+                            onmouseout="this.style.background='transparent'">
+                        <i class="bi bi-plus-circle me-2"></i>Agregar Nuevo Rol
+                    </button>
+                @endcan
+            </div>
+        </div>
+    </div>
+
     @include('partials.alerts')
-    <div class="row justify-content-center">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div class="float-left">
-                            <h4><i class="fab fa-laravel text-info"></i>
-                                Listado de Roles </h4>
+
+    <!-- Card Principal -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <!-- Header con Buscador -->
+                <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                                <i class="bi bi-list-ul me-2"></i>Listado de Roles
+                            </h5>
                         </div>
-                        @if (session()->has('message'))
-                            <div wire:poll.4s class="btn btn-sm btn-success" style="margin-top:0px; margin-bottom:0px;">
-                                {{ session('message') }} </div>
-                        @endif
-                        <div>
-                            <input wire:model='keyWord' type="text" class="form-control" name="search"
-                                id="search" placeholder="Buscar Roles">
-                        </div>
-                        @can('gestionar roles y permisos')
-                            <div class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createDataModal">
-                                <i class="bi bi-plus-lg"></i> Agregar Rol
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <i class="bi bi-search text-muted"></i>
+                                </span>
+                                <input wire:model.live="keyWord" type="text"
+                                       class="form-control border-start-0"
+                                       placeholder="Buscar por nombre de rol..."
+                                       style="box-shadow: none;">
                             </div>
-                        @endcan
+                        </div>
                     </div>
                 </div>
 
-                <div class="card-body">
+                <!-- Tabla -->
+                <div class="card-body p-0">
                     @include('livewire.roles.modals')
                     <div class="table-responsive">
-                        <table class="table table-bordered table-sm">
-                            <thead class="thead">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                                 <tr>
-                                    <td>#</td>
-                                    <th>Name</th>
-                                    {{-- <th>Guard Name</th> --}}
-                                    <td>Permisos asignados</td>
-                                    <td>Asignar permisos</td>
-                                    <td>ACCIONES</td>
+                                    <th style="width: 50px;" class="text-center">#</th>
+                                    <th>
+                                        <i class="bi bi-tag me-1"></i>Nombre del Rol
+                                    </th>
+                                    <th>
+                                        <i class="bi bi-key me-1"></i>Permisos Asignados
+                                    </th>
+                                    <th style="width: 180px;" class="text-center">
+                                        <i class="bi bi-gear me-1"></i>Gestión
+                                    </th>
+                                    <th style="width: 150px;" class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
 
                                 @forelse($roles as $row)
-                                    <tr>
-                                        <td>{{ $loop->iteration }}</td>
-                                        <td>{{ $row->name }}</td>
+                                    <tr style="border-bottom: 1px solid #f0f0f0;">
+                                        <td class="text-center text-muted">{{ $loop->iteration }}</td>
                                         <td>
-                                            @foreach ($row->permissions as $permiso)
-                                                <span
-                                                    class="badge bg-warning-subtle text-body-secondary">{{ $permiso->name }}</span>
-                                            @endforeach
-
+                                            <span class="fw-semibold">
+                                                @if($row->name === 'Super Admin')
+                                                    <i class="bi bi-star-fill text-warning me-2"></i>
+                                                @elseif(in_array($row->name, ['Director de Carrera', 'Docente de Apoyo']))
+                                                    <i class="bi bi-briefcase-fill text-primary me-2"></i>
+                                                @elseif($row->name === 'Docente')
+                                                    <i class="bi bi-person-video3 text-success me-2"></i>
+                                                @else
+                                                    <i class="bi bi-person-badge me-2"></i>
+                                                @endif
+                                                {{ $row->name }}
+                                            </span>
                                         </td>
-                                        <td width="150">
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @forelse($row->permissions as $permiso)
+                                                    <span class="badge bg-success" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-check-circle me-1"></i>{{ $permiso->name }}
+                                                    </span>
+                                                @empty
+                                                    <span class="text-muted small">
+                                                        <i class="bi bi-dash-circle me-1"></i>Sin permisos asignados
+                                                    </span>
+                                                @endforelse
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
                                             @can('gestionar roles y permisos')
-                                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal"
-                                                    data-bs-target="#updatePermisionsModal"
-                                                    wire:click="permisosBusqueda({{ $row->id }})">
-                                                    Asignar Permisos
+                                                <button type="button" class="btn btn-sm px-3"
+                                                        style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none;"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#updatePermisionsModal"
+                                                        wire:click="permisosBusqueda({{ $row->id }})"
+                                                        title="Asignar permisos">
+                                                    <i class="bi bi-key me-1"></i>Asignar Permisos
                                                 </button>
                                             @else
-                                                <span class="text-muted small">Sin permisos</span>
+                                                <span class="badge bg-secondary">Solo lectura</span>
                                             @endcan
                                         </td>
-                                        <td width="90">
-                                            @can('gestionar roles y permisos')
-                                                <a data-bs-toggle="modal" data-bs-target="#updateDataModal"
-                                                    class="btn btn-sm btn-primary" wire:click="edit({{ $row->id }})">
-                                                    <i class="bi bi-pencil-square"></i>
-                                                </a>
-
-                                                @if(!in_array($row->name, ['Super Admin', 'Administrador']))
-                                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal"
-                                                        data-bs-target="#deleteDataModal"
-                                                        wire:click="eliminar({{ $row->id }})">
-                                                        <i class="bi bi-trash3-fill"></i>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                @can('gestionar roles y permisos')
+                                                    <button data-bs-toggle="modal" data-bs-target="#updateDataModal"
+                                                            class="btn btn-outline-primary"
+                                                            wire:click="edit({{ $row->id }})"
+                                                            title="Editar">
+                                                        <i class="bi bi-pencil-square"></i>
                                                     </button>
+
+                                                    @if(!in_array($row->name, ['Super Admin']))
+                                                        <button type="button" class="btn btn-outline-danger"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#deleteDataModal"
+                                                                wire:click="eliminar({{ $row->id }})"
+                                                                title="Eliminar">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    @else
+                                                        <button class="btn btn-outline-secondary" disabled title="Rol protegido">
+                                                            <i class="bi bi-shield-lock"></i>
+                                                        </button>
+                                                    @endif
                                                 @else
-                                                    <small class="text-muted">Protegido</small>
-                                                @endif
-                                            @else
-                                                <span class="text-muted small">Sin permisos</span>
-                                            @endcan
+                                                    <span class="badge bg-secondary">Solo lectura</span>
+                                                @endcan
+                                            </div>
                                         </td>
-                                    </tr>
                                     </tr>
 
                                     <!-- Modal -->
@@ -119,14 +190,33 @@
 
                                 @empty
                                     <tr>
-                                        <td class="text-center" colspan="100%">No data Found </td>
+                                        <td colspan="5" class="text-center py-5">
+                                            <div class="text-muted">
+                                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                                <p class="mb-0">No se encontraron roles</p>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
-                        <div class="float-end">{{ $roles->links() }}</div>
                     </div>
                 </div>
+
+                <!-- Footer con Paginación -->
+                @if($roles->hasPages())
+                    <div class="card-footer border-0 py-3" style="background-color: #f8f9fa;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                Mostrando {{ $roles->firstItem() ?? 0 }} - {{ $roles->lastItem() ?? 0 }}
+                                de {{ $roles->total() }} registros
+                            </small>
+                            <div>
+                                {{ $roles->links() }}
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

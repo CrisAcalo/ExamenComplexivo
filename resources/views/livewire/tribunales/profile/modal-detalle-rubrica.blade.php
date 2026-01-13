@@ -89,7 +89,7 @@
 
                                                         @if ($primeraFilaUsuario)
                                                             <td rowspan="{{ $numeroCriterios }}" class="align-middle fw-semibold">
-                                                                {{ $datosUsuario['nombre_usuario'] }}
+                                                                {{ $datosUsuario['nombre_usuario'] }} {{ $datosUsuario['apellido_usuario'] ?? '' }}
                                                             </td>
                                                             <td rowspan="{{ $numeroCriterios }}" class="align-middle">
                                                                 <span class="badge

@@ -29,9 +29,6 @@ class AuthServiceProvider extends ServiceProvider
         // Gate para 'configurar plan evaluacion' (contextual)
         Gate::define('configurar-plan-para-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('configurar plan evaluacion')) { // Primero, ¿tiene el permiso base?
-                if ($user->hasRole('Administrador')) {
-                    return true; // Admin puede para cualquiera
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -40,9 +37,6 @@ class AuthServiceProvider extends ServiceProvider
         // Gate para CRUD de tribunales (contextual)
         Gate::define('gestionar-tribunales-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('ver listado tribunales')) { // O un permiso más genérico
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -103,10 +97,6 @@ class AuthServiceProvider extends ServiceProvider
         //Gate para que cualquier miembro de tribunal, calificador general director o apoyo pueda exportar el acta de SU tribunal
         // En AuthServiceProvider.php
         Gate::define('puede-exportar-acta-de-este-tribunal', function (User $user, Tribunale $tribunal) {
-            if ($user->hasRole('Administrador')) {
-                return true;
-            }
-
             // Verificar si el usuario es miembro físico del tribunal (Presidente usualmente tiene más derechos)
             $miembroEnTribunal = $tribunal->miembrosTribunales()->where('user_id', $user->id)->first();
             if ($miembroEnTribunal && $miembroEnTribunal->status === 'PRESIDENTE') { // El presidente siempre puede
@@ -162,12 +152,9 @@ class AuthServiceProvider extends ServiceProvider
             return false; // No encontró nada que el usuario deba calificar
         });
 
-        // Gate para ver todas las calificaciones de un tribunal (Admin, o Director/Apoyo de ESA carrera-periodo)
+        // Gate para ver todas las calificaciones de un tribunal (Director/Apoyo de ESA carrera-periodo)
         Gate::define('ver-todas-calificaciones-de-este-tribunal', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('ver todas las calificaciones de un tribunal')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 $carreraPeriodo = $tribunal->carreraPeriodo;
                 if ($carreraPeriodo) {
                     return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
@@ -178,7 +165,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('gestionar-calificadores-generales', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('configurar plan evaluacion')) {
-                if ($user->hasRole('Administrador')) return true;
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -187,9 +173,6 @@ class AuthServiceProvider extends ServiceProvider
         // === GATES PARA GESTIÓN DE ESTUDIANTES ===
         Gate::define('gestionar-estudiantes-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('gestionar estudiantes') || $user->hasPermissionTo('ver listado estudiantes')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -197,9 +180,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('importar-estudiantes-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('importar estudiantes')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -208,9 +188,6 @@ class AuthServiceProvider extends ServiceProvider
         // === GATES PARA GESTIÓN DE RÚBRICAS ===
         Gate::define('gestionar-rubricas-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('gestionar rubricas') || $user->hasPermissionTo('ver rubricas')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -218,9 +195,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('asignar-rubricas-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('asignar rubricas a carrera-periodo')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::isDirectorOf($user, $carreraPeriodo->id);
             }
             return false;
@@ -229,9 +203,6 @@ class AuthServiceProvider extends ServiceProvider
         // === GATES PARA OPERACIONES ESPECÍFICAS DE TRIBUNALES ===
         Gate::define('crear-tribunal-en-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('crear tribunales')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -239,9 +210,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('editar-tribunal-en-carrera-periodo', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('editar tribunales')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
                     return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
@@ -252,9 +220,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('eliminar-tribunal-en-carrera-periodo', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('eliminar tribunales')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
                     return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
@@ -265,9 +230,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('gestionar-estado-tribunal', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('gestionar estado tribunales')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
                     return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
@@ -278,9 +240,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('asignar-miembros-tribunal', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('asignar miembros tribunales')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
                     return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
@@ -292,9 +251,6 @@ class AuthServiceProvider extends ServiceProvider
         // === GATES PARA REPORTES Y ESTADÍSTICAS ===
         Gate::define('ver-reportes-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('ver resumenes y reportes academicos') || $user->hasPermissionTo('ver estadisticas carrera-periodo')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -302,9 +258,6 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('exportar-reportes-carrera-periodo', function (User $user, CarrerasPeriodo $carreraPeriodo) {
             if ($user->hasPermissionTo('exportar reportes')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
             }
             return false;
@@ -313,9 +266,6 @@ class AuthServiceProvider extends ServiceProvider
         // === GATES PARA CALIFICACIONES ===
         Gate::define('exportar-calificaciones-tribunal', function (User $user, Tribunale $tribunal) {
             if ($user->hasPermissionTo('exportar calificaciones')) {
-                if ($user->hasRole('Administrador')) {
-                    return true;
-                }
                 $carreraPeriodo = $tribunal->carrerasPeriodo;
                 if ($carreraPeriodo) {
                     return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
@@ -337,6 +287,26 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('gestionar-plantillas-sistema', function (User $user) {
             return $user->hasPermissionTo('gestionar plantillas rubricas');
+        });
+
+        // === GATES PARA ACTAS FIRMADAS ===
+        // Gate para que el Presidente suba acta firmada de SU tribunal
+        Gate::define('subir-acta-firmada-este-tribunal-como-presidente', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('subir acta firmada mi tribunal (presidente)')) {
+                return ContextualAuth::isPresidentOfTribunal($user, $tribunal->id) && $tribunal->estado === 'CERRADO';
+            }
+            return false;
+        });
+
+        // Gate para que Director/Apoyo descarguen actas firmadas de tribunales de su carrera-periodo
+        Gate::define('descargar-acta-firmada-de-este-tribunal', function (User $user, Tribunale $tribunal) {
+            if ($user->hasPermissionTo('descargar actas firmadas')) {
+                $carreraPeriodo = $tribunal->carrerasPeriodo;
+                if ($carreraPeriodo) {
+                    return ContextualAuth::canAccessCarreraPeriodo($user, $carreraPeriodo->id);
+                }
+            }
+            return false;
         });
     }
 }

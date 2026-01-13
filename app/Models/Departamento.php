@@ -18,4 +18,13 @@ class Departamento extends Model
     {
         return $this->hasMany(Carrera::class, 'departamento_id');
     }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function docentes()
+    {
+        // Devuelve los docentes (usuarios) que pertenecen a este departamento
+        return $this->hasMany(User::class, 'departamento_id');
+    }
 }

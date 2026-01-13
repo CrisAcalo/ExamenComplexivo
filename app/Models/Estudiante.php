@@ -13,7 +13,7 @@ class Estudiante extends Model
 
     protected $table = 'estudiantes';
 
-    protected $fillable = ['nombres','apellidos','ID_estudiante', 'cedula', 'correo', 'telefono', 'username'];
+    protected $fillable = ['nombres','apellidos','ID_estudiante', 'cedula', 'correo', 'telefono', 'username', 'carrera_periodo_id'];
 
     //atributo para retornar nombres_completos_id
     protected $appends = ['nombres_completos_id'];
@@ -32,6 +32,14 @@ class Estudiante extends Model
         return $this->nombres . ' ' . $this->apellidos;
     }
 
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function carreraPeriodo()
+    {
+        return $this->belongsTo(CarrerasPeriodo::class, 'carrera_periodo_id', 'id');
+    }
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\HasMany

@@ -619,8 +619,8 @@
                         @endif
                     </div>
                     <div style="text-align: right; margin-top: 20px;margin-right:135px;">
-                        {{-- Fecha: {{ \Carbon\Carbon::parse($tribunal->fecha ?? now())->format('d/m/Y') }} --}}
-                        Fecha: {{ \Carbon\Carbon::parse('2025-08-19')->format('m/d/Y') }}
+                        Fecha: {{ \Carbon\Carbon::parse($tribunal->fecha ?? now())->format('d/m/Y') }}
+                        <!-- Fecha: {{ \Carbon\Carbon::parse('2025-08-19')->format('m/d/Y') }} -->
                     </div>
                 </div>
 
@@ -649,7 +649,7 @@
                 <div class="signature-row">
                     <div class="signature-cell">
                         <div class="signature-line">
-                            {{ $presidente->user->name ?? 'Presidente del Tribunal' }}<br>
+                            {{ ($presidente->user->name ?? '') . ' ' . ($presidente->user->lastname ?? 'Presidente del Tribunal') }}<br>
                             CI.
                             {{ str_pad($presidente->user->cedula ?? '........................', 10, '0', STR_PAD_LEFT) }}<br>
                             Presidente del Tribunal
@@ -658,7 +658,7 @@
 
                     <div class="signature-cell">
                         <div class="signature-line">
-                            {{ $integrante1->user->name ?? 'Integrante 2' }}<br>
+                            {{ ($integrante1->user->name ?? '') . ' ' . ($integrante1->user->lastname ?? 'Integrante 2') }}<br>
                             CI.
                             {{ str_pad($integrante1->user->cedula ?? '........................', 10, '0', STR_PAD_LEFT) }}<br>
                             Miembro 2
@@ -667,7 +667,7 @@
 
                     <div class="signature-cell">
                         <div class="signature-line">
-                            {{ $integrante2->user->name ?? 'Integrante 3' }}<br>
+                            {{ ($integrante2->user->name ?? '') . ' ' . ($integrante2->user->lastname ?? 'Integrante 3') }}<br>
                             CI. {{ str_pad($integrante2->user->cedula ?? '........................', 10, '0', STR_PAD_LEFT) }}<br>
                             Miembro 3
                         </div>
@@ -677,7 +677,7 @@
                 {{-- Firma del Director de Carrera --}}
                 <div class="director-signature">
                     <div class="director-line">
-                        {{ $tribunal->carrerasPeriodo->director->name ?? 'Director de Carrera' }}<br>
+                        {{ ($tribunal->carrerasPeriodo->director->name ?? '') . ' ' . ($tribunal->carrerasPeriodo->director->lastname ?? 'Director de Carrera') }}<br>
                         CI. {{ str_pad($tribunal->carrerasPeriodo->director->cedula ?? '1710802925', 10, '0', STR_PAD_LEFT) }}<br>
                         <strong>Director de Carrera</strong>
                     </div>

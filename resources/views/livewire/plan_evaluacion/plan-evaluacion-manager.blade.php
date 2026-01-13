@@ -1,33 +1,71 @@
-<div>
-    @section('title', 'Gestionar Plan de Evaluación')
+@section('title', 'Gestionar Plan de Evaluación')
+<div class="container-fluid p-0">
+    <!-- Banner Verde ESPE -->
+    <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%);">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    @if (file_exists(public_path('storage/logos/LOGO-ESPE_500.png')))
+                        <img src="{{ asset('storage/logos/LOGO-ESPE_500.png') }}" alt="Logo ESPE"
+                             style="width: 60px; height: 60px; object-fit: contain;" class="me-3">
+                    @else
+                        <div class="bg-white bg-opacity-25 rounded p-2 me-3">
+                            <i class="bi bi-file-earmark-text fs-3 text-white"></i>
+                        </div>
+                    @endif
+                    <div>
+                        <h1 class="h3 mb-1 fw-bold text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                            PLAN DE EVALUACIÓN
+                        </h1>
+                        <p class="mb-0 text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                            Gestión de planes y criterios de evaluación
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="container-fluid p-0">
-        {{-- Breadcrumbs --}}
-        <div class="fs-2 fw-semibold mb-4">
-            <a href="{{ route('periodos.') }}" class="text-decoration-none text-dark">Períodos</a> /
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ route('periodos.') }}" class="text-decoration-none">
+                    <i class="bi bi-calendar-event me-1"></i>Períodos
+                </a>
+            </li>
             @if ($periodo)
-                <a href="{{ route('periodos.profile', $periodo->id) }}"
-                    class="text-decoration-none text-dark">{{ $periodo->codigo_periodo }}</a> /
+                <li class="breadcrumb-item">
+                    <a href="{{ route('periodos.profile', $periodo->id) }}" class="text-decoration-none" >
+                        {{ $periodo->codigo_periodo }}
+                    </a>
+                </li>
             @endif
             @if ($carrera)
-                <a href="{{ route('periodos.tribunales.index', $carreraPeriodoId) }}"
-                    class="text-decoration-none text-dark">{{ $carrera->nombre }}</a> /
+                <li class="breadcrumb-item">
+                    <a href="{{ route('periodos.tribunales.index', $carreraPeriodoId) }}" class="text-decoration-none">
+                        {{ $carrera->nombre }}
+                    </a>
+                </li>
             @endif
-            <span class="text-muted">Gestionar Plan de Evaluación</span>
+            <li class="breadcrumb-item active" aria-current="page">Plan de Evaluación</li>
+        </ol>
+    </nav>
+
+    @include('partials.alerts')
+    @if ($errors->has('ponderacion_total_global'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ $errors->first('ponderacion_total_global') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+    @endif
 
-        @include('partials.alerts')
-        @if ($errors->has('ponderacion_total_global'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ $errors->first('ponderacion_total_global') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        @endif
-
-        <form wire:submit.prevent="savePlan">
-            <div class="card mb-4 shadow-sm">
-                <div class="card-header">
-                    <h5>Datos del Plan de Evaluación</h5>
+    <form wire:submit.prevent="savePlan">
+            <div class="card mb-4 shadow-sm border-0">
+                <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                    <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                        <i class="bi bi-clipboard-data me-2"></i>Datos del Plan de Evaluación
+                    </h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -45,12 +83,19 @@
                 </div>
             </div>
 
-            <div class="card shadow-sm">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5>Ítems del Plan de Evaluación</h5>
-                    <button type="button" class="btn btn-sm btn-primary" wire:click="addItem">
-                        <i class="bi bi-plus-lg"></i> Añadir Ítem
-                    </button>
+            <div class="card shadow-sm border-0">
+                <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                            <i class="bi bi-list-check me-2"></i>Ítems del Plan de Evaluación
+                        </h5>
+                        <button type="button" class="btn text-white" wire:click="addItem"
+                                style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%); border: none; transition: all 0.3s ease;"
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'"
+                                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <i class="bi bi-plus-circle me-2"></i>Añadir Ítem
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (empty($items))
@@ -61,12 +106,17 @@
                     @endif
 
                     @foreach ($items as $index => $item)
-                        <div class="border p-3 mb-3 rounded shadow-sm bg-light" wire:key="{{ $item['id_temporal'] ?? $index }}">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h6 class="text-primary mb-0 pt-1">Ítem {{ $index + 1 }}</h6>
-                                @if(count($items) > 0) {{-- Mostrar botón solo si hay items, idealmente > 1 pero por si se añade uno y se quiere borrar al instante --}}
-                                <button type="button" class="btn btn-sm btn-outline-danger"
-                                    wire:click="removeItem({{ $index }})" title="Eliminar Ítem">
+                        <div class="border p-4 mb-3 rounded shadow-sm" style="background-color: #f8f9fa; border-left: 4px solid #3d8e72ff !important;" wire:key="{{ $item['id_temporal'] ?? $index }}">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h6 class="mb-0 pt-1 fw-bold" style="color: #2d7a5f;">
+                                    <i class="bi bi-file-text me-2"></i>Ítem {{ $index + 1 }}
+                                </h6>
+                                @if(count($items) > 0)
+                                <button type="button" class="btn btn-sm btn-danger"
+                                    wire:click="removeItem({{ $index }})" title="Eliminar Ítem"
+                                    style="transition: all 0.3s ease;"
+                                    onmouseover="this.style.transform='scale(1.05)'"
+                                    onmouseout="this.style.transform='scale(1)'">
                                     <i class="bi bi-trash-fill"></i>
                                 </button>
                                 @endif
@@ -74,9 +124,11 @@
                             <div class="row">
                                 {{-- Nombre del Ítem --}}
                                 <div class="col-md-6 mb-3">
-                                    <label for="item_nombre_{{ $index }}" class="form-label">Nombre del Ítem</label>
+                                    <label for="item_nombre_{{ $index }}" class="form-label fw-semibold">
+                                        <i class="bi bi-pencil me-1"></i>Nombre del Ítem
+                                    </label>
                                     <input type="text"
-                                        class="form-control form-control-sm @error('items.'.$index.'.nombre_item') is-invalid @enderror"
+                                        class="form-control @error('items.'.$index.'.nombre_item') is-invalid @enderror"
                                         id="item_nombre_{{ $index }}"
                                         wire:model.defer="items.{{ $index }}.nombre_item"
                                         placeholder="Ej: Cuestionario Teórico">
@@ -84,9 +136,11 @@
                                 </div>
                                 {{-- Tipo de Ítem --}}
                                 <div class="col-md-3 mb-3">
-                                    <label for="item_tipo_{{ $index }}" class="form-label">Tipo de Ítem</label>
+                                    <label for="item_tipo_{{ $index }}" class="form-label fw-semibold">
+                                        <i class="bi bi-tag me-1"></i>Tipo de Ítem
+                                    </label>
                                     <select
-                                        class="form-select form-select-sm @error('items.'.$index.'.tipo_item') is-invalid @enderror"
+                                        class="form-select @error('items.'.$index.'.tipo_item') is-invalid @enderror"
                                         id="item_tipo_{{ $index }}"
                                         wire:model="items.{{ $index }}.tipo_item">
                                         @foreach ($tiposItemDisponibles as $key => $value)
@@ -97,9 +151,11 @@
                                 </div>
                                 {{-- Ponderación Global --}}
                                 <div class="col-md-3 mb-3">
-                                    <label for="item_ponderacion_{{ $index }}" class="form-label">Ponderación Global (%)</label>
+                                    <label for="item_ponderacion_{{ $index }}" class="form-label fw-semibold">
+                                        <i class="bi bi-percent me-1"></i>Ponderación Global (%)
+                                    </label>
                                     <input type="number" step="0.01" min="0" max="100"
-                                        class="form-control form-control-sm @error('items.'.$index.'.ponderacion_global') is-invalid @enderror"
+                                        class="form-control @error('items.'.$index.'.ponderacion_global') is-invalid @enderror"
                                         id="item_ponderacion_{{ $index }}"
                                         wire:model="items.{{ $index }}.ponderacion_global">
                                     @error('items.'.$index.'.ponderacion_global') <span class="invalid-feedback">{{ $message }}</span> @enderror
@@ -109,19 +165,23 @@
                             {{-- Campos específicos según el tipo de ítem --}}
                             @if ($item['tipo_item'] === 'NOTA_DIRECTA')
                                 <div class="row">
-                                    <div class="col-md-12 mb-2"> {{-- O col-md-6 --}}
-                                        <label class="form-label">Calificado por:</label>
-                                        <p class="form-control-plaintext bg-white p-2 rounded border mb-0">
-                                            <i class="bi bi-person-check-fill text-info"></i> Director de Carrera / Docente de Apoyo
-                                        </p>
-                                        {{-- No hay error de validación para un campo no seleccionable por el usuario --}}
+                                    <div class="col-md-12 mb-2">
+                                        <label class="form-label fw-semibold">
+                                            <i class="bi bi-person-badge me-1"></i>Calificado por:
+                                        </label>
+                                        <div class="alert alert-info mb-0" style="background-color: #e7f6f2; border-color: #3d8e72ff;">
+                                            <i class="bi bi-person-check-fill me-2" style="color: #3d8e72ff;"></i>
+                                            <span style="color: #2d7a5f;">Director de Carrera / Docente de Apoyo</span>
+                                        </div>
                                     </div>
                                 </div>
                             @elseif ($item['tipo_item'] === 'RUBRICA_TABULAR')
                                 <div class="row">
-                                    <div class="col-md-12 mb-3"> {{-- O col-md-6 --}}
-                                        <label for="item_rubrica_{{ $index }}" class="form-label">Plantilla de Rúbrica</label>
-                                        <select class="form-select form-select-sm @error('items.'.$index.'.rubrica_plantilla_id') is-invalid @enderror"
+                                    <div class="col-md-12 mb-3">
+                                        <label for="item_rubrica_{{ $index }}" class="form-label fw-semibold">
+                                            <i class="bi bi-grid-3x3 me-1"></i>Plantilla de Rúbrica
+                                        </label>
+                                        <select class="form-select @error('items.'.$index.'.rubrica_plantilla_id') is-invalid @enderror"
                                             id="item_rubrica_{{ $index }}" wire:model="items.{{ $index }}.rubrica_plantilla_id">
                                             <option value="">Seleccione una plantilla...</option>
                                             @foreach ($plantillasRubricasDisponibles as $plantilla)
@@ -138,8 +198,10 @@
                                     $componentesParaDistribucion = is_iterable($item['componentes_rubrica_seleccionada'] ?? null) ? $item['componentes_rubrica_seleccionada'] : [];
                                 @endphp
                                 @if (!empty($componentesParaDistribucion) && $item['rubrica_plantilla_id'])
-                                    <div class="mb-3 p-2 border rounded bg-white">
-                                        <p class="mb-1 small fw-bold">Distribución de la Ponderación Global ({{ $item['ponderacion_global'] ?? 0 }}%):</p>
+                                    <div class="mb-3 p-3 border rounded" style="background-color: #f0f8f5; border-color: #3d8e72ff;">
+                                        <p class="mb-2 fw-bold" style="color: #2d7a5f;">
+                                            <i class="bi bi-pie-chart me-2"></i>Distribución de la Ponderación Global ({{ $item['ponderacion_global'] ?? 0 }}%):
+                                        </p>
                                         <ul class="list-unstyled mb-0 small">
                                             @php $sumaCalculada = 0; @endphp
                                             @foreach ($componentesParaDistribucion as $compDetalle)
@@ -165,18 +227,21 @@
                                     }
                                 @endphp
                                 @if ($item['rubrica_plantilla_id'] && $plantillaComponentesParaIterar->isNotEmpty())
-                                    <div class="mt-3">
-                                        <h6 class="mb-2">Asignar Calificadores a Componentes de la Rúbrica:</h6>
+                                    <div class="mt-3 p-3 rounded" style="background-color: #ffffff; border: 1px solid #dee2e6;">
+                                        <h6 class="mb-3 fw-bold" style="color: #2d7a5f;">
+                                            <i class="bi bi-people-fill me-2"></i>Asignar Calificadores a Componentes de la Rúbrica:
+                                        </h6>
                                         @foreach ($plantillaComponentesParaIterar as $compPlantilla)
-                                            <div class="row mb-2 align-items-center">
+                                            <div class="row mb-3 align-items-center p-2 rounded" style="background-color: #f8f9fa;">
                                                 <div class="col-md-6">
-                                                    <label for="comp_calif_{{ $index }}_{{ $compPlantilla->id }}" class="form-label small mb-0 ps-2">
-                                                        <i class="bi bi-diagram-2"></i> Componente: <strong>{{ $compPlantilla->nombre }}</strong>
-                                                        <small class="text-muted"> ({{ $compPlantilla->ponderacion }}% de esta rúbrica)</small>
+                                                    <label for="comp_calif_{{ $index }}_{{ $compPlantilla->id }}" class="form-label mb-0 fw-semibold">
+                                                        <i class="bi bi-diagram-2 me-1" style="color: #3d8e72ff;"></i>
+                                                        <span>{{ $compPlantilla->nombre }}</span>
+                                                        <small class="text-muted d-block mt-1">{{ $compPlantilla->ponderacion }}% de esta rúbrica</small>
                                                     </label>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <select class="form-select form-select-sm @error('items.'.$index.'.asignaciones_componentes.'.$compPlantilla->id) is-invalid @enderror"
+                                                    <select class="form-select @error('items.'.$index.'.asignaciones_componentes.'.$compPlantilla->id) is-invalid @enderror"
                                                         id="comp_calif_{{ $index }}_{{ $compPlantilla->id }}"
                                                         wire:model.defer="items.{{ $index }}.asignaciones_componentes.{{ $compPlantilla->id }}">
                                                         <option value="">Seleccione quién califica...</option>
@@ -199,13 +264,19 @@
             </div>
 
             <div class="mt-4 mb-5">
-                <button type="submit" class="btn btn-primary px-4" wire:loading.attr="disabled">
-                    <span wire:loading wire:target="savePlan" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    <i class="bi bi-save" wire:loading.remove wire:target="savePlan"></i>
+                <button type="submit" class="btn text-white px-4 py-2" wire:loading.attr="disabled"
+                        style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%); border: none; transition: all 0.3s ease; font-weight: 600;"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(61,142,114,0.4)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <span wire:loading wire:target="savePlan" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <i class="bi bi-save me-2" wire:loading.remove wire:target="savePlan"></i>
                     Guardar Plan de Evaluación
                 </button>
-                <a href="{{ route('periodos.tribunales.index', $carreraPeriodoId) }}" class="btn btn-secondary">
-                    <i class="bi bi-x-circle"></i> Cancelar y Volver a Tribunales
+                <a href="{{ route('periodos.tribunales.index', $carreraPeriodoId) }}" class="btn btn-outline-secondary px-4 py-2"
+                   style="transition: all 0.3s ease; font-weight: 600;"
+                   onmouseover="this.style.transform='translateY(-2px)'"
+                   onmouseout="this.style.transform='translateY(0)'">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar y Volver
                 </a>
             </div>
         </form>

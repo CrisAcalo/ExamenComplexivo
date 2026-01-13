@@ -19,10 +19,13 @@ use Illuminate\Support\Facades\Auth; // Para verificar permisos si es necesario
 use Illuminate\Support\Facades\Gate; // Para verificar permisos
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
+use App\Imports\TribunalesImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class Tribunales extends Component
 {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
     public $carreraPeriodoId;
 
     // Propiedades para el listado de tribunales
@@ -32,12 +35,12 @@ class Tribunales extends Component
 
     // Propiedades para paginación y ordenamiento
     public $perPage = 10; // Número de elementos por página
-    public $sortField = 'fecha'; // Campo por defecto para ordenar
-    public $sortDirection = 'desc'; // Dirección por defecto: desc/asc
+    public $sortField = 'id'; // Campo por defecto para ordenar (mantiene orden de importación)
+    public $sortDirection = 'asc'; // Dirección por defecto: asc (más recientes primero en importación)
 
     // Propiedades para control de acceso contextual
     public $puedeGestionar = false; // Director/Apoyo pueden gestionar
-    public $puedeVisualizar = false; // Administradores pueden solo ver
+    public $puedeVisualizar = false; // Solo visualización
 
     // Propiedades para el modal de creación de tribunal
     public $selected_id;
@@ -45,10 +48,18 @@ class Tribunales extends Component
     public $fecha;
     public $hora_inicio;
     public $hora_fin;
+    public $laboratorio;
+    public $caso;
     public $presidente_id;
     public $integrante1_id;
     public $integrante2_id;
     public $descripcion_plantilla;
+
+    // Lista de laboratorios disponibles
+    public $laboratoriosDisponibles = [
+        'G301', 'G302', 'G303', 'G304', 'G305', 'G306',
+        'G401', 'G402', 'G403'
+    ];
 
     // Nuevas propiedades para el flujo de tribunales plantilla
     public $modoPlantilla = false; // true para crear plantilla, false para tribunal individual
@@ -81,6 +92,12 @@ class Tribunales extends Component
     public ?Tribunale $tribunalAEliminar = null;
 
     public $profesoresParaTribunal;
+
+    // NUEVO: Para importación de tribunales desde Excel
+    public $archivoImportacion;
+    public $fechaImportacion;
+    public $showImportarModal = false;
+    public $mensajesImportacion = [];
 
     /**
      * Actualizar la página cuando cambie el número de elementos por página
@@ -119,9 +136,10 @@ class Tribunales extends Component
                     }
                 ],
                 'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+                'laboratorio' => 'nullable|string|max:50',
             ];
         } else {
-            // Modo normal: requiere estudiante
+            // Modo normal: requiere estudiante y laboratorio
             $rules = [
                 'estudiante_id' => [
                     'required',
@@ -154,6 +172,7 @@ class Tribunales extends Component
                     }
                 ],
                 'hora_fin' => 'required|date_format:H:i|after:hora_inicio',
+                'laboratorio' => 'required|string|max:50',
             ];
         }
 
@@ -180,8 +199,8 @@ class Tribunales extends Component
                     return;
                 }
                 $user = User::find($value);
-                if ($user && $user->hasRole('Administrador')) {
-                    $fail('Un Administrador no puede ser Calificador General.');
+                if ($user && $user->hasRole('Super Admin')) {
+                    $fail('Un Super Admin no puede ser Calificador General.');
                     return;
                 }
                 $esMiembroTribunal = MiembrosTribunal::join('tribunales', 'miembros_tribunales.tribunal_id', '=', 'tribunales.id')
@@ -244,7 +263,7 @@ class Tribunales extends Component
         $this->periodo = $this->carreraPeriodo->periodo;
 
         // Lista base de todos los profesores potenciales (excluyendo Super Admin si es necesario)
-        $rolesExcluidos = ['Super Admin', 'Administrador']; // Roles a excluir de ser seleccionables
+        $rolesExcluidos = ['Super Admin']; // Roles a excluir de ser seleccionables
         $this->profesores = User::whereDoesntHave('roles', function ($query) use ($rolesExcluidos) {
             $query->whereIn('name', $rolesExcluidos);
         })
@@ -268,12 +287,6 @@ class Tribunales extends Component
         // Super Admin tiene acceso total
         if ($user->hasRole('Super Admin')) {
             $this->puedeGestionar = true;
-            $this->puedeVisualizar = true;
-        }
-
-        // Administrador solo puede visualizar
-        if ($user->hasRole('Administrador')) {
-            $this->puedeGestionar = false;
             $this->puedeVisualizar = true;
         }
 
@@ -326,7 +339,7 @@ class Tribunales extends Component
         $keyWord = '%' . $this->keyWord . '%';
 
         // Obtener tribunales individuales (es_plantilla = false o null)
-        $tribunalesIndividuales = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+        $tribunalesIndividuales = Tribunale::where('tribunales.carrera_periodo_id', $this->carreraPeriodoId)
             ->where(function ($query) {
                 $query->where('es_plantilla', false)
                     ->orWhereNull('es_plantilla');
@@ -355,6 +368,8 @@ class Tribunales extends Component
                     $query->orderBy('hora_inicio', 'asc');
                 } elseif ($this->sortField === 'hora_inicio') {
                     $query->orderBy('fecha', 'desc');
+                } elseif ($this->sortField === 'id') {
+                    // Si ordena por ID, no agregar ordenación secundaria (mantiene orden de importación)
                 } else {
                     $query->orderBy('fecha', 'desc')->orderBy('hora_inicio', 'asc');
                 }
@@ -431,6 +446,7 @@ class Tribunales extends Component
     private function resetInput()
     {
         $this->estudiante_id = null;
+        $this->caso = null;
         $this->fecha = now()->format('Y-m-d'); // Default a hoy
         $this->hora_inicio = null;
         $this->hora_fin = null;
@@ -661,6 +677,7 @@ class Tribunales extends Component
                         'fecha' => $validatedData['fecha'],
                         'hora_inicio' => $validatedData['hora_inicio'],
                         'hora_fin' => $validatedData['hora_fin'],
+                        'laboratorio' => $validatedData['laboratorio'] ?? null,
                         'estado' => 'ABIERTO',
                         'es_plantilla' => true,
                         'descripcion_plantilla' => $validatedData['descripcion_plantilla']
@@ -675,6 +692,8 @@ class Tribunales extends Component
                         'fecha' => $validatedData['fecha'],
                         'hora_inicio' => $validatedData['hora_inicio'],
                         'hora_fin' => $validatedData['hora_fin'],
+                        'laboratorio' => $validatedData['laboratorio'],
+                        'caso' => !empty($this->caso) ? $this->caso : null,
                         'estado' => 'ABIERTO',
                         'es_plantilla' => false,
                         'descripcion_plantilla' => null
@@ -735,8 +754,8 @@ class Tribunales extends Component
                         return;
                     }
                     $user = User::find($value);
-                    if ($user && $user->hasRole('Administrador')) {
-                        $fail('Un Administrador no puede ser Calificador General.');
+                    if ($user && $user->hasRole('Super Admin')) {
+                        $fail('Un Super Admin no puede ser Calificador General.');
                         return;
                     }
                     $esMiembroTribunal = MiembrosTribunal::join('tribunales', 'miembros_tribunales.tribunal_id', '=', 'tribunales.id')
@@ -909,6 +928,17 @@ class Tribunales extends Component
             return;
         }
 
+        // Validar que el tribunal esté dentro de su franja horaria
+        $fechaHoraActual = now();
+        $fechaHoraFinTribunal = \Carbon\Carbon::parse($tribunal->fecha . ' ' . $tribunal->hora_fin);
+
+        if ($fechaHoraActual->greaterThan($fechaHoraFinTribunal)) {
+            session()->flash('warning', 'No se puede abrir el tribunal. La franja horaria ya ha finalizado (' .
+                $fechaHoraFinTribunal->format('d/m/Y H:i') . ').');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
         DB::transaction(function () use ($tribunal) {
             $tribunal->update(['estado' => 'ABIERTO']);
 
@@ -965,7 +995,99 @@ class Tribunales extends Component
     }
 
     /**
-     * Valida que el nuevo horario no se solape con tribunales existentes en la misma fecha
+     * Abre el modal de importación de tribunales
+     */
+    public function abrirModalImportacion()
+    {
+        $this->resetErrorBag();
+        $this->archivoImportacion = null;
+        $this->fechaImportacion = null;
+        $this->mensajesImportacion = [];
+        $this->showImportarModal = true;
+    }
+
+    /**
+     * Cierra el modal de importación
+     */
+    public function cerrarModalImportacion()
+    {
+        $this->showImportarModal = false;
+        $this->archivoImportacion = null;
+        $this->fechaImportacion = null;
+        $this->mensajesImportacion = [];
+        $this->resetErrorBag();
+    }
+
+    /**
+     * Importa tribunales desde un archivo Excel
+     */
+    public function importarTribunales()
+    {
+        // Validar campos
+        $this->validate([
+            'archivoImportacion' => 'required|mimes:xlsx,xls,csv|max:10240', // Máximo 10MB
+            'fechaImportacion' => 'required|date|after_or_equal:today',
+        ], [
+            'archivoImportacion.required' => 'Debe seleccionar un archivo Excel.',
+            'archivoImportacion.mimes' => 'El archivo debe ser de tipo Excel (xlsx, xls) o CSV.',
+            'archivoImportacion.max' => 'El archivo no debe superar los 10MB.',
+            'fechaImportacion.required' => 'La fecha es obligatoria.',
+            'fechaImportacion.date' => 'La fecha no es válida.',
+            'fechaImportacion.after_or_equal' => 'La fecha debe ser hoy o una fecha futura.',
+        ]);
+
+        try {
+            // Crear instancia del importador
+            $import = new TribunalesImport($this->carreraPeriodoId, $this->fechaImportacion);
+
+            // Ejecutar importación
+            Excel::import($import, $this->archivoImportacion->getRealPath());
+
+            // Obtener resultados
+            $exitosos = $import->getExitosos();
+            $errores = $import->getErrores();
+
+            // Preparar mensajes
+            $this->mensajesImportacion = [
+                'exitosos' => $exitosos,
+                'errores' => $errores,
+                'total' => $exitosos + count($errores),
+            ];
+
+            // Si hubo éxitos, mostrar mensaje
+            if ($exitosos > 0) {
+                session()->flash('success', "Se importaron exitosamente {$exitosos} tribunal(es).");
+                $this->dispatchBrowserEvent('showFlashMessage');
+            }
+
+            // Si solo hubo errores, mostrar error general
+            if ($exitosos === 0 && count($errores) > 0) {
+                session()->flash('error', 'No se pudo importar ningún tribunal. Revise los errores a continuación.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+            }
+
+            // Si hubo éxitos y errores, mostrar advertencia
+            if ($exitosos > 0 && count($errores) > 0) {
+                session()->flash('warning', "Se importaron {$exitosos} tribunal(es), pero " . count($errores) . " tribunal(es) tuvieron errores.");
+                $this->dispatchBrowserEvent('showFlashMessage');
+            }
+
+            // Limpiar datos y recargar lista
+            $this->archivoImportacion = null;
+
+            // Si todos fueron exitosos, cerrar modal
+            if (count($errores) === 0) {
+                $this->cerrarModalImportacion();
+            }
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al procesar el archivo: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+        }
+    }
+
+    /**
+     * Valida que el nuevo horario no se solape con tribunales existentes en el mismo laboratorio
      */
     private function validarHorariosSolapados($fail)
     {
@@ -973,14 +1095,20 @@ class Tribunales extends Component
         $nuevaHoraInicio = \Carbon\Carbon::createFromFormat('H:i', $this->hora_inicio);
         $nuevaHoraFin = \Carbon\Carbon::createFromFormat('H:i', $this->hora_fin);
 
-        // Buscar tribunales existentes en la misma fecha
-        $tribunalesExistentes = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
+        // Buscar tribunales existentes en la misma fecha y mismo laboratorio
+        $query = Tribunale::where('carrera_periodo_id', $this->carreraPeriodoId)
             ->where('fecha', $this->fecha)
             ->when($this->selected_id, function ($query) {
                 // Si estamos editando, excluir el tribunal actual
                 return $query->where('id', '!=', $this->selected_id);
-            })
-            ->get(['hora_inicio', 'hora_fin']);
+            });
+
+        // Solo validar solapamiento en el mismo laboratorio
+        if (!empty($this->laboratorio)) {
+            $query->where('laboratorio', $this->laboratorio);
+        }
+
+        $tribunalesExistentes = $query->get(['hora_inicio', 'hora_fin', 'laboratorio']);
 
         foreach ($tribunalesExistentes as $tribunal) {
             // Parsear las horas de la base de datos manejando ambos formatos
@@ -999,10 +1127,12 @@ class Tribunales extends Component
             // Verificar si hay solapamiento
             // Caso 1: El nuevo tribunal inicia antes de que termine el existente Y termina después de que inicia el existente
             if ($nuevaHoraInicio->lt($horaFinExistente) && $nuevaHoraFin->gt($horaInicioExistente)) {
+                $labInfo = !empty($this->laboratorio) ? " en el laboratorio {$this->laboratorio}" : "";
                 $fail(sprintf(
-                    'El horario seleccionado (%s - %s) se solapa con un tribunal existente (%s - %s) en la fecha %s.',
+                    'El horario seleccionado (%s - %s)%s se solapa con un tribunal existente (%s - %s) en la fecha %s.',
                     $this->hora_inicio,
                     $this->hora_fin,
+                    $labInfo,
                     $horaInicioExistente->format('H:i'), // Usar formato consistente
                     $horaFinExistente->format('H:i'),
                     \Carbon\Carbon::parse($this->fecha)->format('d/m/Y')

@@ -14,6 +14,7 @@
         integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <!-- Estilos personalizados para formularios -->
     <style>
         /* Estilos para labels */
@@ -71,75 +72,85 @@
     :root {
         --white: #ffffff;
         --black: #000000;
-        --dark: #232830;
+        --dark: #1a3d2e;
         --very-light-pink: #c7c7c7;
         --text-input-field: #f7f7f7;
-        --hospital-green: #0d6efd;
+        --hospital-green: #2d7a4f;
+        --espe-green: #2d7a4f;
+        --espe-green-dark: #1a4d30;
+        --espe-green-light: #4a9d6f;
         --sm: 14px;
         --md: 16px;
         --lg: 18px;
 
-        /* Variables de Bootstrap personalizadas */
-        /* Color info original: #0dcaf0 - Nuevo color más oscuro */
-        --bs-info: #0ea5e9;
-        --bs-info-rgb: 14, 165, 233;
+        /* Variables de Bootstrap personalizadas - Tema verde ESPE */
+        --bs-info: #2d7a4f;
+        --bs-info-rgb: 45, 122, 79;
 
         /* Variables completas para todos los elementos info */
-        --bs-info-bg-subtle: rgba(14, 165, 233, 0.125);
-        --bs-info-border-subtle: rgba(14, 165, 233, 0.375);
-        --bs-info-text-emphasis: #0369a1;
+        --bs-info-bg-subtle: rgba(45, 122, 79, 0.125);
+        --bs-info-border-subtle: rgba(45, 122, 79, 0.375);
+        --bs-info-text-emphasis: #1a4d30;
 
         /* Variables para botones y badges */
         --bs-btn-color: #fff;
-        --bs-btn-bg: #0ea5e9;
-        --bs-btn-border-color: #0ea5e9;
+        --bs-btn-bg: #2d7a4f;
+        --bs-btn-border-color: #2d7a4f;
         --bs-btn-hover-color: #fff;
-        --bs-btn-hover-bg: #0284c7;
-        --bs-btn-hover-border-color: #0284c7;
-        --bs-btn-focus-shadow-rgb: 14, 165, 233;
+        --bs-btn-hover-bg: #1a4d30;
+        --bs-btn-hover-border-color: #1a4d30;
+        --bs-btn-focus-shadow-rgb: 45, 122, 79;
         --bs-btn-active-color: #fff;
-        --bs-btn-active-bg: #0369a1;
-        --bs-btn-active-border-color: #0369a1;
+        --bs-btn-active-bg: #1a4d30;
+        --bs-btn-active-border-color: #1a4d30;
         --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
         --bs-btn-disabled-color: #fff;
-        --bs-btn-disabled-bg: #0ea5e9;
-        --bs-btn-disabled-border-color: #0ea5e9;
+        --bs-btn-disabled-bg: #2d7a4f;
+        --bs-btn-disabled-border-color: #2d7a4f;
     }
 
-    /* Sobrescribir clases específicas de Bootstrap para color info */
+    /* Sobrescribir clases específicas de Bootstrap para color verde ESPE */
     .bg-info {
-        background-color: #0ea5e9 !important;
+        background-color: #2d7a4f !important;
     }
 
     .badge.bg-info {
-        background-color: #0ea5e9 !important;
+        background-color: #2d7a4f !important;
         color: #fff !important;
     }
 
     .btn-info {
-        background-color: #0ea5e9 !important;
-        border-color: #0ea5e9 !important;
+        background-color: #2d7a4f !important;
+        border-color: #2d7a4f !important;
         color: #fff !important;
     }
 
     .btn-info:hover {
-        background-color: #0284c7 !important;
-        border-color: #0284c7 !important;
+        background-color: #1a4d30 !important;
+        border-color: #1a4d30 !important;
         color: #fff !important;
     }
 
     .text-info {
-        color: #0ea5e9 !important;
+        color: #2d7a4f !important;
     }
 
     .alert-info {
-        background-color: rgba(14, 165, 233, 0.125) !important;
-        border-color: rgba(14, 165, 233, 0.375) !important;
-        color: #0369a1 !important;
+        background-color: rgba(45, 122, 79, 0.125) !important;
+        border-color: rgba(45, 122, 79, 0.375) !important;
+        color: #1a4d30 !important;
     }
 
     * {
         /* font-size:15px; */
+    }
+
+    /* Prevenir scroll en toda la página */
+    html, body {
+        overflow: hidden;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
     }
 
     p {
@@ -154,7 +165,7 @@
     }
 
     .link_styled {
-        color: #0d6efd;
+        color: #2d7a4f;
         cursor: pointer;
     }
 
@@ -164,7 +175,7 @@
         border-radius: 5px;
         padding: 5px 0;
         color: #fff;
-        background-color: #0d6efd;
+        background-color: #2d7a4f;
         transition: all 0.3s;
     }
 
@@ -315,44 +326,30 @@
         direction: ltr;
     }
 
-    .nav-item.list-group.nav-link-item {
-        position: relative;
-        transition: all 0.3s linear;
-    }
-
-    .nav-item.list-group.nav-link-item:hover {
-        background-color: #0d6efd;
-        transform: translateX(5px);
-        transition: all 0.1s linear;
-    }
-
-    .nav-item.list-group.nav-link-item:hover .icon-wrapper i {
-        animation: shake 0.15s linear infinite;
-    }
-
-    /* Estilos adicionales para el icono */
-    .nav-item.list-group.nav-link-item .icon-wrapper {
-        display: inline-block;
-    }
-
-    .nav-item.list-group.nav-link-item .icon-wrapper i {
-        display: inline-block;
-    }
-
-
-    .navbar {
-        padding: 15px 10px;
-        background: #fff;
+    /* Botón flotante de configuración (si se usa) */
+    .config-float-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2d7a5f 0%, #1a4d30 100%);
+        color: white;
         border: none;
-        border-radius: 0;
-        margin-bottom: 40px;
-        box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(45, 122, 79, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 1000;
     }
 
-    .navbar-btn {
-        box-shadow: none;
-        outline: none !important;
-        border: none;
+    .config-float-btn:hover {
+        transform: scale(1.1) rotate(90deg);
+        box-shadow: 0 6px 20px rgba(45, 122, 79, 0.6);
     }
 
     .line {
@@ -373,47 +370,196 @@
     }
 
     #sidebar {
-        overflow-y: scroll;
-        scroll-behavior: smooth;
+        overflow: hidden;
         height: 100vh;
         position: fixed;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        border-right: 1px solid #e0e0e0;
+        background-image: url('{{ Storage::url("fondos/sidebar.png") }}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        flex-direction: column;
     }
+
+    #sidebar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(180deg, rgba(255,255,255,0.90) 0%, rgba(248,249,250,0.90) 100%);
+        z-index: 0;
+    }
+
+    #sidebar > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    #sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #sidebar::-webkit-scrollbar-thumb {
+        background-color: #2d7a5f;
+        border-radius: 3px;
+    }
+
+    #sidebar::-webkit-scrollbar-track {
+        background-color: rgba(240, 240, 240, 0.5);
+    }
+
+    /* Header del Sidebar */
+    .sidebar-header {
+        padding: 5px;
+        border-bottom: 1px solid #e0e0e0;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(10px);
+    }
+
+    .sidebar-title-text {
+        font-size: 30px;
+        font-weight: 700;
+        color: #333;
+        letter-spacing: 0.5px;
+    }
+
+    /* Categorías del menú */
+    .menu-category {
+        font-size: 11px;
+        font-weight: 600;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 15px 20px 8px;
+        margin-top: 10px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+    }
+
+    .menu-category:first-of-type {
+        margin-top: 0;
+    }
+
+    /* Items del menú */
+    .sidebar-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidebar-menu-item {
+        margin: 2px 10px;
+    }
+
+    .sidebar-menu-link {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        color: #333;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        font-size: 14px;
+    }
+
+    .sidebar-menu-link:hover {
+        background: linear-gradient(135deg, rgba(232, 245, 233, 0.9) 0%, rgba(200, 230, 201, 0.9) 100%);
+        color: #2d7a5f;
+        transform: translateX(3px);
+        text-decoration: none;
+        backdrop-filter: blur(10px);
+    }
+
+    .sidebar-menu-link.active {
+        background: linear-gradient(135deg, rgba(61, 142, 114, 0.15) 0%, rgba(61, 166, 106, 0.15) 100%);
+        color: #2d7a5f;
+        font-weight: 600;
+        border-left: 4px solid #3d8e72ff;
+        padding-left: 11px;
+        box-shadow: 0 2px 4px rgba(61, 142, 114, 0.1);
+    }
+
+    .sidebar-menu-link.active i {
+        color: #3d8e72ff;
+    }
+
+    .sidebar-menu-link i {
+        font-size: 18px;
+        margin-right: 12px;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    /* Badges en el sidebar */
+    .sidebar-badge {
+        font-size: 10px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+        margin: 2px;
+    }
+
 
     .wrapper {
         display: flex;
         width: 100%;
+        height: 100vh;
         align-items: stretch;
+        overflow: hidden;
     }
 
 
 
     #content {
         width: 100%;
-        padding: 20px;
-        min-height: 100vh;
+        padding: 0 20px 20px 20px;
+        height: calc(100vh - 64px);
+        overflow-y: auto;
+        overflow-x: hidden;
         transition: all 0.3s;
-        /* margin-left: 280px; */
-        /* z-index: 10; */
+        background: #f5f7fa;
+        margin-top: 64px;
+        position: relative;
     }
 
     .button_sideBar {
         display: none;
         border: none;
-        background: #0d6dfd30;
-        border-radius: 5px;
-        padding: 0 5px;
+        background: linear-gradient(135deg, #2d7a5f 0%, #1a4d30 100%);
+        color: white;
+        border-radius: 8px;
+        padding: 8px 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        transition: all 0.2s ease;
+    }
+
+    .button_sideBar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
 
     .button_sideBar:active {
-        border: solid 1px #0d6dfd;
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
 
     .button_close_sideBar {
         display: none;
         border: none;
-        background: #0d6dfd30;
-        border-radius: 5px;
-        padding: 0 5px;
+        background: rgba(0,0,0,0.5);
+        color: white;
+        border-radius: 8px;
+        padding: 8px 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        transition: all 0.2s ease;
+    }
+
+    .button_close_sideBar:hover {
+        background: rgba(0,0,0,0.7);
     }
 
 
@@ -475,9 +621,10 @@
 
     @media (max-width: 850px) {
         #sidebar {
-            height: 100%;
+            height: 100vh;
             margin-left: -280px;
             transition: all 0.3s;
+            z-index: 1000;
         }
 
         .sidebar_container {
@@ -492,6 +639,13 @@
         #content {
             transition: all 0.3s;
             margin-left: 0px;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+        }
+
+        .top-user-header {
+            left: 0;
+            width: 100%;
         }
     }
 
@@ -548,8 +702,8 @@
 
     .big-welcome {
         font-size: 6rem;
-        color: #0d6dfd;
-        /* Color naranja para el saludo en español */
+        color: #2d7a4f;
+        /* Color verde ESPE para el saludo */
     }
 
     .medium-welcome {
@@ -572,14 +726,14 @@
 
     ::-webkit-scrollbar-thumb {
         border-radius: 0;
-        background-color: #0d6efd;
+        background-color: #2d7a4f;
     }
 
 
     .login-button:hover {
-        background-color: #007bff;
+        background-color: #2d7a4f;
         background-image: radial-gradient(at 30% 30%, rgba(255, 255, 255, 0.15), transparent 50%), radial-gradient(at 90% 20%, rgba(0, 0, 0, 0.1), transparent 50%);
-        box-shadow: 0 0.25rem 0.5rem rgba(0, 123, 255, 0.25), 0 0.2rem 1rem rgba(0, 123, 255, 0.15);
+        box-shadow: 0 0.25rem 0.5rem rgba(45, 122, 79, 0.25), 0 0.2rem 1rem rgba(45, 122, 79, 0.15);
     }
 
     .choices {
@@ -625,7 +779,7 @@
     }
 
     .choices__item--highlighted {
-        background-color: #0d6efd !important;
+        background-color: #2d7a4f !important;
         color: white !important;
     }
 
@@ -697,25 +851,88 @@
         box-shadow: none;
     }
 
-    .sidebar-logo {
-        width: 40%;
-        height: auto;
-        margin: 15px auto 15px;
-        border-radius: 5px;
+    /* Top header con información del usuario */
+    .top-user-header {
+        background: white;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 8px 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        position: fixed;
+        top: 0;
+        left: 280px;
+        right: 0;
+        z-index: 999;
+        height: 61px;
+        display: flex;
+        align-items: center;
     }
+
+    .top-user-header .dropdown-toggle::after {
+        display: none;
+    }
+
+    .top-user-header .dropdown-menu {
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .top-user-header .dropdown-item:hover {
+        background-color: #f8f9fa;
+    } 
+
+    .pin-active {
+        color: #2d7a4f !important;
+        transform: rotate(45deg);
+    }
+    
+    .pin-inactive {
+        color: #6c757d !important;
+        transform: rotate(0deg);
+    }    
+
+    .sidebar-pinned {
+        position: fixed !important;
+    }
+    
+    .sidebar-unpinned {
+        position: absolute !important;
+        margin-left: -280px !important;
+        transition: margin-left 0.3s ease;
+    }
+    
+    .sidebar-unpinned:hover {
+        margin-left: 0px !important;
+    }
+
+    .content-expanded {
+        margin-left: 0px !important;
+        width: 100% !important;
+    }       
 </style>
 
 <body>
 
     <div class="wrapper">
         <div id="sidebar_container" class="sidebar_container">
-            <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px;" id="sidebar">
-                <a href="{{ url('/') }}"
-                    class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none text-center">
-                    <span class="fs-4">Sistema Examen Complexivo</span>
-                </a>
-
-                <img class="sidebar-logo" src="{{ Storage::url('logos/LOGO-ITIN.png') }}" alt="">
+            <div class="d-flex flex-column flex-shrink-0" style="width: 280px;" id="sidebar">
+                <!-- Header del Sidebar -->
+                <div class="sidebar-header">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            @if (file_exists(public_path('storage/logos/LOGO-ESPE_lg.png')))
+                                <img src="{{ asset('storage/logos/LOGO-ESPE_lg.png') }}" alt="Logo ESPE"
+                                     style="width: 100px; height: 50px; object-fit: contain; margin-right: 10px;">
+                            @else
+                                <img src="{{ Storage::url('logos/LOGO-ITIN.png') }}" alt="Logo"
+                                     style="width: 45px; height: auto; margin-right: 10px;">
+                            @endif
+                            <span class="sidebar-title-text">MENÚ</span>
+                        </div>
+                        <i id="pinIcon" class="bi bi-pin-angle-fill" onclick="toggleSidebarPin()" 
+                           style="color: #2d7a4f; font-size: 16px; cursor: pointer; transition: all 0.3s ease;" 
+                           title="Pin/Unpin Menu"></i>
+                    </div>
+                </div>
 
                 {{-- Mostrar rol del usuario --}}
                 @php
@@ -757,293 +974,230 @@
                     $calificadorGeneralAsignaciones = $userContextInfo['calificador_general'];
                 @endphp
 
-                <div class="text-center mb-2">
-                    <small class="text-muted">
-                        {{-- DEBUG: Mostrar información para verificar --}}
-                        @if (config('app.debug'))
-                            {{-- <div style="font-size: 10px; background: #333; padding: 5px; margin: 5px 0;">
-                                DEBUG: Dir=<?= $esDirectorCarrera ? 'Sí' : 'No' ?> |
-                                Apoyo=<?= $esDocenteApoyo ? 'Sí' : 'No' ?> |
-                                Calif=<?= $esCalificadorGeneral ? 'Sí' : 'No' ?> |
-                                Trib=<?= $esMiembroTribunal ? 'Sí' : 'No' ?>
-                            </div> --}}
-                        @endif
-
-                        {{-- SIEMPRE mostrar roles globales si los tiene --}}
-                        @if (ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
-                            @if (Auth::user()->roles->where('name', 'Super Admin')->isNotEmpty())
-                                <span class="badge bg-danger">Super Admin</span>
-                            @else
-                                <span class="badge bg-warning text-dark">Administrador</span>
-                            @endif
-
-                            {{-- Si también tiene asignaciones contextuales, mostrar separador --}}
-                            @if ($esDirectorCarrera || $esDocenteApoyo || $esCalificadorGeneral || $esMiembroTribunal)
-                                <br><small class="text-light fw-bold">También:</small><br>
-                            @endif
-                        @endif
-
-                        {{-- SIEMPRE mostrar asignaciones contextuales si las tiene --}}
-                        @if ($esDirectorCarrera)
-                            <span class="badge bg-success">Director de Carrera</span>
-                        @endif
-                        @if ($esDocenteApoyo)
-                            <span class="badge bg-info">Docente de Apoyo</span>
-                        @endif
-                        @if ($esCalificadorGeneral)
-                            <span class="badge bg-warning text-dark">Calificador General</span>
-                        @endif
-                        @if ($esMiembroTribunal)
-                            <span class="badge bg-primary">Miembro Tribunal</span>
-                        @endif
-
-                        {{-- Solo mostrar "Docente" si NO tiene roles globales NI asignaciones contextuales --}}
-                        @if (
-                            !ContextualAuth::isSuperAdminOrAdmin(Auth::user()) &&
-                                !$esDirectorCarrera &&
-                                !$esDocenteApoyo &&
-                                !$esCalificadorGeneral &&
-                                !$esMiembroTribunal)
-                            <span class="badge bg-secondary">Docente</span>
-                        @endif
-                    </small>
+                <!-- Información de Rol Global -->
+                <div class="py-3 px-3" style="border-bottom: 1px solid #e0e0e0; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(5px);">
+                    @if (Auth::user()->hasRole('Super Admin'))
+                        <div class="mb-0">
+                            <span class="badge bg-danger text-white w-100 py-2" style="font-size: 12px;">
+                                <i class="bi bi-shield-fill-check me-1"></i>Super Administrador
+                            </span>
+                        </div>
+                    @elseif (Auth::user()->hasRole('Director de Carrera'))
+                        <div class="mb-0">
+                            <span class="badge bg-success text-white w-100 py-2" style="font-size: 12px;">
+                                <i class="bi bi-person-badge me-1"></i>Director de Carrera
+                            </span>
+                        </div>
+                    @elseif (Auth::user()->hasRole('Docente de Apoyo'))
+                        <div class="mb-0">
+                            <span class="badge bg-info text-white w-100 py-2" style="font-size: 12px;">
+                                <i class="bi bi-person-check me-1"></i>Docente de Apoyo
+                            </span>
+                        </div>
+                    @else
+                        <div class="mb-0">
+                            <span class="badge bg-secondary text-white w-100 py-2" style="font-size: 12px;">
+                                <i class="bi bi-person me-1"></i>Docente
+                            </span>
+                        </div>
+                    @endif
                 </div>
-                <hr>
-                <h5 class="fs-6 text-secondary">Control</h5>
 
-                <ul class="list-group nav nav-pills flex-column mb-auto list-unstyled ps-0">
+                <!-- Contenido del Menú -->
+                <div style="flex: 1; overflow-y: auto;">
+                    <!-- Categoría MAIN -->
+                    <div class="menu-category"></div>
+                    <ul class="sidebar-menu">
+                        <li class="sidebar-menu-item">
+                            <a href="{{ route('home') }}" class="sidebar-menu-link {{ Request::routeIs('home') ? 'active' : '' }}">
+                                <i class="bi bi-house-door"></i>
+                                <span>Principal</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <!-- Categoría GESTIÓN -->
+                    <div class="menu-category">GESTIÓN</div>
+                    <ul class="sidebar-menu">
                     @php
+                        // Verificar si es Super Admin o Administrador
+                        $isSuperAdminOrAdmin = ContextualAuth::isSuperAdminOrAdmin(Auth::user());
+
                         // Verificar permisos específicos usando las variables ya definidas
                         $puedeGestionarPeriodos = Auth::user()->can('gestionar periodos');
                         $puedeVerPeriodos = $puedeGestionarPeriodos || $esDirectorCarrera || $esDocenteApoyo;
                         $puedeGestionarCarreras = Auth::user()->can('gestionar carreras');
-                        $puedeVerEstudiantes =
+
+                        // ESTUDIANTES: Solo Director/Apoyo - NO Super Admin
+                        $puedeVerEstudiantes = !$isSuperAdminOrAdmin && (
                             Auth::user()->can('ver listado estudiantes') ||
                             Auth::user()->can('gestionar estudiantes') ||
                             $esDirectorCarrera ||
-                            $esDocenteApoyo;
-                        $puedeVerRubricas =
+                            $esDocenteApoyo
+                        );
+
+                        // RÚBRICAS: Solo Super Admin - NO Director/Apoyo
+                        $puedeVerRubricas = $isSuperAdminOrAdmin && (
                             Auth::user()->can('ver rubricas') ||
                             Auth::user()->can('gestionar rubricas') ||
-                            Auth::user()->can('gestionar plantillas rubricas') ||
-                            $esDirectorCarrera ||
-                            $esDocenteApoyo;
-                        $puedeVerTribunales =
+                            Auth::user()->can('gestionar plantillas rubricas')
+                        );
+
+                        // TRIBUNALES: Solo Director/Apoyo/Docentes - NO Super Admin
+                        $puedeVerTribunales = !$isSuperAdminOrAdmin && (
                             Auth::user()->can('ver listado tribunales') ||
                             $esDirectorCarrera ||
                             $esDocenteApoyo ||
                             $esMiembroTribunal ||
-                            $esCalificadorGeneral;
+                            $esCalificadorGeneral
+                        );
                     @endphp
 
-                    {{-- Períodos: Usuarios con permisos específicos o asignaciones contextuales --}}
-                    @if ($puedeVerPeriodos)
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('periodos.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-calendar3"></i></span>
-                                Períodos
-                            </a>
-                        </li>
-                    @endif
+                        {{-- Períodos: Super Admin, Administrador, Director, Apoyo --}}
+                        @if ($puedeVerPeriodos)
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('periodos.') }}" class="sidebar-menu-link {{ Request::is('periodos*') ? 'active' : '' }}">
+                                    <i class="bi bi-calendar3"></i>
+                                    <span>Períodos</span>
+                                </a>
+                            </li>
+                        @endif
 
-                    {{-- Carreras: Solo usuarios con permiso específico --}}
-                    @if ($puedeGestionarCarreras)
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('carreras.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-mortarboard"></i></span>
-                                Carreras
-                            </a>
-                        </li>
-                    @endif
+                        {{-- Carreras: Solo Super Admin y Administrador --}}
+                        @if ($puedeGestionarCarreras)
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('carreras.') }}" class="sidebar-menu-link {{ Request::is('carreras*') ? 'active' : '' }}">
+                                    <i class="bi bi-mortarboard"></i>
+                                    <span>Carreras</span>
+                                </a>
+                            </li>
+                        @endif
 
-                    {{-- Estudiantes: Usuarios con permisos o asignaciones contextuales --}}
-                    @if ($puedeVerEstudiantes)
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('estudiantes.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-people"></i></span>
-                                Estudiantes
-                            </a>
-                        </li>
-                    @endif
+                        {{-- Estudiantes: Solo Director/Apoyo - NO Super Admin --}}
+                        @if ($puedeVerEstudiantes)
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('estudiantes.') }}" class="sidebar-menu-link {{ Request::is('estudiantes*') ? 'active' : '' }}">
+                                    <i class="bi bi-people"></i>
+                                    <span>Estudiantes</span>
+                                </a>
+                            </li>
+                        @endif
 
-                    {{-- Rúbricas: Usuarios con permisos o asignaciones contextuales --}}
-                    @if ($puedeVerRubricas)
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('rubricas.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-grid-3x3-gap"></i></span>
-                                Rúbricas
-                            </a>
-                        </li>
-                    @endif
+                        {{-- Rúbricas: Solo Super Admin - NO Director/Apoyo --}}
+                        @if ($puedeVerRubricas)
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('rubricas.') }}" class="sidebar-menu-link {{ Request::is('rubricas*') ? 'active' : '' }}">
+                                    <i class="bi bi-grid-3x3-gap"></i>
+                                    <span>Rúbricas</span>
+                                </a>
+                            </li>
+                        @endif
 
-                    {{-- Tribunales: Usuarios con permisos o asignaciones contextuales --}}
-                    @if ($puedeVerTribunales)
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('tribunales.principal') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-person-lines-fill"></i></span>
-                                Tribunales
-                            </a>
-                        </li>
-                    @endif
+                        {{-- Calificación: Solo Director/Apoyo/Docentes - NO Super Admin --}}
+                        @if ($puedeVerTribunales)
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('tribunales.principal') }}" class="sidebar-menu-link {{ Request::is('tribunales*') ? 'active' : '' }}">
+                                    <i class="bi bi-clipboard-check"></i>
+                                    <span>Calificación</span>
+                                </a>
+                            </li>
+                        @endif
 
-                    {{-- Mensaje para usuarios sin acceso --}}
-                    @if (
-                        !$puedeGestionarPeriodos &&
-                            !$puedeGestionarCarreras &&
-                            !$puedeVerEstudiantes &&
-                            !$puedeVerRubricas &&
-                            !$puedeVerTribunales)
-                        <li class="nav-item">
-                            <div class="alert alert-info py-2 px-3 mb-2">
-                                <small>
-                                    <i class="bi bi-info-circle"></i>
-                                    No tienes asignaciones activas actualmente.
-                                </small>
-                            </div>
-                        </li>
-                    @endif
+                        {{-- Mis Actas Firmadas: Para presidentes de tribunales --}}
+                        @if (!$isSuperAdminOrAdmin && $esMiembroTribunal && Auth::user()->can('subir acta firmada mi tribunal (presidente)'))
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('actas-firmadas.index') }}" class="sidebar-menu-link {{ Request::is('actas-firmadas') ? 'active' : '' }}">
+                                    <i class="bi bi-file-earmark-arrow-up"></i>
+                                    <span>Mis Actas Firmadas</span>
+                                </a>
+                            </li>
+                        @endif
 
+                        {{-- Actas Firmadas: Para Director/Apoyo --}}
+                        @if (!$isSuperAdminOrAdmin && ($esDirectorCarrera || $esDocenteApoyo) && Auth::user()->can('descargar actas firmadas'))
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('actas-firmadas-descarga.index') }}" class="sidebar-menu-link {{ Request::is('actas-firmadas-descarga') ? 'active' : '' }}">
+                                    <i class="bi bi-file-earmark-check"></i>
+                                    <span>Actas Firmadas</span>
+                                </a>
+                            </li>
+                        @endif
+
+                        {{-- Docentes: Director/Apoyo pueden gestionar docentes --}}
+                        @if (!$isSuperAdminOrAdmin && ($esDirectorCarrera || $esDocenteApoyo))
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('users.') }}" class="sidebar-menu-link {{ Request::is('users*') || Request::is('docentes*') ? 'active' : '' }}">
+                                    <i class="bi bi-people-fill"></i>
+                                    <span>Docentes</span>
+                                </a>
+                            </li>
+                        @endif
+
+                        {{-- Mensaje para usuarios sin acceso --}}
+                        @if (
+                            !$puedeGestionarPeriodos &&
+                                !$puedeGestionarCarreras &&
+                                !$puedeVerEstudiantes &&
+                                !$puedeVerRubricas &&
+                                !$puedeVerTribunales)
+                            <li class="sidebar-menu-item">
+                                <div class="alert alert-warning py-2 px-3 mb-2 mx-2" style="font-size: 12px;">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Sin asignaciones activas
+                                </div>
+                            </li>
+                        @endif
+                    </ul>
 
                     {{-- Roles y Permisos: Solo Super Admin --}}
                     @if (Auth::user()->roles->where('name', 'Super Admin')->isNotEmpty())
-                        <hr>
-                        <h5 class="fs-6 text-secondary">Acceso</h5>
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('roles.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-list-columns-reverse"></i></span>
-                                Roles
-                            </a>
-                        </li>
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('permissions.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-list"></i></span>
-                                Permisos
-                            </a>
-                        </li>
+                        <div class="menu-category">ADMINISTRACIÓN</div>
+                        <ul class="sidebar-menu">
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('roles.') }}" class="sidebar-menu-link {{ Request::is('roles*') ? 'active' : '' }}">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>Roles</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('permissions.') }}" class="sidebar-menu-link {{ Request::is('permissions*') ? 'active' : '' }}">
+                                    <i class="bi bi-key"></i>
+                                    <span>Permisos</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('plantillas_acta_word.index') }}" class="sidebar-menu-link {{ Request::is('plantillas-acta-word*') ? 'active' : '' }}">
+                                    <i class="bi bi-file-earmark-word"></i>
+                                    <span>Plantillas Acta Word</span>
+                                </a>
+                            </li>
+                        </ul>
                     @endif
 
-
-                    {{-- Usuarios: Super Admin y Administrador --}}
+                    {{-- Docentes: Super Admin y Administrador --}}
                     @if (ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
-                        <hr>
-                        <h5 class="fs-6 text-secondary">Usuarios</h5>
-                        <li class="nav-item list-group nav-link-item">
-                            <a href="{{ route('users.') }}" class="nav-link text-white">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-person-lines-fill"></i></span>
-                                Usuarios
-                            </a>
-                        </li>
+                        <div class="menu-category">GESTIÓN DE USUARIOS</div>
+                        <ul class="sidebar-menu">
+                            <li class="sidebar-menu-item">
+                                <a href="{{ route('users.') }}" class="sidebar-menu-link {{ Request::is('users*') || Request::is('docentes*') ? 'active' : '' }}">
+                                    <i class="bi bi-people-fill"></i>
+                                    <span>Docentes</span>
+                                </a>
+                            </li>
+                        </ul>
                     @endif
 
                     @impersonating($guard = null)
-                        <li class="nav-item list-group nav-link-item">
-                            <a class="nav-link text-white" href="{{ route('users.exitImpersonate') }}">
-                                <span class="icon-wrapper">
-                                    <i class="bi bi-escape"></i></span>
-                                Salir Impersonate
-                            </a>
-                        </li>
+                        <div class="menu-category">SESIÓN</div>
+                        <ul class="sidebar-menu">
+                            <li class="sidebar-menu-item">
+                                <a class="sidebar-menu-link" href="{{ route('users.exitImpersonate') }}">
+                                    <i class="bi bi-box-arrow-left"></i>
+                                    <span>Salir Impersonate</span>
+                                </a>
+                            </li>
+                        </ul>
                     @endImpersonating
-                </ul>
-
-                {{-- Información contextual del usuario --}}
-                @if ($carrerasAsignadas->isNotEmpty() || $esMiembroTribunal || $calificadorGeneralAsignaciones->isNotEmpty())
-                    <div class="text-center mb-3">
-                        <small class="text-muted">
-                            <p class="text-light fw-bold"><strong>Contexto Actual:</strong></p>
-
-                            {{-- Mostrar asignaciones como Director/Apoyo --}}
-                            @if ($carrerasAsignadas->isNotEmpty())
-                                @foreach ($carrerasAsignadas->take(3) as $carrera)
-                                    <span
-                                        class="badge bg-{{ $carrera['tipo'] == 'Director' ? 'success' : 'info' }} mb-1 d-block text-wrap">
-                                        {{ $carrera['tipo'] }}: {{ $carrera['texto'] }}
-                                    </span>
-                                @endforeach
-                                @if ($carrerasAsignadas->count() > 3)
-                                    <span class="text-muted">... y {{ $carrerasAsignadas->count() - 3 }} más</span>
-                                @endif
-                            @endif
-
-                            {{-- Mostrar asignaciones como Calificador General --}}
-                            @if ($calificadorGeneralAsignaciones->isNotEmpty())
-                                @if ($carrerasAsignadas->isNotEmpty())
-                                    <p class="text-light fw-bold"><small>También:</small><br></p>
-                                @endif
-                                @foreach ($calificadorGeneralAsignaciones->take(2) as $calificador)
-                                    <span class="badge bg-warning text-dark mb-1 d-block text-wrap">
-                                        Calificador General: {{ $calificador->carreraPeriodo->carrera->nombre }} -
-                                        {{ $calificador->carreraPeriodo->periodo->codigo_periodo }}
-                                    </span>
-                                @endforeach
-                                @if ($calificadorGeneralAsignaciones->count() > 2)
-                                    <span class="text-muted">... y {{ $calificadorGeneralAsignaciones->count() - 2 }}
-                                        más</span>
-                                @endif
-                            @endif
-
-                            {{-- Mostrar asignaciones como Miembro de Tribunal --}}
-                            @if ($esMiembroTribunal)
-                                @if ($carrerasAsignadas->isNotEmpty() || $calificadorGeneralAsignaciones->isNotEmpty())
-                                    <br><small class="text-light fw-bold">También:</small><br>
-                                @endif
-                                <span class="badge bg-primary mb-1 d-block">
-                                    Miembro en {{ $tribunalesAsignados->count() }} tribunal(es)
-                                </span>
-                            @endif
-                        </small>
-                    </div>
-                @elseif(!ContextualAuth::isSuperAdminOrAdmin(Auth::user()))
-                    {{-- Solo mostrar "Sin asignaciones" si NO es Admin/SuperAdmin Y no tiene asignaciones --}}
-                    <div class="text-center mb-3">
-                        <small class="text-muted">
-                            <strong>Contexto:</strong><br>
-                            <span class="badge bg-warning text-dark">Sin asignaciones actuales</span>
-                        </small>
-                    </div>
-                @endif
-
-                <hr>
-
-
-                <div class="dropdown">
-                    <a href="#"
-                        class="d-flex align-items-center text-white text-decoration-none dropdown-toggle text-break"
-                        id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false"
-                        style="white-space: normal;">
-                        <strong class="text-break" style="word-break: break-word;">{{ Auth::user()->name }}</strong>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-                        <li>
-                            <a class="dropdown-item"
-                                href="{{ route('users.profile', encrypt(Auth::id())) }}">Perfil</a>
-                        </li>
-
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item" href="{{ route('logout') }}"
-                                onclick="event.preventDefault();
-                                             document.getElementById('logout-form').submit();">
-                                {{ __('Logout') }}
-                            </a>
-
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                @csrf
-                            </form>
-                        </li>
-
-                    </ul>
                 </div>
             </div>
         </div>
@@ -1054,6 +1208,119 @@
             <button id="button_close_sideBar" class="button_close_sideBar" onclick="closeAdminSidebar()"><i
                     class="bi bi-x-lg" style="font-size:2rem"></i></button>
             <div id="overlay" class="overlay"></div>
+
+            <!-- Header Horizontal con Usuario -->
+            <div class="top-user-header">
+                <div class="d-flex justify-content-end align-items-center w-100">
+                    <div class="dropdown">
+                        <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle"
+                           id="dropdownUserHeader" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="rounded-circle bg-gradient d-flex align-items-center justify-content-center me-2"
+                                 style="width: 40px; height: 40px; background: linear-gradient(135deg, #2d7a5f 0%, #3498db 100%);">
+                                <i class="bi bi-person-fill text-white"></i>
+                            </div>
+                            <div class="text-end me-2">
+                                <div class="fw-semibold" style="font-size: 14px; color: #333;">
+                                    {{ Auth::user()->name }} {{ Auth::user()->lastname }}
+                                </div>
+                                @php
+                                    $user = Auth::user();
+                                    $contextInfo = \App\Helpers\ContextualAuth::getUserContextInfo($user);
+                                    $rolesContextuales = [];
+
+                                    // Director de Carrera
+                                    foreach ($contextInfo['carreras_director'] as $carrera) {
+                                        $rolesContextuales[] = 'Director - ' . $carrera->carrera->nombre . ' (' . $carrera->periodo->codigo_periodo . ')';
+                                    }
+
+                                    // Docente de Apoyo
+                                    foreach ($contextInfo['carreras_apoyo'] as $carrera) {
+                                        $rolesContextuales[] = 'Docente de Apoyo - ' . $carrera->carrera->nombre . ' (' . $carrera->periodo->codigo_periodo . ')';
+                                    }
+
+                                    // Calificador General
+                                    foreach ($contextInfo['calificador_general'] as $calificador) {
+                                        $rolesContextuales[] = 'Calificador General - ' . $calificador->carreraPeriodo->carrera->nombre . ' (' . $calificador->carreraPeriodo->periodo->codigo_periodo . ')';
+                                    }
+
+                                    // Miembro de Tribunal (agrupar por carrera)
+                                    $tribunalesAgrupados = [];
+                                    foreach ($contextInfo['tribunales'] as $tribunal) {
+                                        if ($tribunal->tribunal && $tribunal->tribunal->carrerasPeriodo) {
+                                            $cp = $tribunal->tribunal->carrerasPeriodo;
+                                            $key = $cp->carrera->nombre;
+                                            if (!isset($tribunalesAgrupados[$key])) {
+                                                $tribunalesAgrupados[$key] = [
+                                                    'carrera' => $cp->carrera->nombre,
+                                                    'periodo' => $cp->periodo->codigo_periodo,
+                                                    'roles' => []
+                                                ];
+                                            }
+                                            $rol = ucwords(strtolower($tribunal->status));
+                                            if (!in_array($rol, $tribunalesAgrupados[$key]['roles'])) {
+                                                $tribunalesAgrupados[$key]['roles'][] = $rol;
+                                            }
+                                        }
+                                    }
+                                    foreach ($tribunalesAgrupados as $tb) {
+                                        $roles = implode('/', $tb['roles']);
+                                        $rolesContextuales[] = $roles . ' - ' . $tb['carrera'] . ' (' . $tb['periodo'] . ')';
+                                    }
+                                @endphp
+
+                                @if(count($rolesContextuales) > 0)
+                                    {{-- Mostrar roles contextuales específicos --}}
+                                    @foreach($rolesContextuales as $rol)
+                                        <small class="text-muted d-block" style="font-size: 11px; line-height: 1.4;">
+                                            {{ $rol }}
+                                        </small>
+                                    @endforeach
+                                @else
+                                    {{-- Si no tiene roles contextuales, verificar si tiene roles globales --}}
+                                    @if($user->hasRole('Director de Carrera'))
+                                        <small class="text-muted" style="font-size: 11px;">
+                                            Director de Carrera (sin asignaciones activas)
+                                        </small>
+                                    @elseif($user->hasRole('Docente de Apoyo'))
+                                        <small class="text-muted" style="font-size: 11px;">
+                                            Docente de Apoyo (sin asignaciones activas)
+                                        </small>
+                                    @else
+                                        <small class="text-muted" style="font-size: 11px;">
+                                            Sin asignaciones contextuales
+                                        </small>
+                                    @endif
+                                @endif
+                            </div>
+                            <i class="bi bi-chevron-down text-muted"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0"
+                            aria-labelledby="dropdownUserHeader"
+                            style="min-width: 220px; margin-top: 10px;">
+                            <li class="px-3 py-2 border-bottom">
+                                <small class="text-muted d-block">Sesión iniciada como</small>
+                                <strong class="d-block text-truncate">{{ Auth::user()->email }}</strong>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2" href="{{ route('mi.perfil') }}">
+                                    <i class="bi bi-person-circle me-2 text-primary"></i>Mi Perfil
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <a class="dropdown-item py-2 text-danger" href="{{ route('logout') }}"
+                                   onclick="event.preventDefault(); document.getElementById('logout-form-header').submit();">
+                                    <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
+                                </a>
+                                <form id="logout-form-header" action="{{ route('logout') }}" method="POST" class="d-none">
+                                    @csrf
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <div class="pt-3">
 
                 @yield('content')
@@ -1253,6 +1520,61 @@
         });
     </script>
 
+    <script>
+        // Variable para controlar el estado del pin
+        let sidebarPinned = true; // Por defecto está pinned
+        
+        function toggleSidebarPin() {
+            const sidebar = document.getElementById("sidebar");
+            const sidebarContainer = document.getElementById("sidebar_container");
+            const content = document.getElementById("content");
+            const pinIcon = document.getElementById("pinIcon");
+            
+            if (sidebarPinned) {
+                // Desanclar el sidebar
+                sidebar.classList.add('sidebar-unpinned');
+                sidebar.classList.remove('sidebar-pinned');
+                content.classList.add('content-expanded');
+                pinIcon.classList.add('pin-inactive');
+                pinIcon.classList.remove('pin-active');
+                pinIcon.className = pinIcon.className.replace('bi-pin-angle-fill', 'bi-pin-angle');
+                pinIcon.title = "Pin Menu";
+                sidebarPinned = false;
+            } else {
+                // Anclar el sidebar
+                sidebar.classList.add('sidebar-pinned');
+                sidebar.classList.remove('sidebar-unpinned');
+                content.classList.remove('content-expanded');
+                pinIcon.classList.add('pin-active');
+                pinIcon.classList.remove('pin-inactive');
+                pinIcon.className = pinIcon.className.replace('bi-pin-angle', 'bi-pin-angle-fill');
+                pinIcon.title = "Unpin Menu";
+                sidebarPinned = true;
+            }
+        }
+        
+        // Inicializar el estado por defecto
+        document.addEventListener('DOMContentLoaded', function() {
+            const pinIcon = document.getElementById("pinIcon");
+            pinIcon.classList.add('pin-active');
+        });
+
+        function showAdminSidebar() {
+            document.getElementById("sidebar").style = "margin-left: 0px;";
+            document.getElementById("button_sideBar").style = "display:none;";
+            document.getElementById("button_close_sideBar").style =
+                "margin-left:0px;display:block;";
+            document.getElementById("sidebar_container").style = "margin-left:0px;";
+        }
+
+        function closeAdminSidebar() {
+            document.getElementById("sidebar").style = "margin-left: -280px;";
+            document.getElementById("button_sideBar").style = "display:block;";
+            document.getElementById("button_close_sideBar").style =
+                "margin-left:-280px;display:none;";
+            document.getElementById("sidebar_container").style = "margin-left:-280px;";
+        }
+    </script>
     @stack('scripts')
 </body>
 

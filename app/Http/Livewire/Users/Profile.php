@@ -11,6 +11,8 @@ use Livewire\Component;
 class Profile extends Component
 {
     public $user, $name, $email, $password, $password_confirmation, $userId, $roles = [], $selectedRoles = array();
+    public $departamento_id; // Departamento al que pertenece el docente
+    public $departamentosDisponibles = []; // Para poblar el selector
 
     protected function rules()
     {
@@ -40,6 +42,20 @@ class Profile extends Component
     public function mount()
     {
         $this->verificarAccesoProfile();
+        $this->cargarDepartamentosDisponibles();
+
+        // Cargar departamento_id actual del usuario
+        if ($this->user && $this->user->departamento_id) {
+            $this->departamento_id = $this->user->departamento_id;
+        }
+    }
+
+    /**
+     * Cargar departamentos disponibles para el selector
+     */
+    private function cargarDepartamentosDisponibles()
+    {
+        $this->departamentosDisponibles = \App\Models\Departamento::orderBy('nombre')->get();
     }
 
     /**
@@ -79,6 +95,10 @@ class Profile extends Component
             $user->email = $this->email;
             if ($this->password) {
                 $user->password = bcrypt($this->password);
+            }
+            // Actualizar departamento si el usuario tiene permisos para gestionar usuarios
+            if (Gate::allows('gestionar usuarios')) {
+                $user->departamento_id = $this->departamento_id;
             }
             $user->save();
             session()->flash('success', 'Perfil actualizado correctamente.');

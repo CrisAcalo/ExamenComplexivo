@@ -1,163 +1,230 @@
-<div>
-    <div class="fs-3 fw-bold mb-4">
-        <a href="{{ route('rubricas.') }}">Rúbricas</a> /
-        <span>{{ $modoEdicion ? 'Editar Rúbrica: ' . $nombreRubrica : 'Crear Nueva Rúbrica' }}</span>
+<div >
+    <!-- Banner Verde ESPE -->
+    <div class="card border-0 shadow-sm mb-3" style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%);">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    @if (file_exists(public_path('storage/logos/LOGO-ESPE_500.png')))
+                        <img src="{{ asset('storage/logos/LOGO-ESPE_500.png') }}" alt="Logo ESPE"
+                             style="width: 60px; height: 60px; object-fit: contain;" class="me-3">
+                    @else
+                        <div class="bg-white bg-opacity-25 rounded p-2 me-3">
+                            <i class="bi bi-clipboard-check fs-3 text-white"></i>
+                        </div>
+                    @endif
+                    <div>
+                        <h1 class="h3 mb-1 fw-bold text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                            {{ $modoEdicion ? 'EDITAR RÚBRICA' : 'CREAR NUEVA RÚBRICA' }}
+                        </h1>
+                        <p class="mb-0 text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                            {{ $modoEdicion ? 'Modificación de rúbrica existente: ' . $nombreRubrica : 'Configuración de criterios y niveles de evaluación' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    @include('partials.alerts') {{-- Para session()->flash('success') o 'danger' --}}
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('rubricas.') }}" class="text-decoration-none">Rúbricas</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ $modoEdicion ? 'Editar' : 'Nueva' }}</li>
+        </ol>
+    </nav>
+
+    @include('partials.alerts')
     @if ($errors->has('ponderacion_total'))
-        <div class="alert alert-danger">{{ $errors->first('ponderacion_total') }}</div>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ $errors->first('ponderacion_total') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     @endif
 
     <form wire:submit.prevent="saveRubrica">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>Información General de la Rúbrica</h5>
+        <!-- Fila con dos columnas: Información General y Niveles de Calificación -->
+        <div class="row mb-3">
+            <!-- Columna Izquierda: Información General -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header py-3" style="background-color: #f8f9fa; border-bottom: 2px solid #2d7a5f;">
+                        <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                            <i class="bi bi-info-circle me-2"></i>Información General
+                        </h5>
+                    </div>
+                    <div class="card-body p-3">
+                        <label for="nombreRubrica" class="form-label fw-semibold small">Nombre de la Rúbrica</label>
+                        <input type="text" class="form-control form-control-sm @error('nombreRubrica') is-invalid @enderror"
+                            id="nombreRubrica" wire:model.lazy="nombreRubrica"
+                            placeholder="Ej: Rúbrica Evaluación Oral TI 2024S1">
+                        @error('nombreRubrica')
+                            <span class="invalid-feedback">{{ $message }}</span>
+                        @enderror
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <label for="nombreRubrica" class="form-label">Nombre de la Rúbrica</label>
-                    <input type="text" class="form-control @error('nombreRubrica') is-invalid @enderror"
-                        id="nombreRubrica" wire:model.lazy="nombreRubrica"
-                        placeholder="Ej: Rúbrica Evaluación Oral TI 2024S1">
-                    @error('nombreRubrica')
-                        <span class="invalid-feedback">{{ $message }}</span>
-                    @enderror
+
+            <!-- Columna Derecha: Niveles de Calificación -->
+            <div class="col-md-8">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header py-3" style="background-color: #f8f9fa; border-bottom: 2px solid #2d7a5f;">
+                        <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                            <i class="bi bi-sliders me-2"></i>Niveles de Calificación
+                        </h5>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-2">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 50%;">Nombre del Nivel</th>
+                                        <th style="width: 25%;">Valor</th>
+                                        <th style="width: 10%;" class="text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($nivelesCalificacion as $indexNivel => $nivel)
+                                        <tr wire:key="nivel-{{ $nivel['id_temporal'] }}">
+                                            <td>
+                                                <input type="text"
+                                                    class="form-control form-control-sm @error('nivelesCalificacion.' . $indexNivel . '.nombre') is-invalid @enderror"
+                                                    wire:model.lazy="nivelesCalificacion.{{ $indexNivel }}.nombre"
+                                                    placeholder="Ej: Muy Bueno">
+                                                @error('nivelesCalificacion.' . $indexNivel . '.nombre')
+                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                                @enderror
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.01"
+                                                    class="form-control form-control-sm @error('nivelesCalificacion.' . $indexNivel . '.valor') is-invalid @enderror"
+                                                    wire:model.lazy="nivelesCalificacion.{{ $indexNivel }}.valor"
+                                                    placeholder="Ej: 4">
+                                                @error('nivelesCalificacion.' . $indexNivel . '.valor')
+                                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                                @enderror
+                                            </td>
+                                            <td class="text-center">
+                                                @if (count($nivelesCalificacion) > 1)
+                                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                                        wire:click="removeNivelCalificacion({{ $indexNivel }})"
+                                                        title="Eliminar nivel">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                            wire:click="addNivelCalificacion()">
+                            <i class="bi bi-plus-lg"></i> Añadir Nivel
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5>Niveles de Calificación (Columnas)</h5>
-            </div>
-            <div class="card-body">
-                @foreach ($nivelesCalificacion as $indexNivel => $nivel)
-                    <div class="row align-items-center mb-2" wire:key="nivel-{{ $nivel['id_temporal'] }}">
-                        <div class="col-md-5">
-                            <label for="nivel_nombre_{{ $indexNivel }}" class="form-label visually-hidden">Nombre
-                                Nivel</label>
-                            <input type="text"
-                                class="form-control @error('nivelesCalificacion.' . $indexNivel . '.nombre') is-invalid @enderror"
-                                id="nivel_nombre_{{ $indexNivel }}"
-                                wire:model.lazy="nivelesCalificacion.{{ $indexNivel }}.nombre"
-                                placeholder="Ej: Muy Bueno">
-                            @error('nivelesCalificacion.' . $indexNivel . '.nombre')
-                                <span class="invalid-feedback d-block">{{ $message }}</span>
-                            @enderror
-                        </div>
-                        <div class="col-md-3">
-                            <label for="nivel_valor_{{ $indexNivel }}"
-                                class="form-label visually-hidden">Valor</label>
-                            <input type="number" step="0.01"
-                                class="form-control @error('nivelesCalificacion.' . $indexNivel . '.valor') is-invalid @enderror"
-                                id="nivel_valor_{{ $indexNivel }}"
-                                wire:model.lazy="nivelesCalificacion.{{ $indexNivel }}.valor" placeholder="Ej: 4">
-                            @error('nivelesCalificacion.' . $indexNivel . '.valor')
-                                <span class="invalid-feedback d-block">{{ $message }}</span>
-                            @enderror
-                        </div>
-                        <div class="col-md-1">
-                            @if (count($nivelesCalificacion) > 1)
-                                <button type="button" class="btn btn-outline-danger btn-sm"
-                                    wire:click="removeNivelCalificacion({{ $indexNivel }})"><i
-                                        class="bi bi-trash-fill"></i></button>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-                <button type="button" class="btn btn-outline-success btn-sm mt-2"
-                    wire:click="addNivelCalificacion()"><i class="bi bi-plus-lg"></i> Añadir Nivel de
-                    Calificación</button>
-            </div>
+        <!-- Componentes y Criterios -->
+        <div class="mb-3">
+            <h5 class="fw-bold mb-3" style="color: #2d7a5f;">
+                <i class="bi bi-grid-3x3 me-2"></i>Componentes y Criterios
+            </h5>
         </div>
 
-
-        <h4>Componentes y Criterios de la Rúbrica</h4>
         @foreach ($componentes as $indexComponente => $componente)
-            <div class="card mb-3" wire:key="componente-{{ $componente['id_temporal'] }}">
-                <div class="card-header">
+            <div class="card shadow-sm border-0 mb-3" wire:key="componente-{{ $componente['id_temporal'] }}">
+                <div class="card-header py-2" style="background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5>Componente {{ $indexComponente + 1 }}</h5>
+                        <h6 class="mb-0 fw-bold">
+                            <span class="badge bg-secondary me-2">{{ $indexComponente + 1 }}</span>
+                            Componente
+                        </h6>
                         @if (count($componentes) > 1)
-                            <button type="button" class="btn btn-danger btn-sm"
-                                wire:click="removeComponente({{ $indexComponente }})">Eliminar Componente</button>
+                            <button type="button" class="btn btn-sm btn-danger"
+                                wire:click="removeComponente({{ $indexComponente }})">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
                         @endif
                     </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-8 mb-3">
-                            <label for="componente_nombre_{{ $indexComponente }}" class="form-label">Nombre del
-                                Componente</label>
+                <div class="card-body p-3">
+                    <!-- Nombre y Ponderación del Componente -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold small">Nombre del Componente</label>
                             <input type="text"
-                                class="form-control @error('componentes.' . $indexComponente . '.nombre') is-invalid @enderror"
-                                id="componente_nombre_{{ $indexComponente }}"
+                                class="form-control form-control-sm @error('componentes.' . $indexComponente . '.nombre') is-invalid @enderror"
                                 wire:model.lazy="componentes.{{ $indexComponente }}.nombre"
                                 placeholder="Ej: Parte Escrita">
                             @error('componentes.' . $indexComponente . '.nombre')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="componente_ponderacion_{{ $indexComponente }}" class="form-label">Ponderación
-                                (%)</label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold small">Ponderación (%)</label>
                             <input type="number" step="0.01"
-                                class="form-control @error('componentes.' . $indexComponente . '.ponderacion') is-invalid @enderror"
-                                id="componente_ponderacion_{{ $indexComponente }}"
-                                wire:model.lazy="componentes.{{ $indexComponente }}.ponderacion" placeholder="Ej: 60">
+                                class="form-control form-control-sm @error('componentes.' . $indexComponente . '.ponderacion') is-invalid @enderror"
+                                wire:model.lazy="componentes.{{ $indexComponente }}.ponderacion"
+                                placeholder="Ej: 60">
                             @error('componentes.' . $indexComponente . '.ponderacion')
                                 <span class="invalid-feedback">{{ $message }}</span>
                             @enderror
                         </div>
                     </div>
 
-                    <div class="table-responsive mt-3">
-                        <table class="table table-bordered">
-                            <thead>
+                    <!-- Tabla de Criterios Compacta -->
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-2" style="font-size: 0.85rem;">
+                            <thead class="table-light">
                                 <tr>
-                                    <th style="width: 20%;">Criterio</th>
+                                    <th style="width: 180px; vertical-align: middle;">Criterio</th>
                                     @foreach ($nivelesCalificacion as $nivelIndex => $nivel)
                                         <th wire:key="header-comp-{{ $componente['id_temporal'] }}-nivel-{{ $nivel['id_temporal'] }}"
-                                            class="text-center">
-                                            {{ $nivel['nombre'] }} ({{ $nivel['valor'] }})
+                                            class="text-center" style="min-width: 150px; vertical-align: middle;">
+                                            <small class="fw-bold">{{ $nivel['nombre'] }}</small><br>
+                                            <span class="badge bg-primary">{{ $nivel['valor'] }}</span>
                                         </th>
                                     @endforeach
-                                    <th style="width: 5%;">Acción</th>
+                                    <th style="width: 60px; vertical-align: middle;" class="text-center">Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($componente['criterios'] as $indexCriterio => $criterio)
                                     <tr wire:key="criterio-{{ $criterio['id_temporal'] }}">
-                                        <td>
+                                        <td style="vertical-align: top;">
                                             <textarea
-                                                class="form-control @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio . '.nombre') is-invalid @enderror"
-                                                wire:model.lazy="componentes.{{ $indexComponente }}.criterios.{{ $indexCriterio }}.nombre" rows="3"
-                                                placeholder="Descripción del criterio"></textarea>
-                                            @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio .
-                                                '.nombre')
+                                                class="form-control form-control-sm @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio . '.nombre') is-invalid @enderror"
+                                                wire:model.lazy="componentes.{{ $indexComponente }}.criterios.{{ $indexCriterio }}.nombre"
+                                                rows="2"
+                                                placeholder="Descripción del criterio"
+                                                style="font-size: 0.85rem; min-height:auto;"></textarea>
+                                            @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio . '.nombre')
                                                 <span class="invalid-feedback d-block">{{ $message }}</span>
                                             @enderror
                                         </td>
                                         @foreach ($nivelesCalificacion as $indexNivelCol => $nivel)
-                                            <td
-                                                wire:key="desc-{{ $criterio['id_temporal'] }}-{{ $nivel['id_temporal'] }}">
+                                            <td wire:key="desc-{{ $criterio['id_temporal'] }}-{{ $nivel['id_temporal'] }}"
+                                                style="vertical-align: top;">
                                                 <textarea
-                                                    class="form-control @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio . '.descripciones_calificacion.' . $nivel['id_temporal']) is-invalid @enderror"
+                                                    class="form-control form-control-sm @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio . '.descripciones_calificacion.' . $nivel['id_temporal']) is-invalid @enderror"
                                                     wire:model.lazy="componentes.{{ $indexComponente }}.criterios.{{ $indexCriterio }}.descripciones_calificacion.{{ $nivel['id_temporal'] }}"
-                                                    rows="3"
-                                                    placeholder="Descripción para {{ $criterio['nombre'] ?: 'este criterio' }} en {{ $nivel['nombre'] }}"></textarea>
-                                                @error('componentes.' . $indexComponente . '.criterios.' .
-                                                    $indexCriterio . '.descripciones_calificacion.' . $nivel['id_temporal'])
+                                                    rows="2"
+                                                    placeholder="Descripción..."
+                                                    style="font-size: 0.85rem;"></textarea>
+                                                @error('componentes.' . $indexComponente . '.criterios.' . $indexCriterio . '.descripciones_calificacion.' . $nivel['id_temporal'])
                                                     <span class="invalid-feedback d-block">{{ $message }}</span>
                                                 @enderror
                                             </td>
                                         @endforeach
                                         <td class="text-center align-middle">
                                             @if (count($componente['criterios']) > 1)
-                                                <button type="button" class="btn btn-outline-danger btn-sm"
-                                                    wire:click="removeCriterio({{ $indexComponente }}, {{ $indexCriterio }})"><i
-                                                        class="bi bi-trash-fill"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    wire:click="removeCriterio({{ $indexComponente }}, {{ $indexCriterio }})"
+                                                    title="Eliminar criterio">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
                                             @endif
                                         </td>
                                     </tr>
@@ -165,26 +232,35 @@
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-info btn-sm mt-2"
+                    <button type="button" class="btn btn-sm btn-outline-info"
                         wire:click="addCriterio({{ $indexComponente }})">
-                        <i class="bi bi-plus-lg"></i> Añadir Criterio a este Componente
+                        <i class="bi bi-plus-lg"></i> Añadir Criterio
                     </button>
                 </div>
             </div>
         @endforeach
 
-        <button type="button" class="btn btn-success mt-3" wire:click="addComponente">
-            <i class="bi bi-plus-lg"></i> Añadir Nuevo Componente a la Rúbrica
-        </button>
-
-        <hr>
-
-        <div class="mt-4 mb-5">
-            {{-- Cambiamos el texto del botón --}}
-            <button type="submit" class="btn btn-primary px-4">
-                {{ $modoEdicion ? 'Actualizar Rúbrica' : 'Guardar Rúbrica' }}
+        <!-- Botón Agregar Componente -->
+        <div class="mb-4">
+            <button type="button" class="btn btn-success" wire:click="addComponente">
+                <i class="bi bi-plus-circle me-2"></i> Añadir Nuevo Componente
             </button>
-            <a href="{{ route('rubricas.') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-3">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn px-4"
+                            style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none;">
+                        <i class="bi bi-check-circle me-2"></i>
+                        {{ $modoEdicion ? 'Actualizar Rúbrica' : 'Guardar Rúbrica' }}
+                    </button>
+                    <a href="{{ route('rubricas.') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </a>
+                </div>
+            </div>
         </div>
     </form>
 </div>

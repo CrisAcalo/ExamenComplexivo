@@ -5,7 +5,12 @@ namespace App\Http\Controllers\Tribunales;
 use App\Helpers\ContextualAuth;
 use App\Http\Controllers\Controller;
 use App\Models\Tribunale;
+use App\Models\PlanEvaluacion;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class TribunalesController extends Controller
 {
@@ -80,4 +85,109 @@ class TribunalesController extends Controller
 
         return view('livewire.tribunales.principal.calificar-index', compact('tribunalId'));
     }
+
+    /*
+     * MÉTODO DESACTIVADO - Ya no se usa
+     * El botón de "Exportar Acta PDF" ahora redirige al perfil del tribunal
+     * donde se genera el PDF completo con todas las calificaciones
+     * utilizando el método exportarActa() de TribunalProfile
+     */
+    /*
+    public function exportarActaDirecto($tribunalId)
+    {
+        $user = auth()->user();
+
+        // Cargar tribunal con todas las relaciones necesarias
+        $tribunal = Tribunale::with([
+            'estudiante',
+            'carrerasPeriodo.carrera',
+            'carrerasPeriodo.periodo',
+            'carrerasPeriodo.director',
+            'miembrosTribunales.user'
+        ])->find($tribunalId);
+
+        if (!$tribunal) {
+            abort(404, 'Tribunal no encontrado');
+        }
+
+        // Verificar que el usuario es presidente de este tribunal
+        if (!Gate::allows('subir-acta-firmada-este-tribunal-como-presidente', $tribunal)) {
+            abort(403, 'Solo el presidente del tribunal puede exportar el acta.');
+        }
+
+        // Verificar que el tribunal esté cerrado
+        if ($tribunal->estado !== 'CERRADO') {
+            return redirect()->back()->with('danger', 'El acta solo puede exportarse cuando el tribunal esté cerrado.');
+        }
+
+        try {
+            // Cargar plan de evaluación
+            $planEvaluacionActivo = PlanEvaluacion::where('carrera_periodo_id', $tribunal->carrera_periodo_id)
+                ->with([
+                    'itemsPlanEvaluacion.rubricaPlantilla.componentesRubrica.criteriosComponente',
+                    'itemsPlanEvaluacion.asignacionesCalificadorComponentes'
+                ])
+                ->first();
+
+            // Por ahora enviamos arrays vacíos - el PDF se generará con los datos básicos
+            // Si necesitas las calificaciones completas, tendrás que replicar toda la lógica de TribunalProfile
+            $resumenNotasCalculadas = [];
+            $todasLasCalificacionesDelTribunal = [];
+            $notaFinalCalculadaDelTribunal = 0;
+
+            // Convertir logo a base64
+            $logoPath = public_path('storage/logos/LOGO-ESPE_lg.png');
+            $logoBase64 = null;
+            if (file_exists($logoPath)) {
+                $logoData = file_get_contents($logoPath);
+                $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            }
+
+            $options = new Options();
+            $options->set('defaultFont', 'Arial');
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isPhpEnabled', true);
+
+            $dompdf = new Dompdf($options);
+
+            // Generar HTML desde vista
+            $html = view('pdfs.acta-tribunal', compact(
+                'tribunal',
+                'planEvaluacionActivo',
+                'resumenNotasCalculadas',
+                'todasLasCalificacionesDelTribunal',
+                'notaFinalCalculadaDelTribunal',
+                'logoBase64'
+            ))->render();
+
+            $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+
+            // Generar nombre del archivo
+            $nombreEstudiante = $tribunal->estudiante
+                ? str_replace(' ', '_', $tribunal->estudiante->apellidos . '_' . $tribunal->estudiante->nombres)
+                : 'tribunal_' . $tribunal->id;
+            $fecha = $tribunal->fecha ? date('Y-m-d', strtotime($tribunal->fecha)) : date('Y-m-d');
+            $nombreArchivo = "acta_tribunal_{$nombreEstudiante}_{$fecha}.pdf";
+
+            // Retornar PDF como descarga directa
+            return response()->streamDownload(function() use ($dompdf) {
+                echo $dompdf->output();
+            }, $nombreArchivo, [
+                'Content-Type' => 'application/pdf',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error al exportar acta PDF directa: ' . $e->getMessage(), [
+                'tribunal_id' => $tribunalId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()->with('danger', 'Error al generar el acta: ' . $e->getMessage());
+        }
+    }
+    */
 }

@@ -85,7 +85,9 @@ class RoleSeeder extends Seeder
             // === PERMISOS DE PRESIDENTE DE TRIBUNAL ===
             'editar datos basicos mi tribunal (presidente)', // Editar fecha, hora, miembros (antes de calificar)
             'exportar acta mi tribunal (presidente)',      // Generar/exportar el acta del tribunal que preside
+            'subir acta firmada mi tribunal (presidente)', // Subir acta firmada del tribunal que preside
             'gestionar actas tribunales',                  // Administrar actas de tribunales
+            'descargar actas firmadas',                    // Descargar actas firmadas (director/apoyo)
 
             // === PERMISOS DE REPORTES Y ESTADÍSTICAS ===
             'ver resumenes y reportes academicos',  // Generar/ver reportes
@@ -103,7 +105,6 @@ class RoleSeeder extends Seeder
 
         // --- 2. CREAR ROLES ---
         $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin']);
-        $adminRole = Role::firstOrCreate(['name' => 'Administrador']);
         $directorRole = Role::firstOrCreate(['name' => 'Director de Carrera']);
         $apoyoRole = Role::firstOrCreate(['name' => 'Docente de Apoyo']);
         $docenteRole = Role::firstOrCreate(['name' => 'Docente']);
@@ -114,79 +115,15 @@ class RoleSeeder extends Seeder
         // También se asignan explícitamente para claridad y respaldo
         $superAdminRole->givePermissionTo(Permission::all());
 
-        // === ADMINISTRADOR (Operativo) ===
-        // Tiene permisos globales para gestionar todo el sistema
-        $adminRole->givePermissionTo([
-            // Sistema y administración
-            'gestionar usuarios',
-            'gestionar roles y permisos',
-            'ver dashboard administrativo',
-            'gestionar configuracion sistema',
-
-            // Estructura académica
-            'gestionar periodos',
-            'gestionar periodos:crear',
-            'gestionar periodos:editar',
-            'gestionar periodos:eliminar',
-            'gestionar periodos:ver',
-            'gestionar carreras',
-            'gestionar departamentos',
-            'asignar carrera a periodo',
-            'ingresar asignacion carrera-periodo',
-            'editar asignacion carrera-periodo',
-            'eliminar asignacion carrera-periodo',
-
-            // Estudiantes
-            'gestionar estudiantes',
-            'importar estudiantes',
-            'exportar estudiantes',
-            'ver listado estudiantes',
-
-            // Rúbricas
-            'gestionar plantillas rubricas',
-            'gestionar rubricas',
-            'asignar rubricas a carrera-periodo',
-            'ver rubricas',
-
-            // Plan de evaluación
-            'configurar plan evaluacion',
-            'ver plan evaluacion',
-            'asignar docentes calificadores generales',
-
-            // Tribunales
-            'crear tribunales',
-            'editar tribunales',
-            'eliminar tribunales',
-            'ver listado tribunales',
-            'gestionar estado tribunales',
-            'asignar miembros tribunales',
-
-            // Calificaciones y reportes
-            'ver todas las calificaciones de un tribunal',
-            'calificar en tribunal',
-            'exportar calificaciones',
-            'ver resumenes y reportes academicos',
-            'exportar reportes',
-            'ver estadisticas carrera-periodo',
-            'gestionar actas tribunales',
-
-            // Importación/exportación
-            'importar profesores',
-            'exportar datos sistema',
-        ]);
-
         // === DIRECTOR DE CARRERA ===
         // Permisos básicos + contextuales (manejados por ContextualAuth)
-        // Los permisos contextuales (gestionar estudiantes, rúbricas, etc.)
+        // Los permisos contextuales (gestionar estudiantes, tribunales, etc.)
         // se verifican dinámicamente según la asignación en carreras_periodos
         $directorRole->givePermissionTo([
             // Permisos base para ver/gestionar contenido (contextuales)
             'ver listado estudiantes',      // ContextualAuth verifica si es director de esa carrera-período
             'gestionar estudiantes',        // ContextualAuth verifica acceso
             'importar estudiantes',         // ContextualAuth verifica acceso
-            'ver rubricas',                 // ContextualAuth verifica acceso
-            'gestionar rubricas',           // ContextualAuth verifica acceso
-            'asignar rubricas a carrera-periodo', // ContextualAuth verifica acceso
             'configurar plan evaluacion',   // ContextualAuth verifica acceso
             'ver plan evaluacion',          // ContextualAuth verifica acceso
             'asignar docentes calificadores generales', // ContextualAuth verifica acceso
@@ -209,6 +146,8 @@ class RoleSeeder extends Seeder
             'calificar en tribunal',
             'editar datos basicos mi tribunal (presidente)',
             'exportar acta mi tribunal (presidente)',
+            'subir acta firmada mi tribunal (presidente)',
+            'descargar actas firmadas',
         ]);
 
         // === DOCENTE DE APOYO ===
@@ -219,8 +158,6 @@ class RoleSeeder extends Seeder
             'ver listado estudiantes',      // ContextualAuth verifica acceso
             'gestionar estudiantes',        // ContextualAuth verifica acceso
             'importar estudiantes',         // ContextualAuth verifica acceso
-            'ver rubricas',                 // ContextualAuth verifica acceso
-            'gestionar rubricas',           // ContextualAuth verifica acceso
             'configurar plan evaluacion',   // ContextualAuth verifica acceso
             'ver plan evaluacion',          // ContextualAuth verifica acceso
             'asignar docentes calificadores generales', // ContextualAuth verifica acceso
@@ -243,6 +180,8 @@ class RoleSeeder extends Seeder
             'calificar en tribunal',
             'editar datos basicos mi tribunal (presidente)',
             'exportar acta mi tribunal (presidente)',
+            'subir acta firmada mi tribunal (presidente)',
+            'descargar actas firmadas',
         ]);
 
         // === DOCENTE ===
@@ -255,6 +194,7 @@ class RoleSeeder extends Seeder
             // Solo si es presidente del tribunal
             'editar datos basicos mi tribunal (presidente)',
             'exportar acta mi tribunal (presidente)',
+            'subir acta firmada mi tribunal (presidente)',
         ]);
     }
 }

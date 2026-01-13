@@ -54,9 +54,15 @@ Este proyecto utiliza **Laravel 9.x**.
    ```sh
    php artisan migrate
    ```
+      ```sh
+   php artisan db:seed --class=RoleSeeder
+   ```
    ```sh
    php artisan db:seed --class=InitialSeeder
    ```
+   ```sh
+   php artisan db:seed --class=RubricaSeeder
+   ```   
    El usuario por defecto y con el rol Super Admin tiene las credenciales:
    - admin@admin.com
    - 12345678

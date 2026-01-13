@@ -15,8 +15,8 @@ class PeriodoController extends Controller
         $user = auth()->user();
 
         // Verificar acceso al período específico
-        if ($user->hasRole(['Super Admin', 'Administrador'])) {
-            // Acceso completo para Super Admin y Administrador
+        if ($user->hasRole('Super Admin')) {
+            // Acceso completo para Super Admin
             $periodoId = $id;
             return view('livewire.periodos.profile.index', compact('periodoId'));
         }

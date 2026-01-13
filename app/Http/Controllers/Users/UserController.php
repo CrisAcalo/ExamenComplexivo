@@ -14,6 +14,20 @@ class UserController extends Controller
     {
         return view('users.index');
     }
+    /**
+     * Perfil del usuario autenticado (cualquier usuario puede acceder a su propio perfil)
+     */
+    public function miPerfil()
+    {
+        $user = Auth::user();
+        $roles = Role::all();
+        $selectedRoles = [];
+        return view('livewire.users.profileInfo', compact('user', 'roles', 'selectedRoles'));
+    }
+
+    /**
+     * Perfil de otro usuario (solo para Super Admin con permiso gestionar usuarios)
+     */
     public function profile($id)
     {
         $user = User::find(decrypt($id));

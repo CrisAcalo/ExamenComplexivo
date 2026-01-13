@@ -13,7 +13,10 @@ use App\Models\MiembrosTribunale;    // Para iterar sobre los miembros del tribu
 use App\Models\MiembroCalificacion;  // Para obtener las calificaciones
 use App\Models\MiembrosTribunal;
 use App\Models\TribunalLog;         // Para el historial
+use App\Models\PlantillaActaWord;   // Para plantillas Word
 use Illuminate\Database\Eloquent\Collection;
+use PhpOffice\PhpWord\TemplateProcessor;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -89,8 +92,8 @@ class TribunalProfile extends Component
         // Verificar acceso contextual al tribunal
         $this->verificarAccesoTribunal();
 
-        // Profesores disponibles para la edición de miembros (excluir Super Admin y Admin)
-        $rolesExcluidosEdicion = ['Super Admin', 'Administrador'];
+        // Profesores disponibles para la edición de miembros (excluir Super Admin)
+        $rolesExcluidosEdicion = ['Super Admin'];
         $this->profesoresDisponibles = User::whereDoesntHave('roles', function ($query) use ($rolesExcluidosEdicion) {
             $query->whereIn('name', $rolesExcluidosEdicion);
         })
@@ -113,11 +116,6 @@ class TribunalProfile extends Component
 
         // Super Admin tiene acceso total
         if ($user->hasRole('Super Admin')) {
-            return;
-        }
-
-        // Administrador puede ver cualquier tribunal
-        if ($user->hasRole('Administrador')) {
             return;
         }
 
@@ -178,14 +176,6 @@ class TribunalProfile extends Component
         // Super Admin tiene acceso total
         if ($user->hasRole('Super Admin')) {
             $this->usuarioPuedeEditarDatosTribunal = true;
-            $this->usuarioPuedeVerTodasLasCalificaciones = true;
-            $this->usuarioPuedeExportarActa = $this->tribunal->estado === 'CERRADO'; // Solo si está cerrado
-            return;
-        }
-
-        // Administrador solo puede visualizar (no editar, pero puede ver calificaciones y exportar)
-        if ($user->hasRole('Administrador')) {
-            $this->usuarioPuedeEditarDatosTribunal = false;
             $this->usuarioPuedeVerTodasLasCalificaciones = true;
             $this->usuarioPuedeExportarActa = $this->tribunal->estado === 'CERRADO'; // Solo si está cerrado
             return;
@@ -403,6 +393,17 @@ class TribunalProfile extends Component
 
         if ($this->tribunal->estado === 'ABIERTO') {
             session()->flash('info', 'El tribunal ya está abierto.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        // Validar que el tribunal esté dentro de su franja horaria
+        $fechaHoraActual = now();
+        $fechaHoraFinTribunal = \Carbon\Carbon::parse($this->tribunal->fecha . ' ' . $this->tribunal->hora_fin);
+
+        if ($fechaHoraActual->greaterThan($fechaHoraFinTribunal)) {
+            session()->flash('warning', 'No se puede abrir el tribunal. La franja horaria ya ha finalizado (' .
+                $fechaHoraFinTribunal->format('d/m/Y H:i') . ').');
             $this->dispatchBrowserEvent('showFlashMessage');
             return;
         }
@@ -711,6 +712,7 @@ class TribunalProfile extends Component
 
                                 $calificacionesPorUsuarioParaEsteComponente[$userIdCalificador] = [
                                     'nombre_usuario' => $datosMiembro['nombre_miembro'],
+                                    'apellido_usuario' => User::find($userIdCalificador)?->lastname ?? '',
                                     'rol_evaluador' => $datosMiembro['rol_miembro'], // El rol que tenía al calificar
                                     'criterios_evaluados' => $criteriosFormateados,
                                     // Podrías añadir la observación general del ítem por este miembro aquí si es relevante para el componente
@@ -803,7 +805,7 @@ class TribunalProfile extends Component
             $notaFinalCalculadaDelTribunal = $this->notaFinalCalculadaDelTribunal;
 
             // Convertir logo a base64 para que funcione en PDF
-            $logoPath = public_path('storage/logos/LOGO-ESPE_500.png');
+            $logoPath = public_path('storage/logos/LOGO-ESPE_lg.png');
             $logoBase64 = null;
             if (file_exists($logoPath)) {
                 $logoData = file_get_contents($logoPath);
@@ -827,7 +829,7 @@ class TribunalProfile extends Component
             $dompdf = new Dompdf($options);
 
             try {
-                // Renderizar la vista como HTML
+                // Generar HTML desde vista blade
                 $html = view('pdfs.acta-tribunal', compact(
                     'tribunal',
                     'planEvaluacionActivo',
@@ -877,6 +879,508 @@ class TribunalProfile extends Component
                 'trace' => $e->getTraceAsString()
             ]);
         }
+    }
+
+    public function exportarActaWord()
+    {
+        try {
+            // Verificar permisos
+            if (!$this->usuarioPuedeExportarActa) {
+                session()->flash('danger', 'No tienes permisos para exportar el acta.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Verificar que el tribunal esté cerrado
+            if ($this->tribunal->estado !== 'CERRADO') {
+                session()->flash('danger', 'El acta solo puede exportarse cuando el tribunal esté cerrado.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Obtener plantilla activa
+            $plantillaActiva = PlantillaActaWord::obtenerPlantillaActiva();
+
+            if (!$plantillaActiva) {
+                session()->flash('warning', 'No hay una plantilla Word activa. Por favor, sube y activa una plantilla primero.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Verificar que el archivo exista
+            $archivoPath = storage_path('app/public/' . $plantillaActiva->archivo_path);
+            if (!file_exists($archivoPath)) {
+                session()->flash('danger', 'El archivo de plantilla no existe en el servidor.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Cargar plantilla con TemplateProcessor
+            $templateProcessor = new TemplateProcessor($archivoPath);
+
+            // Preparar datos del tribunal
+            $estudiante = $this->tribunal->estudiante;
+            $carrera = $this->tribunal->carrerasPeriodo->carrera ?? null;
+            $periodo = $this->tribunal->carrerasPeriodo->periodo ?? null;
+            $presidente = $this->tribunal->miembrosTribunales->where('status', 'PRESIDENTE')->first();
+            $integrante1 = $this->tribunal->miembrosTribunales->where('status', 'INTEGRANTE1')->first();
+            $integrante2 = $this->tribunal->miembrosTribunales->where('status', 'INTEGRANTE2')->first();
+            $director = $this->tribunal->carrerasPeriodo->director ?? null;
+
+            // Procesar nombre de carrera (igual que en la vista)
+            $nombreCarrera = $carrera->nombre ?? 'N/A';
+            $nombreCarreraMayus = mb_strtoupper($nombreCarrera, 'UTF-8');
+            $partes = explode(' ', $nombreCarreraMayus);
+            if (count($partes) > 2) {
+                array_splice($partes, -2);
+            }
+            $nombreCarreraFinal = implode(' ', $partes);
+
+            // Separar notas por componentes (igual que en el PDF hardcodeado)
+            $itemsNotaDirecta = [];
+            $itemsRubrica = [];
+            foreach ($this->resumenNotasCalculadas as $itemPlanId => $itemResumen) {
+                if ($itemResumen['tipo_item'] === 'NOTA_DIRECTA') {
+                    $itemsNotaDirecta[] = $itemResumen;
+                } elseif ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR') {
+                    $itemsRubrica[] = $itemResumen;
+                }
+            }
+
+            $notaComponenteTeorico = !empty($itemsNotaDirecta) ? ($itemsNotaDirecta[0]['puntaje_ponderado_item'] ?? 0) : 0;
+            $notaComponentePractico = !empty($itemsRubrica) ? ($itemsRubrica[0]['puntaje_ponderado_item'] ?? 0) : 0;
+
+            // Reemplazar variables
+            $templateProcessor->setValue('tribunal_id', $this->tribunal->id ?? 'N/A');
+            $templateProcessor->setValue('estudiante_nombre', $estudiante->nombres ?? 'N/A');
+            $templateProcessor->setValue('estudiante_apellidos', $estudiante->apellidos ?? 'N/A');
+            $templateProcessor->setValue('estudiante_cedula', $estudiante->cedula ?? 'N/A');
+            $templateProcessor->setValue('carrera_nombre', $nombreCarreraFinal);
+            $templateProcessor->setValue('carrera_modalidad', $carrera->modalidad ?? 'N/A');
+            $templateProcessor->setValue('periodo_codigo', $periodo->codigo_periodo ?? 'N/A');
+            $templateProcessor->setValue('fecha_examen', $this->tribunal->fecha ? \Carbon\Carbon::parse($this->tribunal->fecha)->format('d/m/Y') : 'N/A');
+            $templateProcessor->setValue('presidente_nombre', $presidente ? ($presidente->user->name ?? '') . ' ' . ($presidente->user->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('presidente_cedula', $presidente ? str_pad($presidente->user->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('integrante1_nombre', $integrante1 ? ($integrante1->user->name ?? '') . ' ' . ($integrante1->user->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('integrante1_cedula', $integrante1 ? str_pad($integrante1->user->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('integrante2_nombre', $integrante2 ? ($integrante2->user->name ?? '') . ' ' . ($integrante2->user->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('integrante2_cedula', $integrante2 ? str_pad($integrante2->user->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('director_nombre', $director ? ($director->name ?? '') . ' ' . ($director->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('director_cedula', $director ? str_pad($director->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('nota_componente_teorico', number_format($notaComponenteTeorico, 2));
+            $templateProcessor->setValue('nota_componente_practico', number_format($notaComponentePractico, 2));
+            $templateProcessor->setValue('nota_final', number_format($this->notaFinalCalculadaDelTribunal, 2));
+            $templateProcessor->setValue('nota_final_letras', $this->numeroALetrasConPunto($this->notaFinalCalculadaDelTribunal));
+            $templateProcessor->setValue('aprobado', $this->notaFinalCalculadaDelTribunal >= 14 ? 'SÍ' : 'NO');
+            $templateProcessor->setValue('aprobado_si', $this->notaFinalCalculadaDelTribunal >= 14 ? 'X' : '');
+            $templateProcessor->setValue('aprobado_no', $this->notaFinalCalculadaDelTribunal < 14 ? 'X' : '');
+            $templateProcessor->setValue('fecha_actual', \Carbon\Carbon::now()->format('d/m/Y'));
+
+            // Datos del estudiante
+            $templateProcessor->setValue('estudiante_id', $estudiante->ID_estudiante ?? 'N/A');
+            $templateProcessor->setValue('estudiante_nombre_completo', 
+                ($estudiante->apellidos ?? '') . ' ' . ($estudiante->nombres ?? ''));
+
+            // Procesar nombre de carrera (eliminar últimas dos palabras como en la vista)
+            $nombreCarrera = $carrera->nombre ?? 'N/A';
+            $nombreCarreraMayus = mb_strtoupper($nombreCarrera, 'UTF-8');
+            $partes = explode(' ', $nombreCarreraMayus);
+            if (count($partes) > 2) {
+                array_splice($partes, -2);
+            }
+            $nombreCarreraFinal = implode(' ', $partes);
+            $templateProcessor->setValue('carrera_nombre_procesado', $nombreCarreraFinal);
+
+            // Fechas en diferentes formatos
+            $fechaExamen = $this->tribunal->fecha ? \Carbon\Carbon::parse($this->tribunal->fecha) : \Carbon\Carbon::now();
+            $templateProcessor->setValue('fecha_examen_formato_completo', $fechaExamen->format('d/m/Y'));
+            $templateProcessor->setValue('fecha_formato_barra', $fechaExamen->format('d/m/Y'));
+            $templateProcessor->setValue('fecha_formato_mes_dia_ano', $fechaExamen->format('m/d/Y'));
+
+            // Calcular notas por componente (similar a la lógica del PDF hardcodeado)
+            $notaTeoricoSobre20 = 0;
+            $notaPracticoSobre20 = 0;
+            $ponderacionTeorico = 0;
+            $ponderacionPractico = 0;
+            $calificacionTeoricoPonderada = 0;
+            $calificacionPracticoPonderada = 0;
+
+            if (!empty($this->resumenNotasCalculadas)) {
+                foreach ($this->resumenNotasCalculadas as $itemResumen) {
+                    if ($itemResumen['tipo_item'] === 'NOTA_DIRECTA') {
+                        $notaTeoricoSobre20 = $itemResumen['nota_tribunal_sobre_20'] ?? 0;
+                        $ponderacionTeorico = $itemResumen['ponderacion_global'] ?? 50;
+                        $calificacionTeoricoPonderada = $itemResumen['puntaje_ponderado_item'] ?? 0;
+                    } elseif ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR' || 
+                            $itemResumen['tipo_item'] === 'RUBRICA_COMPONENTE') {
+                        $notaPracticoSobre20 = $itemResumen['nota_tribunal_sobre_20'] ?? 0;
+                        $ponderacionPractico = $itemResumen['ponderacion_global'] ?? 50;
+                        $calificacionPracticoPonderada = $itemResumen['puntaje_ponderado_item'] ?? 0;
+                    }
+                }
+            }
+
+            // Variables de calificación detallada
+            $templateProcessor->setValue('nota_teorico_sobre_20', number_format($notaTeoricoSobre20, 2));
+            $templateProcessor->setValue('ponderacion_teorico', intval($ponderacionTeorico));
+            $templateProcessor->setValue('calificacion_teorico_ponderada', number_format($calificacionTeoricoPonderada, 2));
+
+            $templateProcessor->setValue('nota_practico_sobre_20', number_format($notaPracticoSobre20, 2));
+            $templateProcessor->setValue('ponderacion_practico', intval($ponderacionPractico));
+            $templateProcessor->setValue('calificacion_practico_ponderada', number_format($calificacionPracticoPonderada, 2));
+
+            // Variables para componentes individuales de rúbrica
+            $componentesRubrica = [];
+            foreach ($this->resumenNotasCalculadas as $itemResumen) {
+                if ($itemResumen['tipo_item'] === 'RUBRICA_COMPONENTE') {
+                    $componentesRubrica[] = $itemResumen;
+                }
+            }
+
+            // Componente 1
+            if (isset($componentesRubrica[0])) {
+                $templateProcessor->setValue('componente1_nombre', 'Parte escrita (resolución del problema profesional / estudio de caso)');
+                $templateProcessor->setValue('componente1_nota', number_format($componentesRubrica[0]['nota_tribunal_sobre_20'] ?? 0, 2));
+                $templateProcessor->setValue('componente1_ponderacion', number_format(($componentesRubrica[0]['ponderacion_global'] ?? 0) * 2, 0));
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente1_calificacion_ponderada', number_format($componentesRubrica[0]['puntaje_ponderado_item'] ?? 0, 2));
+            } else {
+                $templateProcessor->setValue('componente1_nombre', 'N/A');
+                $templateProcessor->setValue('componente1_nota', '0.00');
+                $templateProcessor->setValue('componente1_ponderacion', '0');
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente1_calificacion_ponderada', '0.00');
+            }
+
+            // Componente 2
+            if (isset($componentesRubrica[1])) {
+                $templateProcessor->setValue('componente2_nombre', 'Defensa / sustentación/ exposición oral');
+                $templateProcessor->setValue('componente2_nota', number_format($componentesRubrica[1]['nota_tribunal_sobre_20'] ?? 0, 2));
+                $templateProcessor->setValue('componente2_ponderacion', number_format(($componentesRubrica[1]['ponderacion_global'] ?? 0) * 2, 0));
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente2_calificacion_ponderada', number_format($componentesRubrica[1]['puntaje_ponderado_item'] ?? 0, 2));
+            } else {
+                $templateProcessor->setValue('componente2_nombre', 'N/A');
+                $templateProcessor->setValue('componente2_nota', '0.00');
+                $templateProcessor->setValue('componente2_ponderacion', '0');
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente2_calificacion_ponderada', '0.00');
+            }
+
+            // Generar nombre del archivo
+            $nombreEstudiante = $estudiante->nombres_completos_id ?? 'Estudiante';
+            $nombreEstudiante = Str::slug($nombreEstudiante, '_');
+            $fecha = $this->tribunal->fecha ? date('Y-m-d', strtotime($this->tribunal->fecha)) : date('Y-m-d');
+            $nombreArchivo = "acta_tribunal_{$nombreEstudiante}_{$fecha}.docx";
+
+            // Guardar Word temporal
+            $tempPath = storage_path('app/temp/' . $nombreArchivo);
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+            $templateProcessor->saveAs($tempPath);
+
+            session()->flash('success', 'Acta Word generada exitosamente.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivo]);
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error al generar el acta Word: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+            Log::error('Error al exportar acta Word: ' . $e->getMessage(), [
+                'tribunal_id' => $this->tribunal->id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    public function exportarActaPdfDesdeWord()
+    {
+        try {
+            // Verificar permisos
+            if (!$this->usuarioPuedeExportarActa) {
+                session()->flash('danger', 'No tienes permisos para exportar el acta.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Verificar que el tribunal esté cerrado
+            if ($this->tribunal->estado !== 'CERRADO') {
+                session()->flash('danger', 'El acta solo puede exportarse cuando el tribunal esté cerrado.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Obtener plantilla activa
+            $plantillaActiva = PlantillaActaWord::obtenerPlantillaActiva();
+
+            if (!$plantillaActiva) {
+                session()->flash('warning', 'No hay una plantilla Word activa. Por favor, sube y activa una plantilla primero.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Verificar que el archivo exista
+            $archivoPath = storage_path('app/public/' . $plantillaActiva->archivo_path);
+            if (!file_exists($archivoPath)) {
+                session()->flash('danger', 'El archivo de plantilla no existe en el servidor.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            // Cargar plantilla con TemplateProcessor
+            $templateProcessor = new TemplateProcessor($archivoPath);
+
+            // Preparar datos del tribunal
+            $estudiante = $this->tribunal->estudiante;
+            $carrera = $this->tribunal->carrerasPeriodo->carrera ?? null;
+            $periodo = $this->tribunal->carrerasPeriodo->periodo ?? null;
+            $presidente = $this->tribunal->miembrosTribunales->where('status', 'PRESIDENTE')->first();
+            $integrante1 = $this->tribunal->miembrosTribunales->where('status', 'INTEGRANTE1')->first();
+            $integrante2 = $this->tribunal->miembrosTribunales->where('status', 'INTEGRANTE2')->first();
+            $director = $this->tribunal->carrerasPeriodo->director ?? null;
+
+            // Procesar nombre de carrera
+            $nombreCarrera = $carrera->nombre ?? 'N/A';
+            $nombreCarreraMayus = mb_strtoupper($nombreCarrera, 'UTF-8');
+            $partes = explode(' ', $nombreCarreraMayus);
+            if (count($partes) > 2) {
+                array_splice($partes, -2);
+            }
+            $nombreCarreraFinal = implode(' ', $partes);
+
+            // Separar notas por componentes (igual que en el PDF hardcodeado)
+            $itemsNotaDirecta = [];
+            $itemsRubrica = [];
+            foreach ($this->resumenNotasCalculadas as $itemPlanId => $itemResumen) {
+                if ($itemResumen['tipo_item'] === 'NOTA_DIRECTA') {
+                    $itemsNotaDirecta[] = $itemResumen;
+                } elseif ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR') {
+                    $itemsRubrica[] = $itemResumen;
+                }
+            }
+
+            $notaComponenteTeorico = !empty($itemsNotaDirecta) ? ($itemsNotaDirecta[0]['puntaje_ponderado_item'] ?? 0) : 0;
+            $notaComponentePractico = !empty($itemsRubrica) ? ($itemsRubrica[0]['puntaje_ponderado_item'] ?? 0) : 0;
+
+            // Reemplazar variables
+            $templateProcessor->setValue('tribunal_id', $this->tribunal->id ?? 'N/A');
+            $templateProcessor->setValue('estudiante_nombre', $estudiante->nombres ?? 'N/A');
+            $templateProcessor->setValue('estudiante_apellidos', $estudiante->apellidos ?? 'N/A');
+            $templateProcessor->setValue('estudiante_cedula', $estudiante->cedula ?? 'N/A');
+            $templateProcessor->setValue('carrera_nombre', $nombreCarreraFinal);
+            $templateProcessor->setValue('carrera_modalidad', $carrera->modalidad ?? 'N/A');
+            $templateProcessor->setValue('periodo_codigo', $periodo->codigo_periodo ?? 'N/A');
+            $templateProcessor->setValue('fecha_examen', $this->tribunal->fecha ? \Carbon\Carbon::parse($this->tribunal->fecha)->format('d/m/Y') : 'N/A');
+            $templateProcessor->setValue('presidente_nombre', $presidente ? ($presidente->user->name ?? '') . ' ' . ($presidente->user->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('presidente_cedula', $presidente ? str_pad($presidente->user->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('integrante1_nombre', $integrante1 ? ($integrante1->user->name ?? '') . ' ' . ($integrante1->user->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('integrante1_cedula', $integrante1 ? str_pad($integrante1->user->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('integrante2_nombre', $integrante2 ? ($integrante2->user->name ?? '') . ' ' . ($integrante2->user->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('integrante2_cedula', $integrante2 ? str_pad($integrante2->user->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('director_nombre', $director ? ($director->name ?? '') . ' ' . ($director->lastname ?? '') : 'N/A');
+            $templateProcessor->setValue('director_cedula', $director ? str_pad($director->cedula ?? '', 10, '0', STR_PAD_LEFT) : 'N/A');
+            $templateProcessor->setValue('nota_componente_teorico', number_format($notaComponenteTeorico, 2));
+            $templateProcessor->setValue('nota_componente_practico', number_format($notaComponentePractico, 2));
+            $templateProcessor->setValue('nota_final', number_format($this->notaFinalCalculadaDelTribunal, 2));
+            $templateProcessor->setValue('nota_final_letras', $this->numeroALetrasConPunto($this->notaFinalCalculadaDelTribunal));
+            $templateProcessor->setValue('aprobado', $this->notaFinalCalculadaDelTribunal >= 14 ? 'SÍ' : 'NO');
+            $templateProcessor->setValue('aprobado_si', $this->notaFinalCalculadaDelTribunal >= 14 ? 'X' : '');
+            $templateProcessor->setValue('aprobado_no', $this->notaFinalCalculadaDelTribunal < 14 ? 'X' : '');
+            $templateProcessor->setValue('fecha_actual', \Carbon\Carbon::now()->format('d/m/Y'));
+
+            // Datos del estudiante
+            $templateProcessor->setValue('estudiante_id', $estudiante->ID_estudiante ?? 'N/A');
+            $templateProcessor->setValue('estudiante_nombre_completo', 
+                ($estudiante->apellidos ?? '') . ' ' . ($estudiante->nombres ?? ''));
+
+            // Procesar nombre de carrera (eliminar últimas dos palabras como en la vista)
+            $nombreCarrera = $carrera->nombre ?? 'N/A';
+            $nombreCarreraMayus = mb_strtoupper($nombreCarrera, 'UTF-8');
+            $partes = explode(' ', $nombreCarreraMayus);
+            if (count($partes) > 2) {
+                array_splice($partes, -2);
+            }
+            $nombreCarreraFinal = implode(' ', $partes);
+            $templateProcessor->setValue('carrera_nombre_procesado', $nombreCarreraFinal);
+
+            // Fechas en diferentes formatos
+            $fechaExamen = $this->tribunal->fecha ? \Carbon\Carbon::parse($this->tribunal->fecha) : \Carbon\Carbon::now();
+            $templateProcessor->setValue('fecha_examen_formato_completo', $fechaExamen->format('d/m/Y'));
+            $templateProcessor->setValue('fecha_formato_barra', $fechaExamen->format('d/m/Y'));
+            $templateProcessor->setValue('fecha_formato_mes_dia_ano', $fechaExamen->format('m/d/Y'));
+
+            // Calcular notas por componente (similar a la lógica del PDF hardcodeado)
+            $notaTeoricoSobre20 = 0;
+            $notaPracticoSobre20 = 0;
+            $ponderacionTeorico = 0;
+            $ponderacionPractico = 0;
+            $calificacionTeoricoPonderada = 0;
+            $calificacionPracticoPonderada = 0;
+
+            if (!empty($this->resumenNotasCalculadas)) {
+                foreach ($this->resumenNotasCalculadas as $itemResumen) {
+                    if ($itemResumen['tipo_item'] === 'NOTA_DIRECTA') {
+                        $notaTeoricoSobre20 = $itemResumen['nota_tribunal_sobre_20'] ?? 0;
+                        $ponderacionTeorico = $itemResumen['ponderacion_global'] ?? 50;
+                        $calificacionTeoricoPonderada = $itemResumen['puntaje_ponderado_item'] ?? 0;
+                    } elseif ($itemResumen['tipo_item'] === 'RUBRICA_TABULAR' || 
+                            $itemResumen['tipo_item'] === 'RUBRICA_COMPONENTE') {
+                        $notaPracticoSobre20 = $itemResumen['nota_tribunal_sobre_20'] ?? 0;
+                        $ponderacionPractico = $itemResumen['ponderacion_global'] ?? 50;
+                        $calificacionPracticoPonderada = $itemResumen['puntaje_ponderado_item'] ?? 0;
+                    }
+                }
+            }
+
+            // Variables de calificación detallada
+            $templateProcessor->setValue('nota_teorico_sobre_20', number_format($notaTeoricoSobre20, 2));
+            $templateProcessor->setValue('ponderacion_teorico', intval($ponderacionTeorico));
+            $templateProcessor->setValue('calificacion_teorico_ponderada', number_format($calificacionTeoricoPonderada, 2));
+
+            $templateProcessor->setValue('nota_practico_sobre_20', number_format($notaPracticoSobre20, 2));
+            $templateProcessor->setValue('ponderacion_practico', intval($ponderacionPractico));
+            $templateProcessor->setValue('calificacion_practico_ponderada', number_format($calificacionPracticoPonderada, 2));
+
+            // Variables para componentes individuales de rúbrica
+            $componentesRubrica = [];
+            foreach ($this->resumenNotasCalculadas as $itemResumen) {
+                if ($itemResumen['tipo_item'] === 'RUBRICA_COMPONENTE') {
+                    $componentesRubrica[] = $itemResumen;
+                }
+            }
+
+            // Componente 1
+            if (isset($componentesRubrica[0])) {
+                $templateProcessor->setValue('componente1_nombre', 'Parte escrita (resolución del problema profesional / estudio de caso)');
+                $templateProcessor->setValue('componente1_nota', number_format($componentesRubrica[0]['nota_tribunal_sobre_20'] ?? 0, 2));
+                $templateProcessor->setValue('componente1_ponderacion', number_format(($componentesRubrica[0]['ponderacion_global'] ?? 0) * 2, 0));
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente1_calificacion_ponderada', number_format($componentesRubrica[0]['puntaje_ponderado_item'] ?? 0, 2));
+            } else {
+                $templateProcessor->setValue('componente1_nombre', 'N/A');
+                $templateProcessor->setValue('componente1_nota', '0.00');
+                $templateProcessor->setValue('componente1_ponderacion', '0');
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente1_calificacion_ponderada', '0.00');
+            }
+
+            // Componente 2
+            if (isset($componentesRubrica[1])) {
+                $templateProcessor->setValue('componente2_nombre', 'Defensa / sustentación/ exposición oral');
+                $templateProcessor->setValue('componente2_nota', number_format($componentesRubrica[1]['nota_tribunal_sobre_20'] ?? 0, 2));
+                $templateProcessor->setValue('componente2_ponderacion', number_format(($componentesRubrica[1]['ponderacion_global'] ?? 0) * 2, 0));
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente2_calificacion_ponderada', number_format($componentesRubrica[1]['puntaje_ponderado_item'] ?? 0, 2));
+            } else {
+                $templateProcessor->setValue('componente2_nombre', 'N/A');
+                $templateProcessor->setValue('componente2_nota', '0.00');
+                $templateProcessor->setValue('componente2_ponderacion', '0');
+                // AGREGAR ESTA LÍNEA:
+                $templateProcessor->setValue('componente2_calificacion_ponderada', '0.00');
+            }
+
+            // Generar nombre del archivo
+            $nombreEstudiante = $estudiante->nombres_completos_id ?? 'Estudiante';
+            $nombreEstudiante = Str::slug($nombreEstudiante, '_');
+            $fecha = $this->tribunal->fecha ? date('Y-m-d', strtotime($this->tribunal->fecha)) : date('Y-m-d');
+            $nombreArchivoWord = "acta_tribunal_{$nombreEstudiante}_{$fecha}.docx";
+            $nombreArchivoPdf = "acta_tribunal_{$nombreEstudiante}_{$fecha}.pdf";
+
+            // Guardar Word temporal
+            $tempWordPath = storage_path('app/temp/' . $nombreArchivoWord);
+            if (!file_exists(dirname($tempWordPath))) {
+                mkdir(dirname($tempWordPath), 0755, true);
+            }
+            $templateProcessor->saveAs($tempWordPath);
+
+            // Configurar renderer de PDF para PHPWord
+            \PhpOffice\PhpWord\Settings::setPdfRendererPath(base_path('vendor/mpdf/mpdf'));
+            \PhpOffice\PhpWord\Settings::setPdfRendererName(\PhpOffice\PhpWord\Settings::PDF_RENDERER_MPDF);
+
+            // Convertir Word a PDF usando PHPWord
+            $phpWord = \PhpOffice\PhpWord\IOFactory::load($tempWordPath);
+            $pdfWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'PDF');
+
+            $tempPdfPath = storage_path('app/temp/' . $nombreArchivoPdf);
+            $pdfWriter->save($tempPdfPath);
+
+            // Eliminar Word temporal
+            if (file_exists($tempWordPath)) {
+                unlink($tempWordPath);
+            }
+
+            session()->flash('success', 'Acta PDF (desde Word) generada exitosamente.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            $this->dispatchBrowserEvent('downloadFile', ['path' => $nombreArchivoPdf]);
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error al generar el acta PDF desde Word: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+            Log::error('Error al exportar acta PDF desde Word: ' . $e->getMessage(), [
+                'tribunal_id' => $this->tribunal->id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    public function descargarActaFirmada()
+    {
+        if (!$this->tribunal || !$this->tribunal->acta_firmada_path) {
+            session()->flash('danger', 'No hay acta firmada disponible para descargar.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        // Verificar permisos usando Gate
+        if (!Gate::allows('descargar-acta-firmada-de-este-tribunal', $this->tribunal)) {
+            session()->flash('danger', 'No tienes permisos para descargar esta acta firmada.');
+            $this->dispatchBrowserEvent('showFlashMessage');
+            return;
+        }
+
+        try {
+            if (!Storage::disk('private')->exists($this->tribunal->acta_firmada_path)) {
+                session()->flash('danger', 'El archivo del acta firmada no existe en el servidor.');
+                $this->dispatchBrowserEvent('showFlashMessage');
+                return;
+            }
+
+            $nombreEstudiante = $this->tribunal->estudiante
+                ? str_replace(' ', '_', $this->tribunal->estudiante->apellidos . '_' . $this->tribunal->estudiante->nombres)
+                : 'tribunal_' . $this->tribunal->id;
+
+            $nombreArchivo = 'Acta_Firmada_' . $nombreEstudiante . '_' . date('Y-m-d') . '.pdf';
+
+            return Storage::disk('private')->download($this->tribunal->acta_firmada_path, $nombreArchivo);
+
+        } catch (\Exception $e) {
+            session()->flash('danger', 'Error al descargar el acta firmada: ' . $e->getMessage());
+            $this->dispatchBrowserEvent('showFlashMessage');
+            Log::error('Error al descargar acta firmada: ' . $e->getMessage(), [
+                'tribunal_id' => $this->tribunal->id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    private function numeroALetrasConPunto($numero): string
+    {
+        $numeros = [
+            0 => 'CERO', 1 => 'UNO', 2 => 'DOS', 3 => 'TRES', 4 => 'CUATRO',
+            5 => 'CINCO', 6 => 'SEIS', 7 => 'SIETE', 8 => 'OCHO', 9 => 'NUEVE',
+            10 => 'DIEZ', 11 => 'ONCE', 12 => 'DOCE', 13 => 'TRECE', 14 => 'CATORCE',
+            15 => 'QUINCE', 16 => 'DIECISÉIS', 17 => 'DIECISIETE', 18 => 'DIECIOCHO',
+            19 => 'DIECINUEVE', 20 => 'VEINTE', 30 => 'TREINTA', 40 => 'CUARENTA',
+            50 => 'CINCUENTA', 60 => 'SESENTA', 70 => 'SETENTA', 80 => 'OCHENTA',
+            90 => 'NOVENTA', 99 => 'NOVENTA Y NUEVE',
+        ];
+
+        $parteEntera = floor($numero);
+        $parteDecimal = round(($numero - $parteEntera) * 100);
+
+        $textoEntera = $numeros[$parteEntera] ?? 'ERROR';
+        $textoDecimal = $numeros[$parteDecimal] ?? 'ERROR';
+
+        return number_format($numero, 2) . ' ' . $textoEntera . ' PUNTO ' . $textoDecimal;
     }
 
     public function render()

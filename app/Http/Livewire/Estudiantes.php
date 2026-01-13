@@ -18,12 +18,15 @@ class Estudiantes extends Component
     use WithPagination, WithFileUploads;
     protected $paginationTheme = 'bootstrap';
     public $selected_id, $keyWord, $nombres, $apellidos, $cedula, $correo, $telefono, $username, $ID_estudiante, $founded;
+    public $carrera_periodo_id; // Nueva propiedad para la carrera-periodo del estudiante
     public $archivoExcel;
     public $importErrors = [];
     public $importing = false;
     public $importFinished = false;
     public $perPage = 10;
     public $carrerasPeriodosAccesibles = [];
+    public $carrerasPeriodosDisponibles = []; // Para poblar el selector
+    public $carrera_periodo_filter = ''; // Filtro por carrera-periodo en la vista
 
     public function mount()
     {
@@ -34,6 +37,9 @@ class Estudiantes extends Component
 
         // Cargar carreras-períodos accesibles para el usuario
         $this->cargarCarrerasPeriodosAccesibles();
+
+        // Cargar carreras-períodos disponibles para el selector (con relaciones cargadas)
+        $this->cargarCarrerasPeriodosDisponibles();
     }
 
     /**
@@ -72,6 +78,22 @@ class Estudiantes extends Component
         $this->carrerasPeriodosAccesibles = $carrerasPeriodos->pluck('id')->toArray();
     }
 
+    /**
+     * Cargar carreras-períodos disponibles para el selector (con relaciones para mostrar en el dropdown)
+     */
+    private function cargarCarrerasPeriodosDisponibles()
+    {
+        $user = auth()->user();
+
+        // Si es Super Admin o Administrador, puede ver todas las carreras-periodos
+        if (ContextualAuth::isSuperAdminOrAdmin($user)) {
+            $this->carrerasPeriodosDisponibles = CarrerasPeriodo::with(['carrera', 'periodo'])->get();
+        } else {
+            // Para otros usuarios, solo las carreras-periodos a las que tiene acceso
+            $this->carrerasPeriodosDisponibles = ContextualAuth::getAccessibleCarrerasPeriodos($user);
+        }
+    }
+
     public function render()
     {
         // Verificar autorización en cada render
@@ -99,10 +121,14 @@ class Estudiantes extends Component
                 // Si no tiene carreras-períodos asignados, no ve ningún estudiante
                 $query->whereRaw('1 = 0');
             } else {
-                // Aquí deberíamos filtrar por la relación con carreras-períodos
-                // Por ahora, asumimos que todos los estudiantes son visibles para Director/Apoyo
-                // En el futuro, podrías agregar una relación estudiante-carrera-periodo
+                // Filtrar estudiantes por las carreras-periodos a las que tiene acceso
+                $query->whereIn('carrera_periodo_id', $this->carrerasPeriodosAccesibles);
             }
+        }
+
+        // Aplicar filtro de carrera-periodo si está seleccionado
+        if ($this->carrera_periodo_filter) {
+            $query->where('carrera_periodo_id', $this->carrera_periodo_filter);
         }
 
         return view('livewire.estudiantes.view', [
@@ -120,6 +146,7 @@ class Estudiantes extends Component
             'telefono' => 'nullable',
             'username' => 'required|unique:estudiantes,username,' . $this->selected_id,
             'ID_estudiante' => 'required|unique:estudiantes,ID_estudiante,' . $this->selected_id,
+            'carrera_periodo_id' => 'required|exists:carreras_periodos,id',
         ];
 
         return $rules;
@@ -139,6 +166,7 @@ class Estudiantes extends Component
         $this->telefono = null;
         $this->username = null;
         $this->ID_estudiante = null;
+        $this->carrera_periodo_id = null;
     }
 
     public function store()
@@ -152,11 +180,25 @@ class Estudiantes extends Component
         $this->validate([
             'nombres' => 'required',
             'apellidos' => 'required',
-            'cedula' => 'required|unique:estudiantes,cedula',
-            'correo' => 'required|email|unique:estudiantes,correo',
+            'cedula' => [
+                'required',
+                'unique:estudiantes,cedula,NULL,id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
+            'correo' => [
+                'required',
+                'email',
+                'unique:estudiantes,correo,NULL,id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
             'telefono' => 'nullable',
-            'username' => 'required|unique:estudiantes,username',
-            'ID_estudiante' => 'required|unique:estudiantes,ID_estudiante',
+            'username' => [
+                'required',
+                'unique:estudiantes,username,NULL,id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
+            'ID_estudiante' => [
+                'required',
+                'unique:estudiantes,ID_estudiante,NULL,id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
+            'carrera_periodo_id' => 'required|exists:carreras_periodos,id',
         ]);
 
         Estudiante::create([
@@ -166,7 +208,8 @@ class Estudiantes extends Component
             'correo' => $this->correo,
             'telefono' => $this->telefono,
             'username' => $this->username,
-            'ID_estudiante' => $this->ID_estudiante
+            'ID_estudiante' => $this->ID_estudiante,
+            'carrera_periodo_id' => $this->carrera_periodo_id,
         ]);
 
         $this->resetInput();
@@ -191,6 +234,7 @@ class Estudiantes extends Component
         $this->telefono = $record->telefono;
         $this->username = $record->username;
         $this->ID_estudiante = $record->ID_estudiante;
+        $this->carrera_periodo_id = $record->carrera_periodo_id;
     }
 
     public function update()
@@ -204,11 +248,25 @@ class Estudiantes extends Component
         $this->validate([
             'nombres' => 'required',
             'apellidos' => 'required',
-            'cedula' => 'required|unique:estudiantes,cedula,' . $this->selected_id,
-            'correo' => 'required|email|unique:estudiantes,correo,' . $this->selected_id,
+            'cedula' => [
+                'required',
+                'unique:estudiantes,cedula,' . $this->selected_id . ',id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
+            'correo' => [
+                'required',
+                'email',
+                'unique:estudiantes,correo,' . $this->selected_id . ',id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
             'telefono' => 'nullable',
-            'username' => 'required|unique:estudiantes,username,' . $this->selected_id,
-            'ID_estudiante' => 'required|unique:estudiantes,ID_estudiante,' . $this->selected_id,
+            'username' => [
+                'required',
+                'unique:estudiantes,username,' . $this->selected_id . ',id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
+            'ID_estudiante' => [
+                'required',
+                'unique:estudiantes,ID_estudiante,' . $this->selected_id . ',id,carrera_periodo_id,' . $this->carrera_periodo_id
+            ],
+            'carrera_periodo_id' => 'required|exists:carreras_periodos,id',
         ]);
 
         if ($this->selected_id) {
@@ -220,7 +278,8 @@ class Estudiantes extends Component
                 'correo' => $this->correo,
                 'telefono' => $this->telefono,
                 'username' => $this->username,
-                'ID_estudiante' => $this->ID_estudiante
+                'ID_estudiante' => $this->ID_estudiante,
+                'carrera_periodo_id' => $this->carrera_periodo_id,
             ]);
 
             $this->resetInput();
@@ -280,14 +339,18 @@ class Estudiantes extends Component
         }
 
         $this->validate([
-            'archivoExcel' => 'required|file|mimes:xlsx,xls'
+            'archivoExcel' => 'required|file|mimes:xlsx,xls',
+            'carrera_periodo_id' => 'required|exists:carreras_periodos,id',
+        ], [
+            'carrera_periodo_id.required' => 'Debe seleccionar una carrera y periodo para los estudiantes.',
         ]);
 
         $this->importing = true;
         $this->importFinished = false;
         $this->importErrors = [];
 
-        $import = new EstudiantesImport();
+        // Pasar carrera_periodo_id al importador
+        $import = new EstudiantesImport($this->carrera_periodo_id);
 
         try {
             Excel::import($import, $this->archivoExcel->getRealPath());
@@ -302,7 +365,9 @@ class Estudiantes extends Component
                 session()->flash('warning', 'Importación completada, pero algunas filas no se importaron debido a errores de validación.');
             } else {
                 // Mensaje de éxito total
-                session()->flash('success', '¡Todas las filas se importaron exitosamente!');
+                $carreraPeriodo = \App\Models\CarrerasPeriodo::find($this->carrera_periodo_id);
+                $carreraNombre = $carreraPeriodo ? ($carreraPeriodo->carrera->nombre . ' - ' . $carreraPeriodo->periodo->codigo_periodo) : '';
+                session()->flash('success', '¡Todas las filas se importaron exitosamente a ' . $carreraNombre . '!');
             }
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             $failures = $e->failures();
@@ -320,23 +385,36 @@ class Estudiantes extends Component
 
     /**
      * Verificar si el usuario puede realizar operaciones de gestión completa (CRUD) usando ContextualAuth
-     * Nota: Director y Docente de Apoyo NO pueden gestionar, solo visualizar e importar
+     * Director y Docente de Apoyo pueden gestionar estudiantes en sus carreras-períodos asignadas
      */
     public function puedeGestionarEstudiantes()
     {
         $user = auth()->user();
 
-        // Super Admin y Administrador con permiso específico
+        // Super Admin con permiso específico
         if (ContextualAuth::isSuperAdminOrAdmin($user)) {
             return Gate::allows('gestionar estudiantes');
         }
 
-        // Director y Docente de Apoyo NO pueden gestionar (crear/editar/eliminar)
-        // Solo pueden visualizar e importar
+        // Verificar si tiene asignaciones contextuales como Director o Docente de Apoyo
+        // en lugar de verificar rol global (porque pueden tener rol "Docente" pero estar asignados contextualmente)
+        $carrerasPeriodos = CarrerasPeriodo::where(function($query) use ($user) {
+            $query->where('director_id', $user->id)
+                  ->orWhere('docente_apoyo_id', $user->id);
+        })->exists();
+
+        if ($carrerasPeriodos) {
+            return true; // Tienen acceso automático si están asignados como director o apoyo
+        }
 
         // Otros roles requieren el permiso específico
         return Gate::allows('gestionar estudiantes');
     }
+
+   public function puedeVerTodosEstudiantes()
+    {
+        return ContextualAuth::isSuperAdminOrAdmin(auth()->user());
+    }    
 
     /**
      * Verificar si el usuario puede visualizar estudiantes usando ContextualAuth

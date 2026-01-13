@@ -153,7 +153,7 @@ class Roles extends Component
 
         // Verificar que no sea un rol del sistema protegido
         $role = Role::findById($id);
-        if (in_array($role->name, ['Super Admin', 'Administrador'])) {
+        if (in_array($role->name, ['Super Admin'])) {
             session()->flash('error', 'No se puede eliminar este rol del sistema.');
             return;
         }

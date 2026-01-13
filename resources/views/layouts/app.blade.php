@@ -153,7 +153,15 @@
 
 <body>
     <div id="app" style="background:#ffffff;">
-        <nav class="navbar sticky-top navbar-expand-md navbar-light shadow-sm mb-4">
+        @guest
+            @if (!Request::is('login'))
+                <nav class="navbar sticky-top navbar-expand-md navbar-light shadow-sm mb-4">
+        @else
+            <nav class="navbar sticky-top navbar-expand-md navbar-light shadow-sm mb-4" style="display:none;">
+        @endif
+        @else
+            <nav class="navbar sticky-top navbar-expand-md navbar-light shadow-sm mb-4">
+        @endguest
             <div class="container" style="height:70px;">
                 <!-- Logo y Brand -->
                 <div class="navbar-brand d-flex align-items-center">
@@ -223,7 +231,7 @@
             </div>
         </nav>
         <div class="contentImagePrincipalContainer">
-            <img class="" src="{{ Storage::url('fondos/002-Cotopaxi.jpg') }}" alt="Fondo Ecuador">
+            <img class="" src="{{ Storage::url('fondos/ESPE.png') }}" alt="Fondo Ecuador">
         </div>
         <main class="p-0 m-0 fade-in">
             {{-- Contenido Principal --}}

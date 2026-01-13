@@ -164,18 +164,53 @@
         @endpush
 
         <div class="container-fluid p-0">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="fs-2 fw-semibold">
-                    <a href="{{ route('tribunales.principal') }}" class="text-decoration-none text-dark">Mis Evaluaciones</a>
-                    /
-                    @if ($tribunal && $estudianteNombreCompleto)
-                        <span class="text-muted">Calificando a: {{ $estudianteNombreCompleto }} ({{ $carreraNombre }} -
-                            {{ $periodoCodigo }})</span>
-                    @else
-                        <span class="text-muted">Calificar Tribunal</span>
-                    @endif
+            <!-- Banner Verde ESPE -->
+            <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #3d8e72ff 0%, #3da66aff 100%);">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            @if (file_exists(public_path('storage/logos/LOGO-ESPE_500.png')))
+                                <img src="{{ asset('storage/logos/LOGO-ESPE_500.png') }}" alt="Logo ESPE"
+                                     style="width: 60px; height: 60px; object-fit: contain;" class="me-3">
+                            @else
+                                <div class="bg-white bg-opacity-25 rounded p-2 me-3">
+                                    <i class="bi bi-clipboard2-check fs-3 text-white"></i>
+                                </div>
+                            @endif
+                            <div>
+                                <h1 class="h3 mb-1 fw-bold text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                                    CALIFICAR TRIBUNAL
+                                </h1>
+                                <p class="mb-0 text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                                    @if ($tribunal && $estudianteNombreCompleto)
+                                        {{ $estudianteNombreCompleto }} - {{ $carreraNombre }} ({{ $periodoCodigo }})
+                                    @else
+                                        Sistema de evaluación de tribunales
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Breadcrumbs -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ route('tribunales.principal') }}" class="text-decoration-none">
+                            <i class="bi bi-house-door me-1"></i>Mis Evaluaciones
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        @if ($tribunal && $estudianteNombreCompleto)
+                            {{ $estudianteNombreCompleto }}
+                        @else
+                            Calificar Tribunal
+                        @endif
+                    </li>
+                </ol>
+            </nav>
 
             @include('partials.alerts')
 
@@ -204,25 +239,26 @@
             @endif
 
             @if ($tribunal && $planEvaluacionActivo && $tieneAlgoQueCalificar && $tribunal->estado === 'ABIERTO')
-                <div class="card shadow-sm">
-                    {{-- En resources/views/livewire/tribunales/principal/calificar.blade.php --}}
-
-                    <div class="card-header">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header border-0 py-3" style="background-color: #f8f9fa;">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <h5 class="mb-0"><i class="bi bi-clipboard2-check-fill text-success"></i> Formulario de
-                                    Calificación para: <strong>{{ $estudianteNombreCompleto ?? 'N/D' }}</strong></h5>
+                                <h5 class="mb-0 fw-bold" style="color: #2d7a5f;">
+                                    <i class="bi bi-clipboard2-check-fill me-2"></i>Formulario de Calificación
+                                </h5>
+                                <p class="mb-0 small mt-1" style="color: #6c757d;">
+                                    <strong>Estudiante:</strong> {{ $estudianteNombreCompleto ?? 'N/D' }}
+                                </p>
                                 @if ($planEvaluacionActivo)
-                                    <p class="mb-0 small text-muted">Plan de Evaluación: {{ $planEvaluacionActivo->nombre }}
+                                    <p class="mb-0 small text-muted">
+                                        <i class="bi bi-file-text me-1"></i>Plan: {{ $planEvaluacionActivo->nombre }}
                                     </p>
                                 @endif
                             </div>
-                            {{-- En el card-header --}}
                             <div class="text-end">
                                 @php
-                                    $rolMostrado = 'Indefinido'; // Default más genérico
+                                    $rolMostrado = 'Indefinido';
                                     if ($rolUsuarioActualEnTribunal) {
-                                        // Prioridad si es miembro físico
                                         $rolMostrado = Str::title(
                                             Str::lower(Str_replace('_', ' ', $rolUsuarioActualEnTribunal)),
                                         );
@@ -232,19 +268,23 @@
                                         } elseif ($tribunal->carrerasPeriodo->docente_apoyo_id == $usuarioActual?->id) {
                                             $rolMostrado = 'Docente de Apoyo';
                                         } elseif ($esCalificadorGeneral) {
-                                            // Usar la propiedad pública del componente
                                             $rolMostrado = 'Calificador General';
                                         }
                                     }
                                 @endphp
-                                <span class="text-muted small">Su Rol de Evaluación:</span><br>
-                                <span
-                                    class="badge
-                                    @if ($rolUsuarioActualEnTribunal === 'PRESIDENTE' || $rolMostrado === 'Director de Carrera') bg-success
-                                    @elseif($rolUsuarioActualEnTribunal === 'INTEGRANTE1' || $rolMostrado === 'Docente de Apoyo') bg-info text-dark
-                                    @elseif($rolUsuarioActualEnTribunal === 'INTEGRANTE2') bg-secondary
-                                    @elseif($rolMostrado === 'Calificador General') bg-warning text-dark
-                                    @else bg-dark @endif">
+                                <span class="text-muted small fw-semibold">Su Rol de Evaluación:</span><br>
+                                <span class="badge px-3 py-2 mt-1"
+                                    @if ($rolUsuarioActualEnTribunal === 'PRESIDENTE' || $rolMostrado === 'Director de Carrera')
+                                        style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); font-size: 13px;"
+                                    @elseif($rolUsuarioActualEnTribunal === 'INTEGRANTE1' || $rolMostrado === 'Docente de Apoyo')
+                                        style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); font-size: 13px;"
+                                    @elseif($rolUsuarioActualEnTribunal === 'INTEGRANTE2')
+                                        style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); font-size: 13px;"
+                                    @elseif($rolMostrado === 'Calificador General')
+                                        style="background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); font-size: 13px; color: #000;"
+                                    @else
+                                        style="background: linear-gradient(135deg, #343a40 0%, #23272b 100%); font-size: 13px;"
+                                    @endif>
                                     {{ $rolMostrado }}
                                 </span>
                             </div>
@@ -263,32 +303,39 @@
 
                                 @if ($mostrarBloqueItem)
                                     @php $itemRenderedCount++; @endphp
-                                    <div class="mb-4 p-3 border rounded item-evaluacion-block shadow-sm bg-light">
-                                        <h5>{{ $loop->iteration }}. {{ $itemPlan->nombre_item }}
-                                            <span class="badge bg-secondary">{{ $itemPlan->ponderacion_global }}%</span>
+                                    <div class="mb-4 p-4 border rounded item-evaluacion-block shadow-sm" style="background-color: #f8f9fa; border-left: 4px solid #3d8e72ff !important;">
+                                        <h5 class="fw-bold mb-3" style="color: #2d7a5f;">
+                                            <i class="bi bi-file-earmark-text me-2"></i>{{ $loop->iteration }}. {{ $itemPlan->nombre_item }}
+                                            <span class="badge px-3 py-2 ms-2" style="background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); font-size: 13px;">
+                                                {{ $itemPlan->ponderacion_global }}%
+                                            </span>
                                         </h5>
 
                                         @if ($itemPlan->tipo_item === 'NOTA_DIRECTA')
                                             <div class="row">
                                                 <div class="col-md-4 mb-3">
-                                                    <label for="nota_directa_{{ $itemPlanId }}" class="form-label">Nota
-                                                        (sobre 20)
+                                                    <label for="nota_directa_{{ $itemPlanId }}" class="form-label fw-semibold">
+                                                        <i class="bi bi-123 me-1"></i>Nota (sobre 20)
                                                     </label>
                                                     <input type="number" step="0.01" min="0" max="20"
                                                         class="form-control @error('calificaciones.' . $itemPlanId . '.nota_directa') is-invalid @enderror"
                                                         id="nota_directa_{{ $itemPlanId }}"
-                                                        wire:model.defer="calificaciones.{{ $itemPlanId }}.nota_directa">
+                                                        wire:model.defer="calificaciones.{{ $itemPlanId }}.nota_directa"
+                                                        placeholder="Ej: 15.50">
                                                     @error('calificaciones.' . $itemPlanId . '.nota_directa')
                                                         <span class="invalid-feedback">{{ $message }}</span>
                                                     @enderror
                                                 </div>
                                                 <div class="col-md-8 mb-3">
                                                     <label for="obs_general_item_{{ $itemPlanId }}"
-                                                        class="form-label">Observación General (Opcional)</label>
+                                                        class="form-label fw-semibold">
+                                                        <i class="bi bi-chat-left-text me-1"></i>Observación General (Opcional)
+                                                    </label>
                                                     <textarea
                                                         class="form-control @error('calificaciones.' . $itemPlanId . '.observacion_general_item') is-invalid @enderror"
                                                         id="obs_general_item_{{ $itemPlanId }}" rows="2"
-                                                        wire:model.defer="calificaciones.{{ $itemPlanId }}.observacion_general_item"></textarea>
+                                                        wire:model.defer="calificaciones.{{ $itemPlanId }}.observacion_general_item"
+                                                        placeholder="Ingrese comentarios adicionales..."></textarea>
                                                     @error('calificaciones.' . $itemPlanId . '.observacion_general_item')
                                                         <span class="invalid-feedback">{{ $message }}</span>
                                                     @enderror
@@ -345,31 +392,32 @@
 
                                                 @if ($puedeCalificarEsteComponente)
                                                     @php $componenteCalificableRenderedCount++; @endphp
-                                                    <div
-                                                        class="mb-4 p-3 border-start border-3 {{ $loop->parent->even ? 'border-primary' : 'border-info' }} bg-white shadow-sm">
-                                                        <h6 class="text-primary">{{ $componenteR->nombre }} <small
-                                                                class="text-muted">({{ $componenteR->ponderacion }}% de
-                                                                esta rúbrica)</small></h6>
+                                                    <div class="mb-4 p-3 border-start border-3 bg-white shadow-sm rounded"
+                                                         style="border-left-color: {{ $loop->parent->even ? '#3d8e72ff' : '#17a2b8' }} !important;">
+                                                        <h6 class="fw-bold mb-3" style="color: #2d7a5f;">
+                                                            <i class="bi bi-grid-3x3 me-2"></i>{{ $componenteR->nombre }}
+                                                            <small class="text-muted fw-normal">({{ $componenteR->ponderacion }}% de esta rúbrica)</small>
+                                                        </h6>
                                                         <div class="table-responsive">
-                                                            <table
-                                                                class="table table-bordered table-rubrica-calificacion align-middle">
-                                                                <thead class="table-light">
+                                                            <table class="table table-bordered table-rubrica-calificacion align-middle">
+                                                                <thead style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                                                                     <tr>
-                                                                        <th class="text-center" style="width: 25%;">Criterio
+                                                                        <th class="text-center fw-semibold" style="width: 25%;">
+                                                                            <i class="bi bi-list-check me-1"></i>Criterio
                                                                         </th>
                                                                         @if ($nivelesEncabezado->isNotEmpty())
                                                                             @foreach ($nivelesEncabezado as $nivel)
-                                                                                <th class="text-center">
+                                                                                <th class="text-center fw-semibold">
                                                                                     {{ $nivel->nombre }} <br>
-                                                                                    ({{ $nivel->valor }})
+                                                                                    <small class="text-muted">({{ $nivel->valor }})</small>
                                                                                 </th>
                                                                             @endforeach
                                                                         @else
-                                                                            <th class="text-center">Niveles de Calificación
-                                                                            </th>
+                                                                            <th class="text-center fw-semibold">Niveles de Calificación</th>
                                                                         @endif
-                                                                        <th class="text-center" style="width: 20%;">
-                                                                            Observación (Opcional)</th>
+                                                                        <th class="text-center fw-semibold" style="width: 20%;">
+                                                                            <i class="bi bi-chat-square-text me-1"></i>Observación (Opcional)
+                                                                        </th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
@@ -532,16 +580,22 @@
 
                             @if ($itemRenderedCount > 0)
                                 <div class="mt-4">
-                                    <button type="submit" class="btn btn-success px-4" wire:loading.attr="disabled">
+                                    <button type="submit" class="btn text-white px-4 py-2" wire:loading.attr="disabled"
+                                            style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); border: none; transition: all 0.3s ease; font-weight: 600;"
+                                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(40,167,69,0.4)'"
+                                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                                         <span wire:loading wire:target="guardarCalificaciones"
-                                            class="spinner-border spinner-border-sm" role="status"
+                                            class="spinner-border spinner-border-sm me-2" role="status"
                                             aria-hidden="true"></span>
-                                        <i class="bi bi-check-circle-fill" wire:loading.remove
+                                        <i class="bi bi-check-circle-fill me-2" wire:loading.remove
                                             wire:target="guardarCalificaciones"></i>
                                         Guardar Mis Calificaciones
                                     </button>
-                                    <a href="{{ route('tribunales.principal') }}" class="btn btn-secondary">
-                                        <i class="bi bi-x-circle"></i> Volver a Mis Evaluaciones
+                                    <a href="{{ route('tribunales.principal') }}" class="btn btn-outline-secondary px-4 py-2"
+                                       style="transition: all 0.3s ease; font-weight: 600;"
+                                       onmouseover="this.style.transform='translateY(-2px)'"
+                                       onmouseout="this.style.transform='translateY(0)'">
+                                        <i class="bi bi-x-circle me-2"></i>Volver a Mis Evaluaciones
                                     </a>
                                 </div>
                             @else

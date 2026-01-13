@@ -41,6 +41,13 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->midd
 
 Route::middleware('auth')->group(function () {
 
+    // === PERFIL DEL USUARIO (Todos los usuarios autenticados) ===
+    Route::get('/perfil', [UserController::class, 'miPerfil'])->name('mi.perfil');
+    Route::post('/dismiss-password-reminder', function() {
+        session(['password_change_reminder_dismissed' => true]);
+        return response()->json(['status' => 'success']);
+    })->name('dismiss.password.reminder');
+
     // === ROLES & PERMISOS (Solo Super Admin) ===
     Route::middleware(['permission:gestionar roles y permisos'])->prefix('roles')->namespace('Roles')->name('roles.')->group(function () {
         Route::view('/', 'livewire.roles.index');
@@ -51,11 +58,13 @@ Route::middleware('auth')->group(function () {
         Route::view('/', 'livewire.permissions.index');
     });
 
-    // === USUARIOS/PROFESORES (Super Admin y Administrador) ===
-    Route::middleware(['permission:gestionar usuarios'])->prefix('users')->namespace('Users')->name('users.')->group(function () {
+    // === USUARIOS/PROFESORES (Super Admin, Administrador, Director, Docente de Apoyo) ===
+    Route::prefix('users')->namespace('Users')->name('users.')->group(function () {
+        // Verificación de permisos básicos - la verificación contextual se hará en los componentes Livewire
         Route::view('/', 'livewire.users.index');
         Route::get('/profile/{id}', [UserController::class, 'profile'])->name('profile');
-        Route::put('/updateRoles/{id}', [UserController::class, 'updateRoles'])->name('updateRoles');
+        // Solo Super Admin puede cambiar roles
+        Route::middleware(['permission:gestionar roles y permisos'])->put('/updateRoles/{id}', [UserController::class, 'updateRoles'])->name('updateRoles');
         Route::get('/exitImpersonate/', [UserController::class, 'exitImpersonate'])->name('exitImpersonate');
     });
 
@@ -97,10 +106,26 @@ Route::middleware('auth')->group(function () {
         Route::get('/calificar/{tribunalId}', [TribunalesController::class,'calificar'])->name('calificar');
     });
 
+    // === ACTAS FIRMADAS ===
+    // Para presidentes de tribunales - subir actas firmadas
+    Route::middleware(['permission:subir acta firmada mi tribunal (presidente)'])->group(function () {
+        Route::view('/actas-firmadas', 'livewire.actas-firmadas.index')->name('actas-firmadas.index');
+    });
+
+    // Para directores y docentes de apoyo - descargar actas firmadas
+    Route::middleware(['permission:descargar actas firmadas'])->group(function () {
+        Route::view('/actas-firmadas-descarga', 'livewire.actas-firmadas-descarga.index')->name('actas-firmadas-descarga.index');
+    });
+
     // === PLANES DE EVALUACIÓN (Contextual según carrera-período) ===
     Route::prefix('planes-evaluacion')->name('planes_evaluacion.')->group(function () {
         // Verificación contextual en el controlador usando Gates
         Route::get('/manage/{carreraPeriodoId}', [PlanEvaluacionController::class, 'manage'])->name('manage');
+    });
+
+    // === PLANTILLAS DE ACTA WORD (Solo Super Admin) ===
+    Route::middleware(['role:Super Admin'])->prefix('plantillas-acta-word')->name('plantillas_acta_word.')->group(function () {
+        Route::view('/', 'livewire.plantillas-acta-word.index')->name('index');
     });
 
     // Ruta para descargar archivos PDF temporales

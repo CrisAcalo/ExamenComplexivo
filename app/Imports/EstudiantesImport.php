@@ -17,6 +17,16 @@ class EstudiantesImport implements ToModel, WithHeadingRow, WithValidation, Skip
 {
     use Importable, SkipsFailures;
 
+    protected $carrera_periodo_id;
+
+    /**
+     * Constructor para recibir el carrera_periodo_id
+     */
+    public function __construct($carrera_periodo_id)
+    {
+        $this->carrera_periodo_id = $carrera_periodo_id;
+    }
+
     /**
      * @param array $row
      *
@@ -56,6 +66,7 @@ class EstudiantesImport implements ToModel, WithHeadingRow, WithValidation, Skip
         return Estudiante::updateOrCreate(
             [
                 'ID_estudiante' => trim($row[$keyIdEspe]), // Usar trim para limpiar espacios
+                'carrera_periodo_id' => $this->carrera_periodo_id, // Incluir periodo en la búsqueda
             ],
             [
                 'nombres'       => trim($row[$keyNombres]),
@@ -79,15 +90,49 @@ class EstudiantesImport implements ToModel, WithHeadingRow, WithValidation, Skip
 
     /**
      * Reglas de validación para cada fila del Excel.
+     * Las reglas de unicidad ahora consideran el periodo académico.
      */
     public function rules(): array
     {
         return [
-            'id_espe' => ['required', 'string', 'unique:estudiantes,ID_estudiante'],
-            'cedula' => ['required', 'numeric', 'unique:estudiantes,cedula'], // CAMBIO AQUÍ
+            'id_espe' => [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $exists = Estudiante::where('ID_estudiante', $value)
+                        ->where('carrera_periodo_id', $this->carrera_periodo_id)
+                        ->exists();
+                    if ($exists) {
+                        $fail("El ID ESPE {$value} ya existe en este periodo académico.");
+                    }
+                }
+            ],
+            'cedula' => [
+                'required',
+                'numeric',
+                function ($attribute, $value, $fail) {
+                    $exists = Estudiante::where('cedula', $value)
+                        ->where('carrera_periodo_id', $this->carrera_periodo_id)
+                        ->exists();
+                    if ($exists) {
+                        $fail("La cédula {$value} ya existe en este periodo académico.");
+                    }
+                }
+            ],
             'apellidos' => ['required', 'string'],
             'nombres' => ['required', 'string'],
-            'correo' => ['required', 'email', 'unique:estudiantes,correo'],
+            'correo' => [
+                'required',
+                'email',
+                function ($attribute, $value, $fail) {
+                    $exists = Estudiante::where('correo', $value)
+                        ->where('carrera_periodo_id', $this->carrera_periodo_id)
+                        ->exists();
+                    if ($exists) {
+                        $fail("El correo {$value} ya existe en este periodo académico.");
+                    }
+                }
+            ],
         ];
     }
 
